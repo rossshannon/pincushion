@@ -1,0 +1,73 @@
+.pin-ac {
+    position: absolute;
+    outline: none;
+    z-index: 1;
+}
+
+form {
+    position: relative;
+}
+
+.pin-ac .bd {
+    position: relative;
+    margin-left:8px; /* MC add */
+    background: #fff;
+    border: 1px solid #aaa;
+    /*border-radius: 3px; */
+    _width: 300px;
+    min-width: 200px;
+
+     -webkit-box-shadow: 1px 1px 3px rgba(0,0,110,0.33);
+    -moz-box-shadow: 1px 1px 3px rgba(0,0,110,0.33);
+}
+
+.pin-ac .hd {
+    height: 0px;
+    overflow: hidden;
+}
+
+.pin-ac .hd span {
+    margin-left: 20px;
+    display: block;
+    height: 1px;
+    width: 12px;
+    /* background: url(pinboard.png); */
+}
+
+.pin-ac.off {
+    display: none;
+    z-index: 0;
+}
+
+.pin-ac ul {
+  margin: 0;
+  padding: 0;
+}
+
+.pin-ac li {
+    padding: 3px 5px;
+    margin: 0;
+    background: #fff;
+    border-bottom: 0px solid #fff;
+    color: #25a;
+    z-index: 1000;
+    list-style-type:none;
+}
+
+.pin-ac .match {
+
+}
+
+.pin-ac .active {
+    background: rgb(150,150,150);
+    color: #fff;
+}
+
+.pin-ac li.exclude,
+.pin-ac li.selected {
+    display: none;
+}
+
+.pin-ac li:hover {
+    cursor: pointer;
+}
