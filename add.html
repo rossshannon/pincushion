@@ -1,283 +1,252 @@
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-    <title>Pinboard - Save a Bookmark</title>
-    <link rel="stylesheet" href="popup.css" />
-    <link rel="stylesheet" href="autocomplete.css" />
+  <meta charset="utf-8">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Pinboard - Save a Bookmark</title>
 
-    <script language="javascript" src="https://pinboard.in/user_tag_list/?auth_token="></script></head>
+  <link rel="stylesheet" href="popup.css">
+  <link rel="stylesheet" href="autocomplete.css">
+
+  <script language="javascript" src="https://pinboard.in/user_tag_list/?auth_token="></script>
+</head>
+
 <body onload="init();">
 
 <script language="javascript">
   var min_height = 550;
-  function init()
-  {
-    if (window.outerHeight < min_height) { window.resizeTo(700,min_height); }
+  function init() {
+    if (window.outerHeight < min_height) {
+      window.resizeTo(700,min_height);
+    }
     document.getElementById("tags").focus();
     get_suggested_tags();
   }
 
-   function checkEnter(e)
-   { //e is event object passed from function invocation
-     if( e.keyCode == 13)
-     {
-        submit();
-        return false;
-     } else {
-        return true;
-     }
+  function checkEnter(e) { //e is event object passed from function invocation
+    if( e.keyCode == 13) {
+      submit();
+      return false;
+    } else {
+      return true;
+    }
   }
-  function submit() { document.forms[0].submit(); }
-  function cancel() { window.close();  }
-</script><script>
-function pin_escape(s)
-{
+  function submit() {
+    document.forms[0].submit();
+  }
+  function cancel() {
+    window.close();
+  }
+</script>
+<script>
+  function pin_escape(s) {
     s = s.replace(/\\/g, "\\\\");
     s = s.replace(/'/g, "\\'"); // "
     s = s.replace(/"/g, '&quot;'); // "
     return s;
-}
+  }
 
-function pin_cook(s)
-{
+  function pin_cook(s) {
     s = s.replace(/</g, '&lt;');
     s = s.replace(/>/g, '&gt;');
     s = s.replace(/"/g, '&quot;');  //"
     return s;
-}
+  }
 
-function pin_sort(a,b)
-{
+  function pin_sort(a,b) {
     var l = a.toLowerCase ? a.toLowerCase() : a;
     var r = b.toLowerCase ? b.toLowerCase() : b;
     if (l == r) { return 0; }
     if (l > r) { return 1; }
     return -1;
-}
+  }
 </script>
 
 <div id="popup_header">
-<div id="logout">[<a href="https://pinboard.in/logout/">log out</a>]</div>
-<div id="title"><a href="https://pinboard.in/">Pinboard</a></div>
+  <div id="logout">[<a href="https://pinboard.in/logout/">log out</a>]</div>
+  <div id="title"><a href="https://pinboard.in/">Pinboard</a></div>
 </div>
 
 
-<form method="post" action="https://pinboard.in/add" >
-  <input type="hidden" name="next" value="" />
+<form method="post" action="https://pinboard.in/add">
+  <input type="hidden" name="next" value="">
   <table>
   <tr>
     <td>URL</td>
-    <td><input type="text" autocorrect="off" name="url" size="70" value="" /></td>
+    <td><input type="text" autocorrect="off" name="url" size="70" value=""></td>
   </tr>
   <tr>
-    <td >title </td>
-    <td> <input type="text" autocomplete="off"  autocapitalize="off"  name="title" size="70" value="" /></td>
+    <td>title</td>
+    <td><input type="text" autocomplete="off" autocapitalize="off" name="title" size="70" value=""></td>
   </tr>
   <tr>
-    <td >description</td>
-    <td><textarea name="description" autocomplete="off"  autocapitalize="off"  cols=70 rows=4></textarea></td>
+    <td>description</td>
+    <td><textarea name="description" autocomplete="off" autocapitalize="off" cols="70" rows="4"></textarea></td>
   </tr>
   <tr>
     <td style="vertical-align:top">tags</td>
-    <td> <input  name="tags" autocomplete="off" autocorrect="off" autocapitalize="off"   id="tags" size="70" value = "" /></td>
+    <td><input name="tags" autocomplete="off" autocorrect="off" autocapitalize="off" id="tags" size="70" value=""></td>
   </tr>
 
-  <tr id="suggestion_row" style="height:30px;visibility:hidden;"><td>suggest</td><td id='suggested'></td></tr>
+  <tr id="suggestion_row" style="height:30px; visibility:hidden;">
+    <td>suggest</td>
+    <td id="suggested"></td>
+  </tr>
 
   <tr>
     <td></td>
     <td>
-        <input type="checkbox" name="private" id="private"
-       /> <label style="display:inline" for="private">private</label>
-        <input type="checkbox" name="toread" id="toread"
-       /> <label style="display:inline" for="toread">read later</label><br></td>
+      <input type="checkbox" name="private" id="private">
+      <label style="display:inline" for="private">private</label>
+      <input type="checkbox" name="toread" id="toread">
+      <label style="display:inline" for="toread">read later</label><br></td>
   </tr>
 
-<tr> <td></td><td><input type="submit" value="add bookmark" />
- </td></tr></table>
+  <tr>
+    <td></td>
+    <td><input type="submit" value="add bookmark"></td>
+  </tr>
+  </table>
 
+<script language="javascript">
 
-
-   <script language="javascript">
-
-
-
- function get_suggested_tags()
- {
+  function get_suggested_tags() {
     //var tags = ["\\o/", "'''", "\"", "'\"'\"\"\\"];
-   // show_suggested_tags(tags);
+    // show_suggested_tags(tags);
+    var url = '';
+    var req = "https://pinboard.in/ajax_suggest?url=" + encodeURIComponent(url);
+    GET(req, show_suggested_tags);
+  }
 
-   var url = '';
-   var req = "https://pinboard.in/ajax_suggest?url=" + encodeURIComponent(url);
-   GET(req, show_suggested_tags);
- }
-
- function show_suggested_tags(tags)
- {
+  function show_suggested_tags(tags) {
     if (!tags) { return; }
     var row = document.getElementById("suggestion_row");
     row.style.visibility = 'visible';
     var cell = document.getElementById("suggested");
     var links = [];
-    for (var i =0;i<tags.length;i++)
-    {
-        var tag = tags[i];
-        var escaped = pin_escape(tag);
-        var cooked  = pin_cook(tag);
-        var link = '<a href="#" class="suggested_tag" onclick="add_tag(\''  +
-                    escaped + '\');return false;">' + cooked + '</a>&nbsp';
-        //console.log(link);
-        links.push(link);
+    for (var i = 0; i < tags.length; i++) {
+      var tag = tags[i];
+      var escaped = pin_escape(tag);
+      var cooked  = pin_cook(tag);
+      var link = '<a href="#" class="suggested_tag" onclick="add_tag(\''  +
+                  escaped + '\');return false;">' + cooked + '</a>&nbsp';
+      links.push(link);
     }
     cell.innerHTML = links.join(" ");
- }
+  }
 
- RegExp.escape = function(text) {
+  RegExp.escape = function(text) {
     return text.replace(/[-[\]{}()*+?.,\\\\'"^$|#\s]/g, "\\$&"); //"'
- }
+  }
 
-
- function add_tag(t)
-{
+  function add_tag(t) {
     var field = document.getElementById('tags');
     var curr = field.value;
-    //console.log(t);
     var tag_regex = new RegExp( "(\\b|\\s)" + RegExp.escape(t) + "(\\b|\\s)");
-    //console.log(tag_regex);
-    if (curr.match(tag_regex) == null)
-    {
-        // TODO handle case when tag is at start of field
-        field.value +=  " " + t;
+    if (curr.match(tag_regex) == null) {
+      // TODO handle case when tag is at start of field
+      field.value += " " + t;
     }
     return false;
-}
+  }
 
-function run_request(type, url, data, callback)
-{
-  var req = new XMLHttpRequest();
-  req.onreadystatechange = function()
-  {
-    if (req.readyState == 4 || req.readyState == 'complete' )
-    {
-        var t = req.responseText;
-        if (t.length){
-            var results = eval("(" + t + ")");
-        }
-        callback( results );
+  function run_request(type, url, data, callback) {
+    var req = new XMLHttpRequest();
+    req.onreadystatechange = function() {
+    if (req.readyState == 4 || req.readyState == "complete") {
+      var t = req.responseText;
+      if (t.length) {
+        var results = eval("(" + t + ")");
+      }
+      callback(results);
     }
-  };
+    };
 
-  req.open(type,url,true);
-  req.setRequestHeader("Content-Type",
-"application/x-www-form-urlencoded; charset=UTF-8");
-  req.send(data);
-}
+    req.open(type,url,true);
+    req.setRequestHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+    req.send(data);
+  }
 
-
-function winclose(e)
-{
-    //console.log(e);
+  function winclose(e) {
     var code;
-    if (e.keyCode)
-    {
-        code = e.keyCode;
+    if (e.keyCode) {
+      code = e.keyCode;
+    } else {
+      if (e.which) {
+        code = e.which;
+      }
     }
-    else
-    {
-        if (e.which)  { code = e.which;  }
+    if (code === 27) {
+      if (!(pin_tagcomplete && pin_tagcomplete.active())) {
+        window.close();
+      }
     }
-    if (code === 27)
-    {
-        if (!(pin_tagcomplete && pin_tagcomplete.active()))
-        {
-            window.close();
-        }
-    }
-}
+  }
 
-
-function GET(url, callback)
-{
+  function GET(url, callback) {
     run_request('GET', url, null, callback);
-}
+  }
 
-
-function PIN_destroyer()
-{
+  function PIN_destroyer() {
     var form;
     var action;
     var curr_delete;
 
-    this.init = function(form,action)
-    {
-        this.form = document.forms[form];
-        this.action = action;
+    this.init = function(form,action) {
+      this.form = document.forms[form];
+      this.action = action;
     };
 
-    this.destroy = function(id)
-    {
-        //console.log("destroy " + id);
-        var f = document.forms['delete'];
-        this.form.elements['id'].value = id;
-        this.form.elements['action'].value = this.action;
-        this.form.submit();
+    this.destroy = function(id) {
+      var f = document.forms['delete'];
+      this.form.elements['id'].value = id;
+      this.form.elements['action'].value = this.action;
+      this.form.submit();
     };
 
-    this.show_destroy = function(id)
-    {
-        this.cancel();
-        var del  = document.getElementById("delete_" + id);
-        var dest = document.getElementById("destroy_" + id);
-        del.style.visibility    = "hidden";
-        del.style.display       = "none";
-        dest.style.visibility   = "visible";
-        dest.style.display      = "inline";
+    this.show_destroy = function(id) {
+      this.cancel();
+      var del = document.getElementById("delete_" + id);
+      var dest = document.getElementById("destroy_" + id);
+      del.style.visibility = "hidden";
+      del.style.display = "none";
+      dest.style.visibility = "visible";
+      dest.style.display = "inline";
 
-        this.curr_delete = id;
+      this.curr_delete = id;
     };
 
-    this.cancel = function()
-    {
-        if (!this.curr_delete) { return; }
-        var del = document.getElementById("delete_" +this.curr_delete);
-        var dest = document.getElementById("destroy_" + this.curr_delete);
-        dest.style.visibility   = "hidden";
-        dest.style.display      = "none";
-        del.style.visibility    = "visible";
-        del.style.display       = "inline";
+    this.cancel = function() {
+      if (!this.curr_delete) { return; }
+      var del = document.getElementById("delete_" + this.curr_delete);
+      var dest = document.getElementById("destroy_" + this.curr_delete);
+      dest.style.visibility = "hidden";
+      dest.style.display = "none";
+      del.style.visibility = "visible";
+      del.style.display = "inline";
     };
-}
-var dst;
+  }
+  var dst;
 
-
-    dst = new PIN_destroyer();
-    dst.init('delete', 'delete');
-
-
- </script>
+  dst = new PIN_destroyer();
+  dst.init('delete', 'delete');
+</script>
 </form>
+
 </body>
 </html>
-<script  src="https://pinboard.in/user_tag_list/?auth_token="></script>
-<script  src="https://pinboard.in/js/pin.js?ayyew"></script>
+
+<script src="https://pinboard.in/user_tag_list/?auth_token="></script>
+<script src="https://pinboard.in/js/pin.js?ayyew"></script>
 <script>
+  var pin_tagcomplete;
+  Pin.Event.listen(window, 'load', function(e) {
+    pin_tagcomplete = new Pin.Tags('tags', usertags, {circular: true, submit_on_return: true });
+  });
 
-    var pin_tagcomplete;
-    Pin.Event.listen(window, 'load', function(e)
-    {
-        pin_tagcomplete = new Pin.Tags('tags', usertags, {circular: true, submit_on_return : true });
-    } );
-
-    if (document.addEventListener)
-    {
-        document.addEventListener('keydown', winclose, false);
-    }
-    else
-    {
-       document.attachEvent('onkeydown', winclose);
-    }
-
-
+  if (document.addEventListener) {
+    document.addEventListener('keydown', winclose, false);
+  } else {
+    document.attachEvent('onkeydown', winclose);
+  }
 </script>
