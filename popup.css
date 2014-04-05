@@ -36,7 +36,7 @@ th, td {
 }
 
 th {
-  padding: 3px 3px 0 3px;
+  padding: 4px 0 0 3px;
   font-size: 80%;
   color: #047BFF;
 }
@@ -53,6 +53,7 @@ input[type=text], textarea {
   box-sizing: border-box;
   width: 490px;
   padding: 9px;
+  box-shadow: none;
   border: 1px solid #ddd;
   border-radius: 3px;
   transition: border-color 0.2s ease;
@@ -63,7 +64,13 @@ input[type=text]:hover, input[type=text]:focus, textarea:hover, textarea:focus {
 }
 
 textarea {
-  height: 170px;
+  height: 160px;
+}
+
+input[type=checkbox] {
+  margin: 0 5px 0 10px;
+  -webkit-transform: scale(1.6, 1.6);
+  vertical-align: 20%;
 }
 
 @media only screen and (max-width: 480px) {
