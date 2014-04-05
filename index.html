@@ -14,48 +14,15 @@
   <link rel="stylesheet" href="popup.css">
   <link rel="stylesheet" href="autocomplete.css">
 
-  <script type="text/javascript" src="//code.jquery.com/jquery-2.1.0.min.js"></script>
+  <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.0.min.js"></script>
+  <script type="text/javascript" src="popup.js"></script>
 
   <script type="text/javascript" src="https://pinboard.in/user_tag_list/?auth_token="></script>
 
   <link rel="shortcut icon" type="image/x-icon" href="https://pinboard.in/favicon.ico">
 </head>
 
-<body onload="init();">
-
-<script type="text/javascript">
-  var min_height = 550;
-  function init() {
-    if (window.outerHeight < min_height) {
-      window.resizeTo(700, min_height);
-    }
-    get_suggested_tags();
-    document.getElementById("tags").focus();
-  }
-</script>
-<script type="text/javascript">
-  function pin_escape(s) {
-    s = s.replace(/\\/g, "\\\\");
-    s = s.replace(/'/g, "\\'"); // "
-    s = s.replace(/"/g, '&quot;'); // "
-    return s;
-  }
-
-  function pin_cook(s) {
-    s = s.replace(/</g, '&lt;');
-    s = s.replace(/>/g, '&gt;');
-    s = s.replace(/"/g, '&quot;');  //"
-    return s;
-  }
-
-  function pin_sort(a,b) {
-    var l = a.toLowerCase ? a.toLowerCase() : a;
-    var r = b.toLowerCase ? b.toLowerCase() : b;
-    if (l == r) { return 0; }
-    if (l > r) { return 1; }
-    return -1;
-  }
-</script>
+<body>
 
 <div id="popup_header">
   <div id="logout">[<a href="https://pinboard.in/logout/">log out</a>]</div>
