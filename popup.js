@@ -5,8 +5,26 @@ $(function() {
     window.resizeTo(700, min_height);
   }
 
+  /* Parse URL query parameters into urlParams hash. */
+  var urlParams;
+  (window.onpopstate = function () {
+    var match,
+        pl     = /\+/g,  // Regex for replacing addition symbol with a space
+        search = /([^&=]+)=?([^&]*)/g,
+        decode = function (s) { return decodeURIComponent(s.replace(pl, " ")); },
+        query  = window.location.search.substring(1);
+
+    urlParams = {};
+    while (match = search.exec(query))
+       urlParams[decode(match[1])] = decode(match[2]);
+  })();
+  /* Set form inputs to values passed via URL query parameters. */
+  $('input#url').val(urlParams['url']);
+  $('input#title').val(urlParams['title']);
+  $('textarea#description').val(urlParams['description']);
+
   get_suggested_tags();
-  $('#tags').focus();
+  $('input#tags').focus();
 });
 
 function pin_escape(s) {
