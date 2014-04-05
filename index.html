@@ -16,12 +16,12 @@
 
   <link rel="shortcut icon" type="image/x-icon" href="https://pinboard.in/favicon.ico">
 
-  <script language="javascript" src="https://pinboard.in/user_tag_list/?auth_token="></script>
+  <script type="text/javascript" src="https://pinboard.in/user_tag_list/?auth_token="></script>
 </head>
 
 <body onload="init();">
 
-<script language="javascript">
+<script type="text/javascript">
   var min_height = 550;
   function init() {
     if (window.outerHeight < min_height) {
@@ -46,7 +46,7 @@
     window.close();
   }
 </script>
-<script>
+<script type="text/javascript">
   function pin_escape(s) {
     s = s.replace(/\\/g, "\\\\");
     s = s.replace(/'/g, "\\'"); // "
@@ -115,7 +115,7 @@
   </tr>
   </table>
 
-<script language="javascript">
+<script type="text/javascript">
 
   function get_suggested_tags() {
     //var tags = ["\\o/", "'''", "\"", "'\"'\"\"\\"];
@@ -243,9 +243,9 @@
 </body>
 </html>
 
-<script src="https://pinboard.in/user_tag_list/?auth_token="></script>
-<script src="https://pinboard.in/js/pin.js?ayyew"></script>
-<script>
+<script type="text/javascript" src="https://pinboard.in/user_tag_list/?auth_token="></script>
+<script type="text/javascript" src="https://pinboard.in/js/pin.js?ayyew"></script>
+<script type="text/javascript">
   var pin_tagcomplete;
   Pin.Event.listen(window, 'load', function(e) {
     pin_tagcomplete = new Pin.Tags('tags', usertags, {circular: true, submit_on_return: true });
