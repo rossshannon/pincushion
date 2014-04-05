@@ -20,7 +20,7 @@ $(function() {
   })();
   /* Set form inputs to values passed via URL query parameters. */
   $('input#url').val(urlParams['url']);
-  $('input#title').val(urlParams['title']);
+  $('input#pin-title').val(urlParams['title']);
   $('textarea#description').val(urlParams['description']);
 
   get_suggested_tags();

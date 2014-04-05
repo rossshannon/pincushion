@@ -37,12 +37,16 @@ th, td {
 
 th {
   padding: 3px 3px 0 3px;
-  font-size: 120%;
+  font-size: 80%;
   color: #047BFF;
 }
 
 input[type=text] {
   font-size: 120%;
+}
+
+label {
+  font-size: 140%;
 }
 
 input[type=text], textarea {
@@ -94,11 +98,6 @@ textarea {
   padding-top: 1px;
   width: 300px;
   border: 1px solid #acc;
-}
-
-form label {
-  display: block;
-  margin-bottom: 10px;
 }
 
 li {
