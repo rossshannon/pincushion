@@ -5,6 +5,12 @@
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
   <title>Pinboard - Save a Bookmark</title>
 
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, minimal-ui">
+  <meta name="apple-touch-fullscreen" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+
   <link rel="stylesheet" href="popup.css">
   <link rel="stylesheet" href="autocomplete.css">
 
@@ -23,7 +29,7 @@
     get_suggested_tags();
   }
 
-  function checkEnter(e) { //e is event object passed from function invocation
+  function checkEnter(e) { // e is event object passed from function invocation
     if (e.keyCode == 13) {
       submit();
       return false;
@@ -175,7 +181,7 @@
         code = e.which;
       }
     }
-    if (code === 27) {
+    if (code == 27) {
       if (!(pin_tagcomplete && pin_tagcomplete.active())) {
         window.close();
       }
