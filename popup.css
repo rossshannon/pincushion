@@ -2,6 +2,7 @@ body {
   margin: 1em 1em 0 1em;
   padding: 0;
   font: 12px/1.5 "Helvetica Neue", Helvetica, "Arial Unicode", Arial, "Nimbus Sans L", "Liberation Sans", FreeSans, sans-serif;
+  background: #fefefe;
   color: #333;
   text-rendering: optimizeLegibility;
 }
@@ -25,31 +26,45 @@ label, input[type=checkbox] {
   cursor: pointer;
 }
 
+table {
+  box-sizing: border-box;
+  width: 100%;
+}
+
+th, td {
+  display: block;
+}
+
+th {
+  padding: 3px 3px 0 3px;
+  font-size: 120%;
+  color: #047BFF;
+}
+
+input[type=text] {
+  font-size: 120%;
+}
+
+input[type=text], textarea {
+  box-sizing: border-box;
+  width: 490px;
+  padding: 9px;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  transition: border-color 0.2s ease;
+}
+
+input[type=text]:hover, input[type=text]:focus, textarea:hover, textarea:focus {
+  border-color: #ccc;
+}
+
+textarea {
+  height: 170px;
+}
+
 @media only screen and (max-width: 480px) {
-  table {
-    box-sizing: border-box;
-    width: 100%;
-    max-width: 300px;
-  }
-
-  th, td {
-    display: block;
-  }
-
-  th {
-    padding: 3px;
-    font-size: 120%;
-    color: #047BFF;
-  }
-
-  input[type=text] {
-    font-size: 120%;
-  }
-
-  input[type=text], textarea {
-    box-sizing: border-box;
-    max-width: 290px;
-    border-radius: 2px;
+  table, input[type=text], textarea {
+    max-width: 295px;
   }
 }
 
