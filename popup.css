@@ -37,12 +37,19 @@ label, input[type=checkbox] {
   }
 
   th {
+    padding: 3px;
+    font-size: 120%;
     color: #047BFF;
+  }
+
+  input[type=text] {
+    font-size: 120%;
   }
 
   input[type=text], textarea {
     box-sizing: border-box;
     max-width: 290px;
+    border-radius: 2px;
   }
 }
 
@@ -72,11 +79,6 @@ label, input[type=checkbox] {
   padding-top: 1px;
   width: 300px;
   border: 1px solid #acc;
-}
-
-#title {
-  float: left;
-  padding-top: 2px;
 }
 
 form label {
