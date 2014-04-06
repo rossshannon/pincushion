@@ -73,31 +73,6 @@
 
 <script type="text/javascript">
 
-  function get_suggested_tags() {
-    //var tags = ["\\o/", "'''", "\"", "'\"'\"\"\\"];
-    // show_suggested_tags(tags);
-    var url = '';
-    var req = "https://pinboard.in/ajax_suggest?url=" + encodeURIComponent(url);
-    GET(req, show_suggested_tags);
-  }
-
-  function show_suggested_tags(tags) {
-    if (!tags) { return; }
-    var row = document.getElementById("suggestion_row");
-    row.style.visibility = 'visible';
-    var cell = document.getElementById("suggested");
-    var links = [];
-    for (var i = 0; i < tags.length; i++) {
-      var tag = tags[i];
-      var escaped = pin_escape(tag);
-      var cooked  = pin_cook(tag);
-      var link = '<a href="#" class="suggested_tag" onclick="add_tag(\''  +
-                  escaped + '\'); return false;">' + cooked + '</a>&nbsp;';
-      links.push(link);
-    }
-    cell.innerHTML = links.join(" ");
-  }
-
   RegExp.escape = function(text) {
     return text.replace(/[-[\]{}()*+?.,\\\\'"^$|#\s]/g, "\\$&"); //"'
   }
@@ -144,10 +119,6 @@
         window.close();
       }
     }
-  }
-
-  function GET(url, callback) {
-    run_request('GET', url, null, callback);
   }
 
   function PIN_destroyer() {

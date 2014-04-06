@@ -29,11 +29,45 @@ $(function() {
   $('input#tags').focus();
 });
 
+function GET(url, callback) {
+  run_request('GET', url, null, callback);
+}
+
 function authenticate(urlParams) {
   if (urlParams['user'] && urlParams['token']) {
-    $.cookie('user', urlParams['user']);
-    $.cookie('token', urlParams['token']);
+    $.cookie('pinboard-user', urlParams['user']);
+    $.cookie('pinboard-token', urlParams['token']);
+  } else {
+    alert("You must provide a 'user' and 'token' parameter to this page to use the Pinboard API.");
   }
+}
+
+function auth_token() {
+  return $.cookie('pinboard-user') + ':' + $.cookie('pinboard-token');
+}
+
+function get_suggested_tags() {
+  var suggested_tags_api = "https://api.pinboard.in/v1/posts/suggest?auth_token=" + auth_token();
+  $.get(suggested_tags_api, function(data) {
+    show_suggested_tags(data);
+  }, 'xml');
+}
+
+function show_suggested_tags(tags) {
+  if (!tags) { return; }
+  var row = document.getElementById("suggestion_row");
+  row.style.visibility = 'visible';
+  var cell = document.getElementById("suggested");
+  var links = [];
+  for (var i = 0; i < tags.length; i++) {
+    var tag = tags[i];
+    var escaped = pin_escape(tag);
+    var cooked  = pin_cook(tag);
+    var link = '<a href="#" class="suggested_tag" onclick="add_tag(\''  +
+                escaped + '\'); return false;">' + cooked + '</a>&nbsp;';
+    links.push(link);
+  }
+  cell.innerHTML = links.join(" ");
 }
 
 function pin_escape(s) {
