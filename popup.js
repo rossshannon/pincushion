@@ -1,6 +1,6 @@
 $(function() {
   /* Ensure window is tall enough to show all form elements. */
-  var min_height = 550;
+  var min_height = 600;
   if (window.outerHeight < min_height) {
     window.resizeTo(700, min_height);
   }
@@ -23,9 +23,18 @@ $(function() {
   $('input#pin-title').val(urlParams['title']);
   $('textarea#description').val(urlParams['description']);
 
+  authenticate(urlParams);
+
   get_suggested_tags();
   $('input#tags').focus();
 });
+
+function authenticate(urlParams) {
+  if (urlParams['user'] && urlParams['token']) {
+    $.cookie('user', urlParams['user']);
+    $.cookie('token', urlParams['token']);
+  }
+}
 
 function pin_escape(s) {
   s = s.replace(/\\/g, "\\\\");

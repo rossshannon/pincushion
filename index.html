@@ -15,9 +15,10 @@
   <link rel="stylesheet" href="autocomplete.css">
 
   <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.0.min.js"></script>
+  <script type="text/javascript" src="vendor/jquery.cookie.js"></script>
   <script type="text/javascript" src="popup.js"></script>
 
-  <script type="text/javascript" src="https://pinboard.in/user_tag_list/?auth_token="></script>
+  <!-- <script type="text/javascript" src="https://pinboard.in/user_tag_list/?auth_token="></script> -->
 
   <link rel="shortcut icon" type="image/x-icon" href="https://pinboard.in/favicon.ico">
 </head>
@@ -154,7 +155,7 @@
     var action;
     var curr_delete;
 
-    this.init = function(form,action) {
+    this.init = function(form, action) {
       this.form = document.forms[form];
       this.action = action;
     };
