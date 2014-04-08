@@ -38,7 +38,7 @@ function authenticate(urlParams) {
     $.cookie('pinboard-user', urlParams['user']);
     $.cookie('pinboard-token', urlParams['token']);
   } else {
-    alert("You must provide a 'user' and 'token' parameter to this page to use the Pinboard API.");
+    alert("You must provide both ‘user’ and ‘token’ parameters to this page to use the Pinboard API.");
   }
 }
 
@@ -47,7 +47,7 @@ function auth_token() {
 }
 
 function get_suggested_tags() {
-  var suggested_tags_api = "https://api.pinboard.in/v1/posts/suggest?auth_token=" + auth_token();
+  var suggested_tags_api = "https://pinboard-bridge.herokuapp.com/posts/suggest?auth_token=" + auth_token();
   $.get(suggested_tags_api, function(data) {
     show_suggested_tags(data);
   }, 'xml');
