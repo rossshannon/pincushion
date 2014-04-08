@@ -28,6 +28,8 @@ $(function() {
 
   authenticate(urlParams);
 
+  check_bookmark_details();
+
   /* Submit the form with Ajax */
   $('#post-to-pinboard').on('submit', function(event) {
     event.preventDefault();
@@ -64,6 +66,18 @@ function authenticate(urlParams) {
 
 function auth_token() {
   return $.cookie('pinboard-user') + ':' + $.cookie('pinboard-token');
+}
+
+function check_bookmark_details() {
+  /* Check for pre-existing bookmark for this URL. */
+  var bookmark_details_api = "https://pinboard-bridge.herokuapp.com/posts/get?format=json&auth_token=" + auth_token() + "&url=" + urlParams['url'];
+
+  $.get(bookmark_details_api, function(response) {
+    var bookmark = response['posts'][0];
+    $('textarea#description').val(bookmark['extended']);
+    $('input#tags').val(bookmark['tags']);
+
+  }, 'json');
 }
 
 function get_suggested_tags() {
