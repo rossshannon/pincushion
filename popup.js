@@ -38,7 +38,9 @@ $(function() {
       if (response['result_code'] == 'done') {
         console.log("Bookmark saved correctly.");
         $('#submit').addClass('success');
-        window.close();
+        setTimeout(function() {
+          window.close();
+        }, 400);
       }
     }, 'json');
   });
