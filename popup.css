@@ -91,9 +91,10 @@ input[type=checkbox] {
   -webkit-transform: scale(1.1, 1.1);
 }
 
-#popup_header {
-  color: #aaa;
-  height: 25px;
+footer {
+  margin-top: 2em;
+  padding-top: 1em;
+  border-top: 2px dotted #ddd;
 }
 
 .error {

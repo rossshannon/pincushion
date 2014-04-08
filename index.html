@@ -25,11 +25,6 @@
 
 <body>
 
-<div id="popup_header">
-  <form method="post" action="https://pinboard.in/logout/" id="logout"><input type="submit" value="log out"></form>
-  <div id="title"><a href="https://pinboard.in/">Pinboard</a></div>
-</div>
-
 <form method="post" action="https://pinboard.in/add" id="post-to-pinboard">
   <input type="hidden" name="next" value="">
   <table>
@@ -179,6 +174,11 @@
     document.attachEvent('onkeydown', winclose);
   }
 </script>
+
+<footer>
+  <form method="post" action="https://pinboard.in/logout/" id="logout"><input type="submit" value="log out"></form>
+  <div id="title"><a href="https://pinboard.in/">Pinboard</a></div>
+</footer>
 
 </body>
 </html>
