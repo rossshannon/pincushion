@@ -79,6 +79,18 @@ input[type=checkbox] {
   }
 }
 
+#submit {
+  float: right;
+  margin: 1em 0.2em;
+  padding: 0.8em;
+  font-size: 130%;
+}
+
+.success {
+  color: green;
+  -webkit-transform: scale(1.1, 1.1);
+}
+
 #popup_header {
   color: #aaa;
   height: 25px;

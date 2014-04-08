@@ -31,12 +31,15 @@ $(function() {
   /* Submit the form with Ajax */
   $('#post-to-pinboard').on('submit', function(event) {
     event.preventDefault();
-    console.log('submitting form + ' + $(this).serialize());
 
     var post_bookmark_api = "https://pinboard-bridge.herokuapp.com/posts/add?format=json&auth_token=" + auth_token() + "&" + $(this).serialize();
 
-    $.get(post_bookmark_api, function(data) {
-      console.log(data);
+    $.get(post_bookmark_api, function(response) {
+      if (response['result_code'] == 'done') {
+        console.log("Bookmark saved correctly.");
+        $('#submit').addClass('success');
+        window.close();
+      }
     }, 'json');
   });
 
