@@ -30,12 +30,12 @@
   <div id="title"><a href="https://pinboard.in/">Pinboard</a></div>
 </div>
 
-<form method="post" action="https://pinboard.in/add">
+<form method="post" action="https://pinboard.in/add" id="post-to-pinboard">
   <input type="hidden" name="next" value="">
   <table>
   <tr>
     <th><label for="pin-title">title</label></th>
-    <td><input type="text" name="title" id="pin-title" size="70" autocomplete="off" autocapitalize="off"></td>
+    <td><input type="text" name="description" id="pin-title" size="70" autocomplete="off" autocapitalize="off"></td>
   </tr>
   <tr>
     <th><label for="url">URL</label></th>
@@ -43,7 +43,7 @@
   </tr>
   <tr>
     <th><label for="description">description</label></th>
-    <td><textarea name="description" id="description" cols="70" rows="11" autocomplete="off" autocapitalize="off"></textarea></td>
+    <td><textarea name="extended" id="description" cols="70" rows="11" autocomplete="off" autocapitalize="off"></textarea></td>
   </tr>
   <tr>
     <th style="vertical-align: top"><label for="tags">tags</label></th>

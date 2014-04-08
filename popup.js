@@ -1,6 +1,7 @@
-  var urlParams;
+var urlParams;
 
-  $(function() {
+$(function() {
+
   /* Ensure window is tall enough to show all form elements. */
   var min_height = 600;
   if (window.outerHeight < min_height) {
@@ -26,6 +27,18 @@
   $('#suggestion_row').hide(); // We’ll show it again if there are any suggestions
 
   authenticate(urlParams);
+
+  /* Submit the form with Ajax */
+  $('#post-to-pinboard').on('submit', function(event) {
+    event.preventDefault();
+    console.log('submitting form + ' + $(this).serialize());
+
+    var post_bookmark_api = "https://pinboard-bridge.herokuapp.com/posts/add?format=json&auth_token=" + auth_token() + "&" + $(this).serialize();
+
+    $.get(post_bookmark_api, function(data) {
+      console.log(data);
+    }, 'json');
+  });
 
   get_suggested_tags();
   $('input#tags').focus();
