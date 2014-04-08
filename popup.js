@@ -1,4 +1,6 @@
-$(function() {
+  var urlParams;
+
+  $(function() {
   /* Ensure window is tall enough to show all form elements. */
   var min_height = 600;
   if (window.outerHeight < min_height) {
@@ -6,7 +8,6 @@ $(function() {
   }
 
   /* Parse URL query parameters into urlParams hash. */
-  var urlParams;
   (window.onpopstate = function () {
     var match,
         pl     = /\+/g,  // Regex for replacing addition symbol with a space
@@ -22,6 +23,7 @@ $(function() {
   $('input#url').val(urlParams['url']);
   $('input#pin-title').val(urlParams['title']);
   $('textarea#description').val(urlParams['description']);
+  $('#suggestion_row').hide(); // We’ll show it again if there are any suggestions
 
   authenticate(urlParams);
 
@@ -47,27 +49,29 @@ function auth_token() {
 }
 
 function get_suggested_tags() {
-  var suggested_tags_api = "https://pinboard-bridge.herokuapp.com/posts/suggest?auth_token=" + auth_token();
+  var suggested_tags_api = "https://pinboard-bridge.herokuapp.com/posts/suggest?format=json&url=" + urlParams['url'] + "&auth_token=" + auth_token();
+
   $.get(suggested_tags_api, function(data) {
     show_suggested_tags(data);
-  }, 'xml');
+  }, 'json');
 }
 
-function show_suggested_tags(tags) {
-  if (!tags) { return; }
-  var row = document.getElementById("suggestion_row");
-  row.style.visibility = 'visible';
-  var cell = document.getElementById("suggested");
+function show_suggested_tags(tag_suggestions) {
+  if (!tag_suggestions) { return; }
+  tag_suggestions = tag_suggestions[0]['popular'].concat(tag_suggestions[1]['recommended']); // flatten JSON
+  tag_suggestions = $.unique(tag_suggestions); // filter out duplicates
   var links = [];
-  for (var i = 0; i < tags.length; i++) {
-    var tag = tags[i];
+  for (var i = 0; i < tag_suggestions.length; i++) {
+    var tag = tag_suggestions[i];
     var escaped = pin_escape(tag);
     var cooked  = pin_cook(tag);
     var link = '<a href="#" class="suggested_tag" onclick="add_tag(\''  +
                 escaped + '\'); return false;">' + cooked + '</a>&nbsp;';
     links.push(link);
   }
-  cell.innerHTML = links.join(" ");
+
+  $('#suggested').append(links.join(" "));
+  $('#suggestion_row').show();
 }
 
 function pin_escape(s) {
