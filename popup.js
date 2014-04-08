@@ -60,17 +60,17 @@ function show_suggested_tags(tag_suggestions) {
   if (!tag_suggestions) { return; }
   tag_suggestions = tag_suggestions[0]['popular'].concat(tag_suggestions[1]['recommended']); // flatten JSON
   tag_suggestions = $.unique(tag_suggestions); // filter out duplicates
-  var links = [];
+  var suggested_tags = [];
   for (var i = 0; i < tag_suggestions.length; i++) {
-    var tag = tag_suggestions[i];
-    var escaped = pin_escape(tag);
-    var cooked  = pin_cook(tag);
-    var link = '<a href="#" class="suggested_tag" onclick="add_tag(\''  +
-                escaped + '\'); return false;">' + cooked + '</a>&nbsp;';
-    links.push(link);
+    var suggested_tag = tag_suggestions[i];
+    var escaped = pin_escape(suggested_tag);
+    var cooked  = pin_cook(suggested_tag);
+    var suggested_tag = '<button class="suggested_tag" onclick="add_tag(\''  +
+                escaped + '\'); return false;">' + cooked + '</button>';
+    suggested_tags.push(suggested_tag);
   }
 
-  $('#suggested').append(links.join(" "));
+  $('#suggested').append(suggested_tags.join(" "));
   $('#suggestion_row').show();
 }
 
