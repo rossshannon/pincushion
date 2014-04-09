@@ -103,7 +103,7 @@ textarea {
 
 #suggested button {
   padding: 3px 15px;
-  background: #777;
+  background: #778;
   border: none;
   border-radius: 500px;
   color: #fff;
@@ -156,6 +156,7 @@ input[type=checkbox] {
 button#submit.success {
   background-color: #4aca76;
   box-shadow: none;
+  -webkit-animation: pop 0.2s 0.2s linear;
 }
 
 #bookmark-status {
@@ -182,4 +183,10 @@ footer {
   border-radius: 4px;
   background: #ddd;
   -webkit-appearance: none;
+}
+
+@-webkit-keyframes pop {
+  0% { -webkit-transform: scale(0.98); }
+  50% { -webkit-transform: scale(1.05); }
+  100% { -webkit-transform: scale(1.0); }
 }
