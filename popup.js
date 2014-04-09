@@ -113,7 +113,15 @@ function setUpFormSubmission() {
         setTimeout(function() {
           window.close();
           $('#submit').removeClass('success'); // for windows that aren't popups
-        }, 800);
+        }, 900);
+      } else if (response['result_code'] == 'must provide title') {
+        //alert('Must provide title.');
+        Ladda.stopAll();
+        $('#submit').addClass('fail');
+        setTimeout(function() {
+          $('#submit').removeClass('fail'); // let user try again
+        }, 1900);
+        $('#title').focus();
       }
     }, 'json');
   });
