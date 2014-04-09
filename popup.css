@@ -1,7 +1,7 @@
 body {
-  margin: 0 0.6em 0 0.6em;
-  padding: 0;
-  font: 12px/1.5 "Helvetica Neue", Helvetica, "Arial Unicode", Arial, "Nimbus Sans L", "Liberation Sans", FreeSans, sans-serif;
+  margin: 0;
+  padding: 0 0.6em 0 0.6em;
+  font: 13px/1.5 "Helvetica Neue", Helvetica, "Arial Unicode", Arial, "Nimbus Sans L", "Liberation Sans", FreeSans, sans-serif;
   background: #fefefe;
   color: #333;
   text-rendering: optimizeLegibility;
@@ -53,9 +53,10 @@ input[type=text], textarea {
   box-sizing: border-box;
   width: 490px;
   padding: 10px 7px;
-  box-shadow: none !important;
   border: 1px solid #ddd;
+  border-bottom-color: #bbb;
   border-radius: 2px;
+  box-shadow: 0 1px 1px #ddf;
   transition: border-color 0.2s ease;
 }
 
@@ -65,7 +66,7 @@ input[type=text]:hover, input[type=text]:focus, textarea:hover, textarea:focus {
 
 textarea {
   height: 125px;
-  text-indent: 2em;
+  text-indent: 1.5em;
 }
 
 input[type=checkbox] {
@@ -84,11 +85,81 @@ input[type=checkbox] {
   margin: 0 0 0.8em;
 }
 
+#suggested button {
+  background: #777;
+  border-radius: 500px;
+  color: #fff;
+  padding: 3px 15px;
+  text-shadow: 1px 1px 1px #333;
+}
+
+#suggested button:hover {
+  background-color: #4ad;
+}
+
+#modifiers label {
+  background-color: #eee;
+  border-radius: 0 5px 5px 0;
+  font-size: 110%;
+  padding: 3px 10px 3px 8px;
+  text-transform: capitalize;
+}
+
 #submit {
   float: right;
   margin: 1em 0.2em;
   padding: 0.8em;
-  font-size: 130%;
+  -webkit-box-shadow: inset 0px 1px 0px #7fd2f1, 0px 1px 0px #fff;
+  background-color: #ba2323;
+  background-image: -webkit-gradient(
+    linear,
+    left bottom,
+    left top,
+    color-stop(0, rgb(44,160,202)),
+    color-stop(1, rgb(62,184,229))
+  );
+  border: solid 1px #186f8f;
+  border-radius: 5px;
+  color: #fff;
+  cursor: pointer;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 12px;
+  margin: 10px 0 0 10px;
+  padding: 10px;
+  position: relative;
+  text-decoration: none;
+  text-transform: capitalize;
+}
+
+#submit::before {
+  -webkit-box-shadow: inset 0px 1px 1px #909193, 0px 1px 0px #fff;
+  background-color: #ccd0d5;
+  border-radius: 5px;
+  content: "";
+  display: block;
+  height: 100%;
+  left: -8px;
+  padding: 8px;
+  position: absolute;
+  top: -8px;
+  width: 100%;
+  z-index: -1;
+}
+
+#submit:active {
+    -webkit-box-shadow: inset 0px 1px 0px #7fd2f1, 0px 1px 0px #fff;
+    background-image: -webkit-gradient(
+      linear,
+      left bottom,
+      left top,
+      color-stop(0, rgb(62,184,229)),
+      color-stop(1, rgb(44,160,202))
+      );
+    padding-bottom: 9px;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 11px;
+    top: 1px;
 }
 
 .success {
