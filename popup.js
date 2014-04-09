@@ -66,6 +66,7 @@ function serialized_inputs() {
 
 /** Check for pre-existing bookmark for this URL. */
 function check_for_existing_bookmark_details() {
+  if (!urlParams['url']) { return; }
   var bookmark_details_api = "https://pinboard-bridge.herokuapp.com/posts/get?format=json&auth_token=" + auth_token() + "&url=" + urlParams['url'];
 
   $.get(bookmark_details_api, function(response) {
@@ -109,6 +110,7 @@ function setUpFormSubmission() {
 }
 
 function get_suggested_tags() {
+  if (!urlParams['url']) { return; }
   var suggested_tags_api = "https://pinboard-bridge.herokuapp.com/posts/suggest?format=json&url=" + urlParams['url'] + "&auth_token=" + auth_token();
 
   $.get(suggested_tags_api, function(data) {
