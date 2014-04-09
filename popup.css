@@ -61,7 +61,7 @@ input[type=text], textarea {
   box-sizing: border-box;
   width: 490px;
   padding: 10px 7px;
-  border: 1px solid #ddd;
+  border: 1px solid #d5d5d5;
   border-bottom-color: #bbb;
   border-radius: 2px;
   box-shadow: 0 1px 4px #ddf;
@@ -81,12 +81,6 @@ input[type=text]:hover, input[type=text]:focus, textarea:hover, textarea:focus {
 textarea {
   height: 125px;
   text-indent: 1.5em;
-}
-
-input[type=checkbox] {
-  margin: 0 5px 0 10px;
-  -webkit-transform: scale(1.6, 1.6);
-  vertical-align: 20%;
 }
 
 @media only screen and (max-width: 480px) {
@@ -112,13 +106,24 @@ input[type=checkbox] {
   background-color: #4ad;
 }
 
+#modifiers {
+  margin: 1em 0;
+}
+
 #modifiers label {
   font-size: 110%;
   margin: 10px 15px 10px 0;
-  padding: 8px 10px 8px 8px;
+  padding: 10px 14px 10px 0;
+  border: 1px solid #ddd;
   border-radius: 10px;
-  background-color: #eee;
+  background-color: #fff;
   text-transform: capitalize;
+}
+
+input[type=checkbox] {
+  margin: 0 5px 0 10px;
+  -webkit-transform: scale(1.6, 1.6);
+  vertical-align: 5%;
 }
 
 #submit {
@@ -185,7 +190,7 @@ input[type=checkbox] {
 }
 
 footer {
-  margin: 2em 0 1em;
+  margin: 3em 0 1em;
   padding-top: 1em;
   border-top: 2px dotted #ddd;
 }

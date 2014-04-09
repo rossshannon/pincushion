@@ -28,40 +28,42 @@
 <form method="post" action="https://pinboard.in/add" id="post-to-pinboard">
   <input type="hidden" name="next" value="">
   <table>
+  <thead>
+    <tr>
+      <td id="bookmark-status"></td>
+      <td><input type="submit" id="submit" value="Add bookmark"></td>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th><label for="pin-title">title</label></th>
+      <td><input type="text" name="description" id="pin-title" size="70" autocomplete="off" autocapitalize="off"></td>
+    </tr>
+    <tr>
+      <th><label for="url">URL</label></th>
+      <td><input type="text" name="url" id="url" size="70" autocorrect="off" placeholder="http://"></td>
+    </tr>
+    <tr>
+      <th><label for="description">description</label></th>
+      <td><textarea name="extended" id="description" cols="70" rows="11" autocomplete="off" autocapitalize="off"></textarea></td>
+    </tr>
+    <tr>
+      <td></td>
+      <td id="modifiers">
+        <label><input type="checkbox" name="private" id="private"> private</label>
+        <label><input type="checkbox" name="toread" id="toread"> read later</label>
+      </td>
+    </tr>
 
-  <tr>
-    <td id="bookmark-status"></td>
-    <td><input type="submit" id="submit" value="Add bookmark"></td>
-  </tr>
-  <tr>
-    <th><label for="pin-title">title</label></th>
-    <td><input type="text" name="description" id="pin-title" size="70" autocomplete="off" autocapitalize="off"></td>
-  </tr>
-  <tr>
-    <th><label for="url">URL</label></th>
-    <td><input type="text" name="url" id="url" size="70" autocorrect="off" placeholder="http://"></td>
-  </tr>
-  <tr>
-    <th><label for="description">description</label></th>
-    <td><textarea name="extended" id="description" cols="70" rows="11" autocomplete="off" autocapitalize="off"></textarea></td>
-  </tr>
-  <tr>
-    <th><label for="tags">tags</label></th>
-    <td><input type="text" name="tags" id="tags" size="70" autocomplete="off" autocorrect="off" autocapitalize="off"></td>
-  </tr>
-
-  <tr id="suggestion_row">
-    <th>suggested tags</th>
-    <td id="suggested"></td>
-  </tr>
-
-  <tr>
-    <td></td>
-    <td id="modifiers">
-      <label><input type="checkbox" name="private" id="private"> private</label>
-      <label><input type="checkbox" name="toread" id="toread"> read later</label>
-    </td>
-  </tr>
+    <tr>
+      <th><label for="tags">tags</label></th>
+      <td><input type="text" name="tags" id="tags" size="70" autocomplete="off" autocorrect="off" autocapitalize="off"></td>
+    </tr>
+    <tr id="suggestion_row">
+      <th>suggested tags</th>
+      <td id="suggested"></td>
+    </tr>
+  </tbody>
   </table>
 
 </form>
