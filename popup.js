@@ -88,7 +88,7 @@ function check_for_existing_bookmark_details() {
       var date = new Date(bookmark['time']);
       $('#bookmark-status').text("Previously saved on " + date.getFullYear() + "/" + date.getMonth() + "/" + date.getDate());
     }
-    $('#submit span').text('Update bookmark');
+    $('#submit span.text').text('Update bookmark');
   }, 'json');
 }
 
@@ -103,9 +103,11 @@ function setUpFormSubmission() {
       if (response['result_code'] == 'done') {
         console.log("Bookmark saved correctly.");
         Ladda.stopAll();
+        $('#submit').addClass('success');
         setTimeout(function() {
           window.close();
-        }, 400);
+          $('#submit').removeClass('success'); // for windows that aren't popups
+        }, 800);
       }
     }, 'json');
   });

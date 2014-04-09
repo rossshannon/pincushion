@@ -135,7 +135,7 @@ textarea {
 
 input[type=checkbox] {
   margin: 0 5px 0 10px;
-  -webkit-transform: scale(1.6, 1.6);
+  -webkit-transform: scale(1.5, 1.5);
   vertical-align: 5%;
 }
 
@@ -149,8 +149,13 @@ input[type=checkbox] {
   box-shadow: inset 0 0 13px #48aadf;
 }
 
-.success {
-  -webkit-transform: scale(1.2, 1.2);
+#submit[disabled] {
+  box-shadow: none;
+}
+
+button#submit.success {
+  background-color: #4aca76;
+  box-shadow: none;
 }
 
 #bookmark-status {
