@@ -14,10 +14,16 @@ $(function() {
 
 /** Ensure window is tall enough to show all form elements. */
 function resizeWindow() {
-  var min_width = 700;
-  var min_height = 600;
+  var min_width = 600;
+  var min_height = 700;
   if (window.outerHeight < min_height) {
     window.resizeTo(min_width, min_height);
+  }
+
+  if (document.addEventListener) {
+    document.addEventListener('keydown', winclose, false);
+  } else {
+    document.attachEvent('onkeydown', winclose);
   }
 }
 
@@ -156,10 +162,41 @@ function pin_cook(s) {
   return s;
 }
 
+RegExp.escape = function(text) {
+  return text.replace(/[-[\]{}()*+?.,\\\\'"^$|#\s]/g, "\\$&"); //"'
+}
+
+function add_tag(t) {
+  var field = $('#tags');
+  var curr = field.value;
+  var tag_regex = new RegExp( "(\\b|\\s)" + RegExp.escape(t) + "(\\b|\\s)");
+  if (curr.match(tag_regex) == null) {
+    // TODO handle case when tag is at start of field
+    field.value += " " + t;
+  }
+  return false;
+}
+
 function pin_sort(a,b) {
   var l = a.toLowerCase ? a.toLowerCase() : a;
   var r = b.toLowerCase ? b.toLowerCase() : b;
   if (l == r) { return 0; }
   if (l > r) { return 1; }
   return -1;
+}
+
+function winclose(e) {
+  var code;
+  if (e.keyCode) {
+    code = e.keyCode;
+  } else {
+    if (e.which) {
+      code = e.which;
+    }
+  }
+  if (code == 27) {
+    if (!(pin_tagcomplete && pin_tagcomplete.active())) {
+      window.close();
+    }
+  }
 }

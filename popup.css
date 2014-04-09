@@ -156,7 +156,7 @@ input[type=checkbox] {
 button#submit.success {
   background-color: #4aca76;
   box-shadow: none;
-  -webkit-animation: pop 0.2s 0.2s linear;
+  -webkit-animation: pop 0.4s ease 0.5s;
 }
 
 #bookmark-status {

@@ -76,117 +76,18 @@
 
 </form>
 
-<script type="text/javascript">
-
-  RegExp.escape = function(text) {
-    return text.replace(/[-[\]{}()*+?.,\\\\'"^$|#\s]/g, "\\$&"); //"'
-  }
-
-  function add_tag(t) {
-    var field = document.getElementById('tags');
-    var curr = field.value;
-    var tag_regex = new RegExp( "(\\b|\\s)" + RegExp.escape(t) + "(\\b|\\s)");
-    if (curr.match(tag_regex) == null) {
-      // TODO handle case when tag is at start of field
-      field.value += " " + t;
-    }
-    return false;
-  }
-
-  function run_request(type, url, data, callback) {
-    var req = new XMLHttpRequest();
-    req.onreadystatechange = function() {
-      if (req.readyState == 4 || req.readyState == "complete") {
-        var t = req.responseText;
-        if (t.length) {
-          var results = eval("(" + t + ")");
-        }
-        callback(results);
-      }
-    };
-
-    req.open(type,url,true);
-    req.setRequestHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
-    req.send(data);
-  }
-
-  function winclose(e) {
-    var code;
-    if (e.keyCode) {
-      code = e.keyCode;
-    } else {
-      if (e.which) {
-        code = e.which;
-      }
-    }
-    if (code == 27) {
-      if (!(pin_tagcomplete && pin_tagcomplete.active())) {
-        window.close();
-      }
-    }
-  }
-
-  function PIN_destroyer() {
-    var form;
-    var action;
-    var curr_delete;
-
-    this.init = function(form, action) {
-      this.form = document.forms[form];
-      this.action = action;
-    };
-
-    this.destroy = function(id) {
-      var f = document.forms['delete'];
-      this.form.elements['id'].value = id;
-      this.form.elements['action'].value = this.action;
-      this.form.submit();
-    };
-
-    this.show_destroy = function(id) {
-      this.cancel();
-      var del = document.getElementById("delete_" + id);
-      var dest = document.getElementById("destroy_" + id);
-      del.style.visibility = "hidden";
-      del.style.display = "none";
-      dest.style.visibility = "visible";
-      dest.style.display = "inline";
-
-      this.curr_delete = id;
-    };
-
-    this.cancel = function() {
-      if (!this.curr_delete) { return; }
-      var del = document.getElementById("delete_" + this.curr_delete);
-      var dest = document.getElementById("destroy_" + this.curr_delete);
-      dest.style.visibility = "hidden";
-      dest.style.display = "none";
-      del.style.visibility = "visible";
-      del.style.display = "inline";
-    };
-  }
-  var dst;
-
-  dst = new PIN_destroyer();
-  dst.init('delete', 'delete');
-</script>
-
 <script type="text/javascript" src="https://pinboard.in/js/pin.js?ayyew"></script>
 <script type="text/javascript">
   var pin_tagcomplete;
   Pin.Event.listen(window, 'load', function(e) {
     pin_tagcomplete = new Pin.Tags('tags', usertags, {circular: true, submit_on_return: true });
   });
-
-  if (document.addEventListener) {
-    document.addEventListener('keydown', winclose, false);
-  } else {
-    document.attachEvent('onkeydown', winclose);
-  }
 </script>
 
 <footer>
-  <form method="post" action="https://pinboard.in/logout/" id="logout"><input type="submit" value="log out"></form>
+  <form method="post" action="https://pinboard.in/logout/" id="logout">
+    <input type="submit" value="log out">
+  </form>
   <div id="pinboard-link"><a href="https://pinboard.in/">Pinboard</a></div>
 </footer>
 
