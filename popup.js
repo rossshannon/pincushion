@@ -34,7 +34,7 @@ $(function() {
   $('#post-to-pinboard').on('submit', function(event) {
     event.preventDefault();
 
-    var post_bookmark_api = "https://pinboard-bridge.herokuapp.com/posts/add?format=json&auth_token=" + auth_token() + "&" + $(this).serialize();
+    var post_bookmark_api = "https://pinboard-bridge.herokuapp.com/posts/add?format=json&auth_token=" + auth_token() + "&" + serialized_inputs();
 
     $.get(post_bookmark_api, function(response) {
       if (response['result_code'] == 'done') {
@@ -68,6 +68,17 @@ function auth_token() {
   return $.cookie('pinboard-user') + ':' + $.cookie('pinboard-token');
 }
 
+function serialized_inputs() {
+  var serialized_inputs = $('#url, #pin-title, #description, #tags').serialize();
+  if ($('#private').prop('checked')) {
+    serialized_inputs += '&shared=no';
+  }
+  if ($('#toread').prop('checked')) {
+    serialized_inputs += '&toread=yes';
+  }
+  return serialized_inputs;
+}
+
 function check_bookmark_details() {
   /* Check for pre-existing bookmark for this URL. */
   var bookmark_details_api = "https://pinboard-bridge.herokuapp.com/posts/get?format=json&auth_token=" + auth_token() + "&url=" + urlParams['url'];
@@ -99,6 +110,7 @@ function show_suggested_tags(tag_suggestions) {
   if (!tag_suggestions) { return; }
   tag_suggestions = tag_suggestions[0]['popular'].concat(tag_suggestions[1]['recommended']); // flatten JSON
   tag_suggestions = $.unique(tag_suggestions); // filter out duplicates
+
   var suggested_tags = [];
   for (var i = 0; i < tag_suggestions.length; i++) {
     var suggested_tag = tag_suggestions[i];
