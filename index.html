@@ -28,6 +28,11 @@
 <form method="post" action="https://pinboard.in/add" id="post-to-pinboard">
   <input type="hidden" name="next" value="">
   <table>
+
+  <tr>
+    <td id="bookmark-status"></td>
+    <td><input type="submit" id="submit" value="Add bookmark"></td>
+  </tr>
   <tr>
     <th><label for="pin-title">title</label></th>
     <td><input type="text" name="description" id="pin-title" size="70" autocomplete="off" autocapitalize="off"></td>
@@ -56,11 +61,6 @@
       <label><input type="checkbox" name="private" id="private"> private</label>
       <label><input type="checkbox" name="toread" id="toread"> read later</label>
     </td>
-  </tr>
-
-  <tr>
-    <td id="bookmark-status"></td>
-    <td><input type="submit" id="submit" value="Add bookmark"></td>
   </tr>
   </table>
 

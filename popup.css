@@ -123,7 +123,7 @@ input[type=checkbox] {
 
 #submit {
   float: right;
-  margin: 1em 0.2em;
+  margin: 0.5em 0.2em 0;
   padding: 0.8em;
   -webkit-box-shadow: inset 0px 1px 0px #7fd2f1, 0px 1px 0px #fff;
   background-color: #ba2323;
@@ -139,9 +139,7 @@ input[type=checkbox] {
   color: #fff;
   cursor: pointer;
   font-family: 'Open Sans', sans-serif;
-  font-size: 12px;
-  margin: 10px 0 0 10px;
-  padding: 10px;
+  font-size: 13px;
   position: relative;
   text-decoration: none;
   text-transform: capitalize;
