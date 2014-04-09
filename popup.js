@@ -8,6 +8,7 @@ $(function() {
   setUpFormSubmission();
   get_suggested_tags();
   $('input#tags').focus();
+  Ladda.bind('button[type=submit]');
 });
 
 /** Ensure window is tall enough to show all form elements. */
@@ -100,7 +101,7 @@ function setUpFormSubmission() {
     $.get(post_bookmark_api, function(response) {
       if (response['result_code'] == 'done') {
         console.log("Bookmark saved correctly.");
-        $('#submit').addClass('success');
+        Ladda.stopAll();
         setTimeout(function() {
           window.close();
         }, 400);

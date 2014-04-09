@@ -11,11 +11,14 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta http-equiv="X-UA-Compatible" content="IE=Edge, chrome=1">
 
+  <link rel="stylesheet" href="vendor/ladda.min.css">
   <link rel="stylesheet" href="popup.css">
   <link rel="stylesheet" href="autocomplete.css">
 
   <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.0.min.js"></script>
   <script type="text/javascript" src="vendor/jquery.cookie.js"></script>
+  <script type="text/javascript" src="vendor/spin.min.js"></script>
+  <script type="text/javascript" src="vendor/ladda.min.js"></script>
   <script type="text/javascript" src="popup.js"></script>
 
   <!-- <script type="text/javascript" src="https://pinboard.in/user_tag_list/?auth_token="></script> -->
@@ -31,7 +34,11 @@
   <thead>
     <tr>
       <td id="bookmark-status"></td>
-      <td><input type="submit" id="submit" value="Add bookmark"></td>
+      <td>
+        <button type="submit" id="submit" class="ladda-button" data-style="expand-right" data-size="m" data-color="blue">
+          <span class="ladda-label">Add bookmark</span>
+        </button>
+      </td>
     </tr>
   </thead>
   <tbody>

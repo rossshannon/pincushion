@@ -136,45 +136,8 @@ input[type=checkbox] {
 
 #submit {
   float: right;
-  margin: 0.5em 0.2em -0.6em;
-  padding: 0.8em;
-  border: solid 1px #186f8f;
-  border-radius: 5px;
-  -webkit-box-shadow: inset 0px 1px 0px #7fd2f1, 0px 1px 0px #fff;
-  background-color: #ba2323;
-  background-image: -webkit-gradient(
-    linear,
-    left bottom,
-    left top,
-    color-stop(0, rgb(44,160,202)),
-    color-stop(1, rgb(62,184,229))
-  );
-  color: #fff;
-  cursor: pointer;
-  font-size: 13px;
-  position: relative;
-  text-decoration: none;
-  text-transform: capitalize;
-}
-
-#submit:hover {
-  text-shadow: 1px 1px 3px #889;
-}
-
-#submit:active {
-  -webkit-box-shadow: inset 0px 1px 0px #7fd2f1, 0px 1px 0px #fff;
-  background-image: -webkit-gradient(
-    linear,
-    left bottom,
-    left top,
-    color-stop(0, rgb(62,184,229)),
-    color-stop(1, rgb(44,160,202))
-    );
-  padding-bottom: 9px;
-  padding-left: 10px;
-  padding-right: 10px;
-  padding-top: 11px;
-  top: 1px;
+  font-size: 16px;
+  border-radius: 4px;
 }
 
 .success {
