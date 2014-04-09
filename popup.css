@@ -2,7 +2,7 @@ body {
   margin: 0;
   padding: 0 0.6em 0 0.6em;
   font: 13px/1.5 "Helvetica Neue", Helvetica, "Arial Unicode", Arial, "Nimbus Sans L", "Liberation Sans", FreeSans, sans-serif;
-  background: #fefefe;
+  background: #fdfdfd;
   color: #333;
   text-rendering: optimizeLegibility;
 }
@@ -65,6 +65,8 @@ input[type=text], textarea {
   border-bottom-color: #bbb;
   border-radius: 2px;
   box-shadow: 0 1px 4px #ddf;
+  background: #fff;
+  -webkit-appearance: none;
   transition: border-color 0.1s ease;
 }
 
