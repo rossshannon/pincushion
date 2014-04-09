@@ -134,14 +134,22 @@ input[type=checkbox] {
   vertical-align: 5%;
 }
 
+#bookmark-save {
+  text-align: right;
+}
+
 #submit {
-  float: right;
   font-size: 16px;
   border-radius: 4px;
 }
 
 .success {
   -webkit-transform: scale(1.2, 1.2);
+}
+
+#bookmark-status {
+  display: inline-block;
+  text-align: right;
 }
 
 footer {
