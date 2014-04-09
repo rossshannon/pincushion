@@ -85,7 +85,7 @@ function check_bookmark_details() {
 
   $.get(bookmark_details_api, function(response) {
     var bookmark = response['posts'][0];
-
+console.log(bookmark);
     $('textarea#description').val(bookmark['extended']);
     $('input#tags').val(bookmark['tags']);
 
@@ -94,6 +94,10 @@ function check_bookmark_details() {
     }
     if (bookmark['toread'] == 'yes') {
       $('#toread').prop('checked', true);
+    }
+    if (bookmark['time']) {
+      var date = new Date(bookmark['time']);
+      $('#bookmark-status').text("Previously saved on " + date.getFullYear() + "/" + date.getMonth() + "/" + date.getDate());
     }
   }, 'json');
 }
