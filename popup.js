@@ -71,6 +71,7 @@ function check_for_existing_bookmark_details() {
   $.get(bookmark_details_api, function(response) {
     var bookmark = response['posts'][0];
 
+    $('input#pin-title').val(bookmark['description']);
     $('textarea#description').val(bookmark['extended']);
     $('input#tags').val(bookmark['tags']);
 
