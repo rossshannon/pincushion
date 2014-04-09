@@ -64,7 +64,7 @@ input[type=text]:hover, input[type=text]:focus, textarea:hover, textarea:focus {
 }
 
 textarea {
-  height: 140px;
+  height: 125px;
   text-indent: 2em;
 }
 
@@ -76,8 +76,12 @@ input[type=checkbox] {
 
 @media only screen and (max-width: 480px) {
   table, input[type=text], textarea {
-    max-width: 295px;
+    max-width: 305px;
   }
+}
+
+#suggested {
+  margin: 0 0 0.8em;
 }
 
 #submit {
@@ -93,7 +97,7 @@ input[type=checkbox] {
 }
 
 footer {
-  margin-top: 2em;
+  margin: 2em 0 1em;
   padding-top: 1em;
   border-top: 2px dotted #ddd;
 }
