@@ -5,6 +5,7 @@ $(function() {
   parseUrlParameters();
   authenticate();
   check_for_existing_bookmark_details();
+  FastClick.attach(document.body);
   setUpFormSubmission();
   get_suggested_tags();
   $('input#tags').focus();
