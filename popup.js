@@ -1,14 +1,26 @@
 var urlParams;
 
 $(function() {
+  resizeWindow();
+  parseUrlParameters();
+  authenticate();
+  check_for_existing_bookmark_details();
+  setUpFormSubmission();
+  get_suggested_tags();
+  $('input#tags').focus();
+});
 
-  /* Ensure window is tall enough to show all form elements. */
+/** Ensure window is tall enough to show all form elements. */
+function resizeWindow() {
+  var min_width = 700;
   var min_height = 600;
   if (window.outerHeight < min_height) {
-    window.resizeTo(700, min_height);
+    window.resizeTo(min_width, min_height);
   }
+}
 
-  /* Parse URL query parameters into urlParams hash. */
+/** Parse URL query parameters into urlParams hash. */
+function parseUrlParameters() {
   (window.onpopstate = function () {
     var match,
         pl     = /\+/g,  // Regex for replacing addition symbol with a space
@@ -20,47 +32,20 @@ $(function() {
     while (match = search.exec(query))
        urlParams[decode(match[1])] = decode(match[2]);
   })();
+
   /* Set form inputs to values passed via URL query parameters. */
   $('input#url').val(urlParams['url']);
   $('input#pin-title').val(urlParams['title']);
   $('textarea#description').val(urlParams['description']);
-  $('#suggestion_row').hide(); // We’ll show it again if there are any suggestions
-
-  authenticate(urlParams);
-
-  check_bookmark_details();
-
-  /* Submit the form with Ajax */
-  $('#post-to-pinboard').on('submit', function(event) {
-    event.preventDefault();
-
-    var post_bookmark_api = "https://pinboard-bridge.herokuapp.com/posts/add?format=json&auth_token=" + auth_token() + "&" + serialized_inputs();
-
-    $.get(post_bookmark_api, function(response) {
-      if (response['result_code'] == 'done') {
-        console.log("Bookmark saved correctly.");
-        $('#submit').addClass('success');
-        setTimeout(function() {
-          window.close();
-        }, 400);
-      }
-    }, 'json');
-  });
-
-  get_suggested_tags();
-  $('input#tags').focus();
-});
-
-function GET(url, callback) {
-  run_request('GET', url, null, callback);
+  $('#suggestion_row').hide(); // We’ll show it again later if there are any suggestions
 }
 
-function authenticate(urlParams) {
+function authenticate() {
   if (urlParams['user'] && urlParams['token']) {
     $.cookie('pinboard-user', urlParams['user']);
     $.cookie('pinboard-token', urlParams['token']);
   } else {
-    alert("You must provide both ‘user’ and ‘token’ parameters to this page to use the Pinboard API.");
+    alert("You must provide both ‘user’ and ‘token’ parameters to this page to allow it to use the Pinboard API.");
   }
 }
 
@@ -79,8 +64,8 @@ function serialized_inputs() {
   return serialized_inputs;
 }
 
-function check_bookmark_details() {
-  /* Check for pre-existing bookmark for this URL. */
+/** Check for pre-existing bookmark for this URL. */
+function check_for_existing_bookmark_details() {
   var bookmark_details_api = "https://pinboard-bridge.herokuapp.com/posts/get?format=json&auth_token=" + auth_token() + "&url=" + urlParams['url'];
 
   $.get(bookmark_details_api, function(response) {
@@ -101,6 +86,25 @@ function check_bookmark_details() {
     }
     $('#submit').val('Update bookmark');
   }, 'json');
+}
+
+/** Submit the form with Ajax */
+function setUpFormSubmission() {
+  $('#post-to-pinboard').on('submit', function(event) {
+    event.preventDefault();
+
+    var post_bookmark_api = "https://pinboard-bridge.herokuapp.com/posts/add?format=json&auth_token=" + auth_token() + "&" + serialized_inputs();
+
+    $.get(post_bookmark_api, function(response) {
+      if (response['result_code'] == 'done') {
+        console.log("Bookmark saved correctly.");
+        $('#submit').addClass('success');
+        setTimeout(function() {
+          window.close();
+        }, 400);
+      }
+    }, 'json');
+  });
 }
 
 function get_suggested_tags() {
