@@ -36,7 +36,7 @@ function parseUrlParameters() {
 
   /* Set form inputs to values passed via URL query parameters. */
   $('input#url').val(urlParams['url']);
-  $('input#pin-title').val(urlParams['title']);
+  $('input#title').val(urlParams['title']);
   $('textarea#description').val(urlParams['description']);
   $('#suggestion_row').hide(); // We’ll show it again later if there are any suggestions
 }
@@ -55,7 +55,7 @@ function auth_token() {
 }
 
 function serialized_inputs() {
-  var serialized_inputs = $('#url, #pin-title, #description, #tags').serialize();
+  var serialized_inputs = $('#url, #title, #description, #tags').serialize();
   if ($('#private').prop('checked')) {
     serialized_inputs += '&shared=no';
   }
@@ -73,7 +73,7 @@ function check_for_existing_bookmark_details() {
   $.get(bookmark_details_api, function(response) {
     var bookmark = response['posts'][0];
 
-    $('input#pin-title').val(bookmark['description']);
+    $('input#title').val(bookmark['description']);
     $('textarea#description').val(bookmark['extended']);
     $('input#tags').val(bookmark['tags']);
 

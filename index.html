@@ -29,7 +29,6 @@
 <body>
 
 <form method="post" action="https://pinboard.in/add" id="post-to-pinboard">
-  <input type="hidden" name="next" value="">
   <table>
   <thead>
     <tr>
@@ -43,8 +42,8 @@
   </thead>
   <tbody>
     <tr>
-      <th><label for="pin-title">title</label></th>
-      <td><input type="text" name="description" id="pin-title" size="70" autocomplete="off" autocapitalize="off"></td>
+      <th><label for="title">title</label></th>
+      <td><input type="text" name="description" id="title" size="70" autocomplete="off" autocapitalize="off"></td>
     </tr>
     <tr>
       <th><label for="url">URL</label></th>
@@ -186,7 +185,7 @@
 
 <footer>
   <form method="post" action="https://pinboard.in/logout/" id="logout"><input type="submit" value="log out"></form>
-  <div id="title"><a href="https://pinboard.in/">Pinboard</a></div>
+  <div id="pinboard-link"><a href="https://pinboard.in/">Pinboard</a></div>
 </footer>
 
 </body>
