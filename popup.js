@@ -74,9 +74,16 @@ function check_bookmark_details() {
 
   $.get(bookmark_details_api, function(response) {
     var bookmark = response['posts'][0];
+
     $('textarea#description').val(bookmark['extended']);
     $('input#tags').val(bookmark['tags']);
 
+    if (bookmark['shared'] == 'no') {
+      $('#private').prop('checked', true);
+    }
+    if (bookmark['toread'] == 'yes') {
+      $('#toread').prop('checked', true);
+    }
   }, 'json');
 }
 
