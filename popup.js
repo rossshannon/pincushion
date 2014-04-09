@@ -38,7 +38,7 @@ function parseUrlParameters() {
   $('input#url').val(urlParams['url']);
   $('input#title').val(urlParams['title']);
   $('textarea#description').val(urlParams['description']);
-  $('#suggestion_row').hide(); // We’ll show it again later if there are any suggestions
+  $('#suggestion_row, #suggested').hide(); // We’ll show it again later if there are any suggestions
 }
 
 function authenticate() {
@@ -87,7 +87,7 @@ function check_for_existing_bookmark_details() {
       var date = new Date(bookmark['time']);
       $('#bookmark-status').text("Previously saved on " + date.getFullYear() + "/" + date.getMonth() + "/" + date.getDate());
     }
-    $('#submit').val('Update bookmark');
+    $('#submit span').text('Update bookmark');
   }, 'json');
 }
 
@@ -136,6 +136,7 @@ function show_suggested_tags(tag_suggestions) {
 
   $('#suggested').append(suggested_tags.join(" "));
   $('#suggestion_row').show();
+  $('#suggested').show(800);
 }
 
 function pin_escape(s) {
