@@ -64,7 +64,7 @@ label {
   font-size: 140%;
 }
 
-input[type=text], textarea {
+input[type=text], input[type=url], textarea {
   box-sizing: border-box;
   width: 480px;
   padding: 10px 7px;
@@ -77,11 +77,11 @@ input[type=text], textarea {
   transition: border-color 0.1s ease;
 }
 
-input[type=text]:hover, textarea:hover {
+input[type=text]:hover, input[type=url]:hover, textarea:hover {
   border-color: #aaa;
 }
 
-input[type=text]:focus, textarea:focus {
+input[type=text]:focus, input[type=url]:focus, textarea:focus {
   border-color: #ccc;
 }
 
@@ -91,7 +91,7 @@ textarea {
 }
 
 @media only screen and (max-width: 480px) {
-  table, input[type=text], textarea {
+  table, input[type=text], input[type=url], textarea {
     max-width: 300px;
     max-height: 90px;
   }

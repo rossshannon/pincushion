@@ -7,6 +7,7 @@ $(function() {
   check_for_existing_bookmark_details();
   FastClick.attach(document.body);
   setUpFormSubmission();
+  setUpTagAutoComplete();
   get_suggested_tags();
   update_user_bookmarks();
   $('input#tags').focus();
@@ -141,6 +142,27 @@ function setUpFormSubmission() {
           alert("401 Unauthorised. Please check your username and API access token.");
         }
       });
+  });
+}
+
+function setUpTagAutoComplete() {
+  console.log('Setting up autocomplete.');
+
+  var jsonString = '[{"label":"System Administrator","value":"1"},{"label":"Software Tester","value":"3"},{"label":" Software Developer","value":"4"},{"label":"Senior Developer","value":"5"},{"label":"Cloud Developer","value":"6"},{"label":"Wordpress Designer","value":"7"}]';
+
+  var jsonObj = $.parseJSON(jsonString);
+  var sourceArr = [];
+  for (var i = 0; i < jsonObj.length; i++) {
+     sourceArr.push(jsonObj[i].label);
+  }
+
+  console.log(sourceArr);
+
+  $('#tags').typeahead({
+    minLength: 2,
+    highlight: true,
+    hint: true,
+    source: sourceArr
   });
 }
 
