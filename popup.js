@@ -112,25 +112,33 @@ function setUpFormSubmission() {
 
     var post_bookmark_api = "https://pinboard-bridge.herokuapp.com/posts/add?format=json&auth_token=" + auth_token() + "&" + serialized_inputs();
 
-    $.get(post_bookmark_api, function(response) {
-      if (response['result_code'] == 'done') {
-        console.log("Bookmark saved correctly.");
-        Ladda.stopAll();
-        $('#submit').addClass('success');
-        setTimeout(function() {
-          window.close();
-          $('#submit').removeClass('success'); // for windows that aren't popups
-        }, 900);
-      } else if (response['result_code'] == 'must provide title') {
-        //alert('Must provide title.');
+    $.get(post_bookmark_api, 'json')
+      .done(function(response) {
+        if (response['result_code'] == 'done') {
+          console.log("Bookmark saved correctly.");
+          Ladda.stopAll();
+          $('#submit').addClass('success');
+          setTimeout(function() {
+            window.close();
+            $('#submit').removeClass('success'); // for windows that aren't popups
+          }, 900);
+        } else if (response['result_code'] == 'must provide title') {
+          Ladda.stopAll();
+          $('#submit').addClass('fail');
+          setTimeout(function() {
+            $('#submit').removeClass('fail'); // let user try again
+          }, 1900);
+          $('#title').focus();
+        }
+      })
+
+      .fail(function(response) {
         Ladda.stopAll();
         $('#submit').addClass('fail');
-        setTimeout(function() {
-          $('#submit').removeClass('fail'); // let user try again
-        }, 1900);
-        $('#title').focus();
-      }
-    }, 'json');
+        if (response.status == '401') {
+          alert("401 Unauthorised. Please check your username and API access token.");
+        }
+      });
   });
 }
 
