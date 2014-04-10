@@ -154,7 +154,7 @@ function get_suggested_tags() {
 }
 
 function update_user_bookmarks() {
-  var all_tags_api = "https://pinboard-bridge.herokuapp.com/tags/get?format=json&auth_token=" + auth_token() + "&url=" + urlParams['url'];
+  var all_tags_api = "https://pinboard-bridge.herokuapp.com/tags/get?format=json&auth_token=" + auth_token();
 
   var tags_database = prepareDatabase(function() {
     console.log('Database created.');
