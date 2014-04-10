@@ -154,7 +154,7 @@ function get_suggested_tags() {
 }
 
 function update_user_bookmarks() {
-  var all_bookmarks_api = "https://pinboard-bridge.herokuapp.com/posts/all?format=json&auth_token=" + auth_token() + "&url=" + urlParams['url'];
+  var all_tags_api = "https://pinboard-bridge.herokuapp.com/tags/get?format=json&auth_token=" + auth_token() + "&url=" + urlParams['url'];
 
   var tags_database = prepareDatabase(function() {
     console.log('Database created.');
@@ -162,10 +162,9 @@ function update_user_bookmarks() {
     console.log('Database creation failed.');
   });
 
-  $.get(all_bookmarks_api, 'json')
+  $.get(all_tags_api, 'json')
     .done(function(response) {
       console.log(response);
-      if (response['posts'].length < 1) { return; }
     })
 
     .fail(function(response) {
