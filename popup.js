@@ -77,25 +77,32 @@ function check_for_existing_bookmark_details() {
   if (!urlParams['url']) { return; }
   var bookmark_details_api = "https://pinboard-bridge.herokuapp.com/posts/get?format=json&auth_token=" + auth_token() + "&url=" + urlParams['url'];
 
-  $.get(bookmark_details_api, function(response) {
-    var bookmark = response['posts'][0];
+  $.get(bookmark_details_api, 'json')
+    .done(function(response) {
+      var bookmark = response['posts'][0];
 
-    $('input#title').val(bookmark['description']);
-    $('textarea#description').val(bookmark['extended']);
-    $('input#tags').val(bookmark['tags']);
+      $('input#title').val(bookmark['description']);
+      $('textarea#description').val(bookmark['extended']);
+      $('input#tags').val(bookmark['tags']);
 
-    if (bookmark['shared'] == 'no') {
-      $('#private').prop('checked', true);
-    }
-    if (bookmark['toread'] == 'yes') {
-      $('#toread').prop('checked', true);
-    }
-    if (bookmark['time']) {
-      var date = new Date(bookmark['time']);
-      $('#bookmark-status').text("Previously saved on " + date.getFullYear() + "/" + date.getMonth() + "/" + date.getDate());
-    }
-    $('#submit span.text').text('Update bookmark');
-  }, 'json');
+      if (bookmark['shared'] == 'no') {
+        $('#private').prop('checked', true);
+      }
+      if (bookmark['toread'] == 'yes') {
+        $('#toread').prop('checked', true);
+      }
+      if (bookmark['time']) {
+        var date = new Date(bookmark['time']);
+        $('#bookmark-status').text("Previously saved on " + date.getFullYear() + "/" + date.getMonth() + "/" + date.getDate());
+      }
+      $('#submit span.text').text('Update bookmark');
+    })
+
+    .fail(function(response) {
+      if (response.status == '401') {
+        alert("401 Unauthorised. Please check your username and API access token.");
+      }
+    });
 }
 
 /** Submit the form with Ajax */
