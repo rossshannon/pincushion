@@ -154,24 +154,25 @@ function get_suggested_tags() {
 }
 
 function update_user_bookmarks() {
-  var all_tags_api = "https://pinboard-bridge.herokuapp.com/tags/get?format=json&auth_token=" + auth_token();
+  if (!localStorage.tags) {
+    localStorage.tags = JSON.stringify([]);
+    var all_tags_api = "https://pinboard-bridge.herokuapp.com/tags/get?format=json&auth_token=" + auth_token();
 
-  var tags_database = prepareDatabase(function() {
-    console.log('Database created.');
-  }, function() {
-    console.log('Database creation failed.');
-  });
+    $.get(all_tags_api, 'json')
+      .done(function(response) {
+        console.log(response);
+        localStorage.tags = JSON.stringify(response);
+      })
 
-  $.get(all_tags_api, 'json')
-    .done(function(response) {
-      console.log(response);
-    })
-
-    .fail(function(response) {
-      if (response.status == '401') {
-        alert("401 Unauthorised. Please check your username and API access token.");
-      }
-    });
+      .fail(function(response) {
+        if (response.status == '401') {
+          alert("401 Unauthorised. Please check your username and API access token.");
+        }
+      });
+  } else {
+    console.log('Have tags');
+    console.log(JSON.parse(localStorage.tags));
+  }
 }
 
 function prepareDatabase(ready, error) {
