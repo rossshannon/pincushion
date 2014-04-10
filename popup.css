@@ -148,7 +148,8 @@ input[type=checkbox] {
   font-size: 16px;
   border-radius: 4px;
   box-shadow: inset 0 0 13px #48aadf;
-  transition: -webkit-transform 1s ease;
+  -webkit-transform: perspective(1200);
+  transition: -webkit-transform 1s ease, text-shadow 0.2s linear;
 }
 
 #submit[disabled] {
@@ -158,13 +159,14 @@ input[type=checkbox] {
 button#submit.success {
   background-color: #4aca76;
   box-shadow: none;
+  text-shadow: 1px 1px 1px #2a9a56;
   -webkit-animation: pop 0.3s ease 0.5s;
 }
 
 button#submit.fail {
   background-color: #FF6868;
   box-shadow: none;
-  -webkit-animation: non 0.5s 0.3s 2 ease;
+  -webkit-animation: non 0.8s 0.3s 2 ease;
 }
 
 #bookmark-status {
@@ -201,8 +203,8 @@ footer {
 }
 
 @-webkit-keyframes non {
-  0% {  }
-  40% { -webkit-transform: translateX(-5px); }
-  70% { -webkit-transform: translateX(5px); }
-  100% { -webkit-transform: translateX(0px); }
+  25% { -webkit-transform: translateX(-5px); }
+  50% { -webkit-transform: translateX(0); }
+  75% { -webkit-transform: translateX(5px); }
+  100% { -webkit-transform: translateX(0); }
 }

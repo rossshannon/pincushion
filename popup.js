@@ -8,6 +8,7 @@ $(function() {
   FastClick.attach(document.body);
   setUpFormSubmission();
   get_suggested_tags();
+  update_user_bookmarks();
   $('input#tags').focus();
   Ladda.bind('button[type=submit]');
 });
@@ -150,6 +151,36 @@ function get_suggested_tags() {
   $.get(suggested_tags_api, function(data) {
     show_suggested_tags(data);
   }, 'json');
+}
+
+function update_user_bookmarks() {
+  var all_bookmarks_api = "https://pinboard-bridge.herokuapp.com/posts/all?format=json&auth_token=" + auth_token() + "&url=" + urlParams['url'];
+
+  var tags_database = prepareDatabase(function() {
+    console.log('Database created.');
+  }, function() {
+    console.log('Database creation failed.');
+  });
+
+  $.get(all_bookmarks_api, 'json')
+    .done(function(response) {
+      console.log(response);
+      if (response['posts'].length < 1) { return; }
+    })
+
+    .fail(function(response) {
+      if (response.status == '401') {
+        alert("401 Unauthorised. Please check your username and API access token.");
+      }
+    });
+}
+
+function prepareDatabase(ready, error) {
+  return openDatabase('tags', '1.0', 'Local tag lookup cache', (50 * 1024 * 1024), function(db) {
+      db.changeVersion('', '1.0', function (t) {
+          t.executeSql('CREATE TABLE tagids (id, name)');
+      }, error);
+  });
 }
 
 function show_suggested_tags(tag_suggestions) {
