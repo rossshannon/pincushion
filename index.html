@@ -80,7 +80,7 @@
 <script type="text/javascript">
   var pin_tagcomplete;
   Pin.Event.listen(window, 'load', function(e) {
-    pin_tagcomplete = new Pin.Tags('tags', JSON.parse(localStorage.tags), {circular: true, submit_on_return: true });
+    pin_tagcomplete = new Pin.Tags('tags', JSON.parse(localStorage['tags']), {circular: true, submit_on_return: true });
   });
 </script>
 

@@ -155,13 +155,14 @@ function get_suggested_tags() {
 
 function update_user_bookmarks() {
   if (!localStorage.tags) {
-    localStorage.tags = JSON.stringify([]);
+    localStorage['tags'] = JSON.stringify([]);
     var all_tags_api = "https://pinboard-bridge.herokuapp.com/tags/get?format=json&auth_token=" + auth_token();
 
     $.get(all_tags_api, 'json')
       .done(function(response) {
         console.log(response);
-        localStorage.tags = JSON.stringify(response);
+        localStorage['tags'] = JSON.stringify(response);
+        localStorage['tags-updated'] = new Date();
       })
 
       .fail(function(response) {
@@ -171,7 +172,7 @@ function update_user_bookmarks() {
       });
   } else {
     console.log('Have tags');
-    console.log(JSON.parse(localStorage.tags));
+    console.log(JSON.parse(localStorage['tags']));
   }
 }
 
