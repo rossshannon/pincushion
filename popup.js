@@ -79,6 +79,7 @@ function check_for_existing_bookmark_details() {
 
   $.get(bookmark_details_api, 'json')
     .done(function(response) {
+      if (response['posts'].length < 1) { return; }
       var bookmark = response['posts'][0];
 
       $('input#title').val(bookmark['description']);
