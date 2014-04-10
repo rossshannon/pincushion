@@ -189,13 +189,13 @@ RegExp.escape = function(text) {
   return text.replace(/[-[\]{}()*+?.,\\\\'"^$|#\s]/g, "\\$&"); //"'
 }
 
-function add_tag(t) {
+function add_tag(tag) {
   var field = $('#tags');
-  var curr = field.value;
-  var tag_regex = new RegExp( "(\\b|\\s)" + RegExp.escape(t) + "(\\b|\\s)");
-  if (curr.match(tag_regex) == null) {
+  var curr = field.val();
+  var tag_regex = new RegExp( "(\\b|\\s)" + RegExp.escape(tag) + "(\\b|\\s)");
+  if (curr.match(tag_regex) === null) {
     // TODO handle case when tag is at start of field
-    field.value += " " + t;
+    field.val(field.val() + " " + tag);
   }
   return false;
 }
