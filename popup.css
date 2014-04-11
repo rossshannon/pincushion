@@ -99,7 +99,8 @@ textarea {
 }
 
 #suggestion_row th.none {
-  color: #444;
+  color: #666;
+  font-size: 85%;
 }
 
 #suggested {
@@ -135,6 +136,12 @@ textarea {
   background-color: #fff;
   text-transform: capitalize;
   box-shadow: 0 1px 4px #ddd;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
 #modifiers label:hover {
