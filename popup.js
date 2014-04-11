@@ -4,10 +4,10 @@ $(function() {
   resizeWindow();
   parseUrlParameters();
   authenticate();
-  check_for_existing_bookmark_details();
   FastClick.attach(document.body);
   setUpFormSubmission();
   setUpTagAutoComplete();
+  check_for_existing_bookmark_details();
   get_suggested_tags();
   update_user_tags();
   $('input#tags').focus();
@@ -86,7 +86,7 @@ function check_for_existing_bookmark_details() {
 
       $('input#title').val(bookmark['description']);
       $('textarea#description').val(bookmark['extended']);
-      $('input#tags').val(bookmark['tags']);
+      prepopulate_tags(bookmark['tags']);
 
       if (bookmark['shared'] == 'no') {
         $('#private').prop('checked', true);
@@ -150,6 +150,20 @@ function setUpFormSubmission() {
   });
 }
 
+function prepopulate_tags(tagString) {
+  var tags = tagString.split(' ');
+  console.log(tags);
+  var safeIndex = 10000000;
+  for (var i = 0; i < tags.length; i++) {
+    $('input#tags')[0].selectize.addOption({
+      value: i,
+      label: tags[i]
+    });
+    $('input#tags')[0].selectize.addItem(tags[i]);
+    console.log(i);
+  }
+}
+
 function setUpTagAutoComplete() {
   console.log('Setting up autocomplete.');
 
@@ -159,17 +173,10 @@ function setUpTagAutoComplete() {
     openOnFocus: false,
     persist: false,
     maxItems: null,
+    hideSelected: true,
     valueField: 'label',
     labelField: 'label',
-    searchField: ['label', 'value'],
-    options: [
-      {label: "System Administrator", value: "1" },
-      {label: "Software Tester", value: "3" },
-      {label: "Software Developer", value: "4" },
-      {label: "Senior Developer", value: "5" },
-      {label: "Cloud Developer", value: "6" },
-      {label: "Wordpress Designer", value: "7" },
-    ]
+    searchField: ['label']
   });
 }
 
