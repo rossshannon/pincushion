@@ -152,15 +152,11 @@ function setUpFormSubmission() {
 
 function prepopulate_tags(tagString) {
   var tags = tagString.split(' ');
-  console.log(tags);
-  var safeIndex = 10000000;
   for (var i = 0; i < tags.length; i++) {
     $('input#tags')[0].selectize.addOption({
-      value: i,
       label: tags[i]
     });
     $('input#tags')[0].selectize.addItem(tags[i]);
-    console.log(i);
   }
 }
 
@@ -212,14 +208,6 @@ function update_user_tags() {
     console.log('Have tags');
     console.log(JSON.parse(localStorage['tags']));
   }
-}
-
-function prepareDatabase(ready, error) {
-  return openDatabase('tags', '1.0', 'Local tag lookup cache', (50 * 1024 * 1024), function(db) {
-      db.changeVersion('', '1.0', function (t) {
-          t.executeSql('CREATE TABLE tagids (id, name)');
-      }, error);
-  });
 }
 
 function show_suggested_tags(tag_suggestions) {
@@ -280,14 +268,10 @@ RegExp.escape = function(text) {
 }
 
 function add_tag(tag) {
-  var field = $('#tags');
-  var curr = field.val();
-  var tag_regex = new RegExp( "(\\b|\\s)" + RegExp.escape(tag) + "(\\b|\\s)");
-  if (curr.match(tag_regex) === null) {
-    // TODO handle case when tag is at start of field
-    field.val(field.val() + " " + tag);
-  }
-  return false;
+  $('input#tags')[0].selectize.addOption({
+    label: tag
+  });
+  $('input#tags')[0].selectize.addItem(tag);
 }
 
 function pin_sort(a,b) {
