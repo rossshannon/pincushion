@@ -141,6 +141,10 @@ function setUpFormSubmission() {
         }
       });
   });
+
+  $('input, textarea').on('blur', function() {
+    $('body').animate({ scrollTop: 0 }, 200);
+  });
 }
 
 function setUpTagAutoComplete() {
