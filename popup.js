@@ -231,6 +231,7 @@ function show_suggested_tags(tag_suggestions) {
   }
 }
 
+/** Remove default set of tags that are suggested by the Pinboard API when there are no good suggestions. */
 function removeSpuriousResults(tag_suggestions) {
   if ($.inArray('facebook') && $.inArray('googlereader') && $.inArray('ifttt') && $.inArray('objective-c') &&
       $.inArray('twitter') && $.inArray('twitterlink') && $.inArray('WSH') && $.inArray('music') &&

@@ -5,10 +5,13 @@ html {
 
 body {
   margin: 0;
-  padding: 0 0.8em 0 0.8em;
-  font: 13px/1.5 "Helvetica Neue", Helvetica, "Arial Unicode", Arial, "Nimbus Sans L", "Liberation Sans", FreeSans, sans-serif;
+  padding: 0 0.8em 0 0.6em;
   background: #fdfdfd;
   color: #333;
+}
+
+body, input, textarea {
+  font: 15px/1.5 "Helvetica Neue", Helvetica, "Arial Unicode", Arial, "Nimbus Sans L", "Liberation Sans", FreeSans, sans-serif;
   text-rendering: optimizeLegibility;
 }
 
@@ -20,16 +23,6 @@ a {
   text-decoration: none;
   font-weight: bold;
   color: #00f;
-}
-
-table {
-  border: none;
-  border-spacing: 0;
-}
-
-th {
-  font-weight: normal;
-  text-align: left;
 }
 
 form {
@@ -44,15 +37,18 @@ label, input[type=checkbox] {
 table {
   box-sizing: border-box;
   width: 100%;
+  border: none;
+  border-spacing: 0;
 }
 
 th, td {
   display: block;
+  font-weight: normal;
+  text-align: left;
 }
 
 th {
   padding: 4px 0 0 3px;
-  font-size: 80%;
   color: #047BFF;
 }
 
@@ -60,8 +56,8 @@ input[type=text] {
   font-size: 120%;
 }
 
-label {
-  font-size: 140%;
+input[type=url] {
+  font-size: 100%;
 }
 
 input[type=text], input[type=url], textarea {
@@ -75,6 +71,10 @@ input[type=text], input[type=url], textarea {
   background: #fff;
   -webkit-appearance: none;
   transition: border-color 0.1s ease;
+}
+
+textarea {
+  font-size: 100%;
 }
 
 input[type=text]:hover, input[type=url]:hover, textarea:hover {
@@ -120,13 +120,16 @@ textarea {
 }
 
 #modifiers label {
+  display: inline-block;
+  min-width: 110px;
   font-size: 110%;
-  margin: 10px 15px 10px 0;
+  margin: 0 15px 0 0;
   padding: 10px 14px 10px 0;
-  border: 1px solid #ccc;
+  border: 1px solid #c8c8cc;
   border-radius: 10px;
   background-color: #fff;
   text-transform: capitalize;
+  box-shadow: 0 1px 4px #ddd;
 }
 
 #modifiers label:hover {
@@ -134,7 +137,7 @@ textarea {
 }
 
 input[type=checkbox] {
-  margin: 0 5px 0 10px;
+  margin: 0 5px 0 13px;
   -webkit-transform: scale(1.5, 1.5);
   vertical-align: 5%;
 }
@@ -166,7 +169,7 @@ button#submit.success {
 button#submit.fail {
   background-color: #FF6868;
   box-shadow: none;
-  -webkit-animation: non 0.8s 0.3s 2 ease;
+  -webkit-animation: non 1s 0 ease;
 }
 
 #bookmark-status {
@@ -203,8 +206,9 @@ footer {
 }
 
 @-webkit-keyframes non {
-  25% { -webkit-transform: translateX(-5px); }
-  50% { -webkit-transform: translateX(0); }
-  75% { -webkit-transform: translateX(5px); }
-  100% { -webkit-transform: translateX(0); }
+  30% { -webkit-transform: translateX(0); }
+  45% { -webkit-transform: translateX(-5px); }
+  60% { -webkit-transform: translateX(6px); }
+  75% { -webkit-transform: translateX(-7px); }
+  90% { -webkit-transform: translateX(6px); }
 }
