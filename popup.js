@@ -231,8 +231,9 @@ function show_suggested_tags(tag_suggestions) {
     suggested_tags.push(suggested_tag);
   }
 
-  if (suggested_tags.length) {
+  if (suggested_tags.length > 0) {
     $('#suggested').append(suggested_tags.join(" "));
+    $('#suggestion_row').show();
     $('#suggested').show(800);
   } else {
     $('#suggestion_row th').addClass('none').text('No tag suggestions for this page.');

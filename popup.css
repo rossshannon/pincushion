@@ -73,11 +73,6 @@ input[type=text], input[type=url], textarea {
   transition: border-color 0.1s ease;
 }
 
-textarea {
-  font-size: 100%;
-  padding: 6px;
-}
-
 input[type=text]:hover, input[type=url]:hover, textarea:hover {
   border-color: #aaa;
 }
@@ -88,6 +83,8 @@ input[type=text]:focus, input[type=url]:focus, textarea:focus {
 
 textarea {
   height: 125px;
+  font-size: 95%;
+  padding: 6px;
   text-indent: 1.5em;
 }
 
