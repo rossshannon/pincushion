@@ -9,7 +9,7 @@ $(function() {
   setUpFormSubmission();
   setUpTagAutoComplete();
   get_suggested_tags();
-  update_user_bookmarks();
+  update_user_tags();
   $('input#tags').focus();
   Ladda.bind('button[type=submit]');
 });
@@ -96,6 +96,7 @@ function check_for_existing_bookmark_details() {
         $('#bookmark-status').text("Previously saved on " + date.getFullYear() + "/" + date.getMonth() + "/" + date.getDate());
       }
       $('#submit span.text').text('Update bookmark');
+      $('#spinner').addClass('hidden');
     })
 
     .fail(function(response) {
@@ -167,12 +168,14 @@ function get_suggested_tags() {
   if (!urlParams['url']) { return; }
   var suggested_tags_api = "https://pinboard-bridge.herokuapp.com/posts/suggest?format=json&url=" + urlParams['url'] + "&auth_token=" + auth_token();
 
+  $('#spinner').removeClass('hidden');
   $.get(suggested_tags_api, function(data) {
     show_suggested_tags(data);
+    $('#spinner').addClass('hidden');
   }, 'json');
 }
 
-function update_user_bookmarks() {
+function update_user_tags() {
   if (!localStorage.tags) {
     localStorage['tags'] = JSON.stringify([]);
     var all_tags_api = "https://pinboard-bridge.herokuapp.com/tags/get?format=json&auth_token=" + auth_token();

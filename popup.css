@@ -180,6 +180,22 @@ button#submit.fail {
   color: #aac;
 }
 
+#spinner {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  margin: -4px 6px 0 0;
+  vertical-align: middle;
+  background: url(spinner_2x.gif) 0 0 no-repeat;
+  background-size: 24px 24px;
+  opacity: 0.6;
+}
+
+#spinner.hidden {
+  -webkit-animation: squelch 0.4s linear;
+  -webkit-animation-fill-mode: forwards;
+}
+
 footer {
   margin: 3em 0 1em;
   padding: 1em 0.6em 0;
@@ -211,4 +227,8 @@ footer {
   60% { -webkit-transform: translateX(6px); }
   75% { -webkit-transform: translateX(-7px); }
   90% { -webkit-transform: translateX(6px); }
+}
+
+@-webkit-keyframes squelch {
+  100% { -webkit-transform: scale(0); opacity: 0; }
 }
