@@ -153,21 +153,23 @@ function setUpFormSubmission() {
 function setUpTagAutoComplete() {
   console.log('Setting up autocomplete.');
 
-  var jsonString = '[{"label":"System Administrator","value":"1"},{"label":"Software Tester","value":"3"},{"label":" Software Developer","value":"4"},{"label":"Senior Developer","value":"5"},{"label":"Cloud Developer","value":"6"},{"label":"Wordpress Designer","value":"7"}]';
-
-  var jsonObj = $.parseJSON(jsonString);
-  var sourceArr = [];
-  for (var i = 0; i < jsonObj.length; i++) {
-    sourceArr.push(jsonObj[i].label);
-  }
-
-  console.log(sourceArr);
-
-  $('#tags').typeahead({
-    minLength: 2,
-    highlight: true,
-    hint: true,
-    source: sourceArr
+  $('input#tags').selectize({
+    delimiter: ' ',
+    create: true,
+    openOnFocus: false,
+    persist: false,
+    maxItems: null,
+    valueField: 'label',
+    labelField: 'label',
+    searchField: ['label', 'value'],
+    options: [
+      {label: "System Administrator", value: "1" },
+      {label: "Software Tester", value: "3" },
+      {label: "Software Developer", value: "4" },
+      {label: "Senior Developer", value: "5" },
+      {label: "Cloud Developer", value: "6" },
+      {label: "Wordpress Designer", value: "7" },
+    ]
   });
 }
 
