@@ -215,6 +215,7 @@ function show_suggested_tags(tag_suggestions) {
   tag_suggestions = tag_suggestions[0]['popular'].concat(tag_suggestions[1]['recommended']); // flatten JSON
   tag_suggestions = $.unique(tag_suggestions); // filter out duplicates
   tag_suggestions = removeSpuriousResults(tag_suggestions); // empty the array if they are the default/broken suggestions
+  tag_suggestions = removeOverlyCommonTags(tag_suggestions); // remove tags that appear very often across a wide range of pages
 
   var suggested_tags = [];
   for (var i = 0; i < tag_suggestions.length; i++) {
@@ -247,6 +248,13 @@ function removeSpuriousResults(tag_suggestions) {
   } else {
     return tag_suggestions;
   }
+}
+
+function removeOverlyCommonTags(tag_suggestions) {
+  tag_suggestions = $.grep(tag_suggestions, function(tag, index) {
+    return (tag !== 'Bookmarks_bar');
+  });
+  return tag_suggestions;
 }
 
 function pin_escape(s) {
