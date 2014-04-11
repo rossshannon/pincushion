@@ -224,8 +224,10 @@ function show_suggested_tags(tag_suggestions) {
 
   if (suggested_tags.length) {
     $('#suggested').append(suggested_tags.join(" "));
-    $('#suggestion_row').show();
     $('#suggested').show(800);
+  } else {
+    $('#suggestion_row th').text('No tag suggestions for this page.');
+    $('#suggestion_row').show();
   }
 }
 
