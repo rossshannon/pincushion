@@ -53,6 +53,9 @@ function parseUrlParameters() {
 function authenticate() {
   if (!(urlParams['user'] && urlParams['token'])) {
     alert("You must provide both ‘user’ and ‘token’ parameters to this page to allow it to use the Pinboard API.");
+    $('#submit').addClass('fail');
+    $('#submit').prop('disabled', true)
+    $('#spinner').addClass('hidden');
   }
 }
 
