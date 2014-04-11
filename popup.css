@@ -63,7 +63,7 @@ input[type=url] {
 input[type=text], input[type=url], textarea {
   box-sizing: border-box;
   width: 480px;
-  padding: 10px 7px;
+  padding: 10px 0 10px 7px;
   border: 1px solid #c8c8c8;
   border-bottom-color: #bbb;
   border-radius: 2px;
@@ -75,6 +75,7 @@ input[type=text], input[type=url], textarea {
 
 textarea {
   font-size: 100%;
+  padding: 6px;
 }
 
 input[type=text]:hover, input[type=url]:hover, textarea:hover {
