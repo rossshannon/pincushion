@@ -153,7 +153,7 @@ function setUpTagAutoComplete() {
   var jsonObj = $.parseJSON(jsonString);
   var sourceArr = [];
   for (var i = 0; i < jsonObj.length; i++) {
-     sourceArr.push(jsonObj[i].label);
+    sourceArr.push(jsonObj[i].label);
   }
 
   console.log(sourceArr);
@@ -210,6 +210,7 @@ function show_suggested_tags(tag_suggestions) {
   if (!tag_suggestions) { return; }
   tag_suggestions = tag_suggestions[0]['popular'].concat(tag_suggestions[1]['recommended']); // flatten JSON
   tag_suggestions = $.unique(tag_suggestions); // filter out duplicates
+  tag_suggestions = removeSpuriousResults(tag_suggestions); // empty the array if they are the default/broken suggestions
 
   var suggested_tags = [];
   for (var i = 0; i < tag_suggestions.length; i++) {
@@ -221,9 +222,21 @@ function show_suggested_tags(tag_suggestions) {
     suggested_tags.push(suggested_tag);
   }
 
-  $('#suggested').append(suggested_tags.join(" "));
-  $('#suggestion_row').show();
-  $('#suggested').show(800);
+  if (suggested_tags.length) {
+    $('#suggested').append(suggested_tags.join(" "));
+    $('#suggestion_row').show();
+    $('#suggested').show(800);
+  }
+}
+
+function removeSpuriousResults(tag_suggestions) {
+  if ($.inArray('facebook') && $.inArray('googlereader') && $.inArray('ifttt') && $.inArray('objective-c') &&
+      $.inArray('twitter') && $.inArray('twitterlink') && $.inArray('WSH') && $.inArray('music') &&
+      $.inArray('04:22PM') && $.inArray('1960s')) {
+    return [];
+  } else {
+    return tag_suggestions;
+  }
 }
 
 function pin_escape(s) {
