@@ -226,7 +226,7 @@ function show_suggested_tags(tag_suggestions) {
     $('#suggested').append(suggested_tags.join(" "));
     $('#suggested').show(800);
   } else {
-    $('#suggestion_row th').text('No tag suggestions for this page.');
+    $('#suggestion_row th').addClass('none').text('No tag suggestions for this page.');
     $('#suggestion_row').show();
   }
 }

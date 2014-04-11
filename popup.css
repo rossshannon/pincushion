@@ -97,6 +97,10 @@ textarea {
   }
 }
 
+#suggestion_row th.none {
+  color: #444;
+}
+
 #suggested {
   margin: 0 0 0.8em;
 }
@@ -116,7 +120,7 @@ textarea {
 }
 
 #modifiers {
-  margin: 1em 0;
+  margin: 0.5em 0 0.2em;
 }
 
 #modifiers label {
@@ -148,6 +152,7 @@ input[type=checkbox] {
 
 #submit {
   min-width: 177px;
+  padding: 13px 14px;
   font-size: 16px;
   border-radius: 4px;
   box-shadow: inset 0 0 13px #48aadf;
