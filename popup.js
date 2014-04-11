@@ -51,16 +51,13 @@ function parseUrlParameters() {
 }
 
 function authenticate() {
-  if (urlParams['user'] && urlParams['token']) {
-    $.cookie('pinboard-user', urlParams['user']);
-    $.cookie('pinboard-token', urlParams['token']);
-  } else {
+  if (!(urlParams['user'] && urlParams['token'])) {
     alert("You must provide both ‘user’ and ‘token’ parameters to this page to allow it to use the Pinboard API.");
   }
 }
 
 function auth_token() {
-  return $.cookie('pinboard-user') + ':' + $.cookie('pinboard-token');
+  return urlParams['user'] + ':' + urlParams['token'];
 }
 
 function serialized_inputs() {
