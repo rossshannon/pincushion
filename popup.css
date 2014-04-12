@@ -85,9 +85,10 @@ input[type=text]:focus, input[type=url]:focus, textarea:focus {
 
 textarea {
   height: 125px;
-  font-size: 95%;
+  font-size: 85%;
+  line-height: 1.7;
   padding: 6px;
-  text-indent: 1.5em;
+  text-indent: 1.8em;
 }
 
 @media only screen and (max-width: 480px) {
