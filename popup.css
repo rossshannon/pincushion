@@ -50,10 +50,12 @@ th, td {
 th {
   padding: 4px 0 0 3px;
   color: #047BFF;
+  -webkit-font-smoothing: antialiased;
 }
 
 input[type=text] {
   font-size: 120%;
+  -webkit-font-smoothing: antialiased;
 }
 
 input[type=url] {
@@ -93,6 +95,10 @@ textarea {
     max-width: 300px;
     max-height: 90px;
   }
+}
+
+.selectize-control.multi div {
+  letter-spacing: 1px !important;
 }
 
 #suggestion_row th.none {
@@ -161,6 +167,7 @@ textarea {
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
+  -webkit-font-smoothing: antialiased;
 }
 
 #modifiers label:hover {
@@ -191,9 +198,9 @@ input[type=checkbox] {
 }
 
 button#submit.success {
-  background-color: #4aca76;
+  background-color: #4adc76;
   box-shadow: none;
-  text-shadow: 1px 1px 1px #2a9a56;
+  text-shadow: 1px 1px 2px #2aaa56;
   -webkit-animation: pop 0.3s ease 0.5s;
 }
 
