@@ -219,8 +219,12 @@ function update_user_tags() {
 
 function show_suggested_tags(tag_suggestions) {
   if (!tag_suggestions) { return; }
-  tag_suggestions = tag_suggestions[0]['popular'].concat(tag_suggestions[1]['recommended']); // flatten JSON
+  tag_suggestions = $.merge(tag_suggestions[0]['popular'], tag_suggestions[1]['recommended']); // flatten JSON
+  tag_suggestions = tag_suggestions.map(function(tag) {
+    return tag.toLowerCase(); // lowercase all tags
+  });
   tag_suggestions = $.unique(tag_suggestions); // filter out duplicates
+  $('#description')
   tag_suggestions = removeSpuriousResults(tag_suggestions); // empty the array if they are the default/broken suggestions
   tag_suggestions = removeOverlyCommonTags(tag_suggestions); // remove tags that appear very often across a wide range of pages
 
