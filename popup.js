@@ -223,7 +223,7 @@ function show_suggested_tags(tag_suggestions) {
     var escaped = pin_escape(suggested_tag);
     var cooked  = pin_cook(suggested_tag);
     var suggested_tag = '<button type="button" class="suggested_tag" onclick="add_tag(\''  +
-                escaped + '\'); $(this).hide(); return false;">' + cooked + '</button>';
+                escaped + '\'); $(this).hide(200); return false;">' + cooked + '</button>';
     suggested_tags.push(suggested_tag);
   }
 
