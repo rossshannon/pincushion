@@ -263,8 +263,10 @@ function removeSpuriousResults(tag_suggestions) {
 function removeOverlyCommonTags(tag_suggestions) {
   tag_suggestions = $.grep(tag_suggestions, function(tag, index) {
     tag = tag.toLowerCase();
-    return (tag != 'bookmarks_bar' && tag != 'pin-later' && tag != 'Unread' && tag != '*resources' &&
-            tag != 'Unlabeled' && tag != 'via:packrati.us' && tag != 'Bookmarks_Menu' && tag != 'from');
+    return (tag != 'bookmarks_bar' && tag != 'pin-later' && tag != 'unread' && tag != '*resources' &&
+            tag != 'unlabeled' && tag != 'via:packrati.us' && tag != 'bookmarks_menu' && tag != 'from' &&
+            tag != 'ifttt' && tag != 'later' && tag != 'saved' && tag != 'read' && tag != 'feedly' &&
+            tag != 'for');
   });
   return tag_suggestions;
 }
