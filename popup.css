@@ -105,6 +105,7 @@ textarea {
 }
 
 #suggested button {
+  position: relative;
   font-size: 12px;
   line-height: 1.2;
   padding: 3px 10px 4px;
@@ -119,6 +120,15 @@ textarea {
   cursor: pointer;
   opacity: 0.9;
   transition: box-shadow 0.2s ease, -webkit-transform 0.1s ease;
+}
+
+#suggested button:after {
+  position: absolute;
+  left: -7%;
+  top: -8px;
+  height: 40px;
+  width: 115%;
+  content: "";
 }
 
 #suggested button:hover {
