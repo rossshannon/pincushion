@@ -253,8 +253,8 @@ function removeSpuriousResults(tag_suggestions) {
   if ($.inArray('facebook', tag_suggestions) >= 0 && $.inArray('googlereader', tag_suggestions) >= 0 &&
       $.inArray('ifttt', tag_suggestions) >= 0 && $.inArray('objective-c', tag_suggestions) >= 0 &&
       $.inArray('twitter', tag_suggestions) >= 0 && $.inArray('twitterlink', tag_suggestions) >= 0 &&
-      $.inArray('WSH', tag_suggestions) >= 0 && $.inArray('music', tag_suggestions) >= 0 &&
-      $.inArray('04:22PM', tag_suggestions) >= 0 && $.inArray('1960s', tag_suggestions) >= 0) {
+      $.inArray('wsh', tag_suggestions) >= 0 && $.inArray('music', tag_suggestions) >= 0 &&
+      $.inArray('04:22pm', tag_suggestions) >= 0 && $.inArray('1960s', tag_suggestions) >= 0) {
     return [];
   } else {
     return tag_suggestions;
