@@ -161,29 +161,27 @@ function prepopulate_tags(tagString) {
 }
 
 function setUpTagAutoComplete() {
-  console.log('Setting up autocomplete.');
 
   $('input#tags').selectize({
     delimiter: ' ',
     create: true,
     openOnFocus: false,
+    maxOptions: 6,
     persist: false,
-    maxItems: null,
     hideSelected: true,
+    diacritics: true,
     valueField: 'label',
     labelField: 'label',
     searchField: ['label']
   });
 
   var user_tags = JSON.parse(localStorage['tags']);
-  console.log(user_tags);
-  setTimeout(function() {
-    $.each(user_tags, function(key, value) {
-      $('input#tags')[0].selectize.addOption({
-        label: key
-      });
+  console.log('Populating dropdown.');
+  $.each(user_tags, function(key, value) {
+    $('input#tags')[0].selectize.addOption({
+      label: key
     });
-  }, 10000);
+  });
 }
 
 function get_suggested_tags() {
@@ -215,8 +213,7 @@ function update_user_tags() {
         }
       });
   } else {
-    console.log('Have tags already:');
-    console.log(JSON.parse(localStorage['tags']));
+    console.log('Have tags already.');
   }
 }
 
@@ -266,7 +263,7 @@ function removeOverlyCommonTags(tag_suggestions) {
     return (tag != 'bookmarks_bar' && tag != 'pin-later' && tag != 'unread' && tag != '*resources' &&
             tag != 'unlabeled' && tag != 'via:packrati.us' && tag != 'bookmarks_menu' && tag != 'from' &&
             tag != 'ifttt' && tag != 'later' && tag != 'saved' && tag != 'read' && tag != 'feedly' &&
-            tag != 'for');
+            tag != 'for' && tag != 'recently');
   });
   return tag_suggestions;
 }
