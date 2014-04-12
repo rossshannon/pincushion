@@ -172,7 +172,8 @@ function setUpTagAutoComplete() {
     diacritics: true,
     valueField: 'label',
     labelField: 'label',
-    searchField: ['label']
+    searchField: ['label'],
+    plugins: ['restore_on_backspace'],
   });
 
   if (localStorage && localStorage['tags']) {
@@ -269,7 +270,7 @@ function removeOverlyCommonTags(tag_suggestions) {
     return (tag != 'bookmarks_bar' && tag != 'pin-later' && tag != 'unread' && tag != '*resources' &&
             tag != 'unlabeled' && tag != 'via:packrati.us' && tag != 'bookmarks_menu' && tag != 'from' &&
             tag != 'ifttt' && tag != 'later' && tag != 'saved' && tag != 'read' && tag != 'feedly' &&
-            tag != 'for' && tag != 'recently' && tag != 'tobookmarks');
+            tag != 'for' && tag != 'recently' && tag != 'tobookmarks' && tag != 'from:ifttt');
   });
   return tag_suggestions;
 }
