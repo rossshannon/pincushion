@@ -174,6 +174,16 @@ function setUpTagAutoComplete() {
     labelField: 'label',
     searchField: ['label']
   });
+
+  var user_tags = JSON.parse(localStorage['tags']);
+  console.log(user_tags);
+  setTimeout(function() {
+    $.each(user_tags, function(key, value) {
+      $('input#tags')[0].selectize.addOption({
+        label: key
+      });
+    });
+  }, 10000);
 }
 
 function get_suggested_tags() {
@@ -189,12 +199,12 @@ function get_suggested_tags() {
 
 function update_user_tags() {
   if (!localStorage.tags) {
+    console.log('Downloading user’s tags.');
     localStorage['tags'] = JSON.stringify([]);
     var all_tags_api = "https://pinboard-bridge.herokuapp.com/tags/get?format=json&auth_token=" + auth_token();
 
     $.get(all_tags_api, 'json')
       .done(function(response) {
-        console.log(response);
         localStorage['tags'] = JSON.stringify(response);
         localStorage['tags-updated'] = new Date();
       })
@@ -205,7 +215,7 @@ function update_user_tags() {
         }
       });
   } else {
-    console.log('Have tags');
+    console.log('Have tags already:');
     console.log(JSON.parse(localStorage['tags']));
   }
 }
