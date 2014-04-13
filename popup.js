@@ -157,6 +157,7 @@ function prepopulate_tags(tagString) {
       label: tags[i]
     });
     $('input#tags')[0].selectize.addItem(tags[i]);
+    $('input#tags')[0].selectize.close();
   }
 }
 
@@ -272,7 +273,8 @@ function removeOverlyCommonTags(tag_suggestions) {
             tag != 'ifttt' && tag != 'later' && tag != 'saved' && tag != 'read' && tag != 'feedly' &&
             tag != 'for' && tag != 'recently' && tag != 'tobookmarks' && tag != 'from:ifttt' &&
             tag != 'instapaper' && tag != '!fromtwitter' && tag != 'feedbin' && tag != 'favorites_bar' &&
-            tag != 'imported' && tag != '.dailybrowse' && tag != 'barra_dei_preferiti' && tag != 'bookmarks_toolbar' );
+            tag != 'imported' && tag != '.dailybrowse' && tag != 'barra_dei_preferiti' && tag != 'bookmarks_toolbar' &&
+            tag != 'from_pocket');
   });
   return tag_suggestions;
 }
