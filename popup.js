@@ -270,7 +270,8 @@ function removeOverlyCommonTags(tag_suggestions) {
     return (tag != 'bookmarks_bar' && tag != 'pin-later' && tag != 'unread' && tag != '*resources' &&
             tag != 'unlabeled' && tag != 'via:packrati.us' && tag != 'bookmarks_menu' && tag != 'from' &&
             tag != 'ifttt' && tag != 'later' && tag != 'saved' && tag != 'read' && tag != 'feedly' &&
-            tag != 'for' && tag != 'recently' && tag != 'tobookmarks' && tag != 'from:ifttt');
+            tag != 'for' && tag != 'recently' && tag != 'tobookmarks' && tag != 'from:ifttt' &&
+            tag != 'instapaper' && tag != '!fromtwitter');
   });
   return tag_suggestions;
 }
