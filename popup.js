@@ -193,7 +193,6 @@ function set_up_tag_auto_complete() {
     valueField: 'label',
     labelField: 'label',
     searchField: ['label'],
-    plugins: ['restore_on_backspace'],
   });
 
   if (localStorage && localStorage['tags']) {
