@@ -126,10 +126,10 @@ function set_up_form_submission() {
 
           save_updated_user_tags();
 
-          //setTimeout(function() {
-          //  window.close();
-          //  $('#submit').removeClass('success'); // for windows that aren't popups
-          //}, 900);
+          setTimeout(function() {
+            $('#submit').removeClass('success'); // for windows that aren't popups
+            window.close(); // for windows that are popups
+          }, 900);
         } else if (response['result_code'] === 'must provide title') {
           Ladda.stopAll();
           $('#submit').addClass('fail');
