@@ -310,7 +310,7 @@ function download_user_tags() {
 
 function save_updated_user_tags() {
   var user_tags = JSON.parse(localStorage['tags']);
-  var potentially_new_tags = $('#tags').val().split(' ');
+  var potentially_new_tags = $('input#tags').val().split(' ');
 
   for (var i = 0; i < potentially_new_tags.length; i++) {
     if (user_tags[potentially_new_tags[i]]) {
