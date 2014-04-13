@@ -314,7 +314,8 @@ function save_updated_user_tags() {
 
   for (var i = 0; i < potentially_new_tags.length; i++) {
     if (user_tags[potentially_new_tags[i]]) {
-      if ($('input#tags').data('previous_tags').indexOf(potentially_new_tags[i]) !== -1) {
+      if ($('input#tags').data('previous_tags') &&
+          $('input#tags').data('previous_tags').indexOf(potentially_new_tags[i]) !== -1) {
         continue; // this tag was already present when the bookmark was saved previously
       } else {
         user_tags[potentially_new_tags[i]] = parseInt(user_tags[potentially_new_tags[i]]) + 1; // new tag, increment count

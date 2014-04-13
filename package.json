@@ -4,7 +4,7 @@
     "pinboard",
     "tagging",
     "bookmarks",
-    "delicious",
+    "delicious"
   ],
   "description": "Pinboard-post presents a modernised way to post bookmarks to the Pinboard.in service.",
   "version": "0.1.0",
