@@ -21,12 +21,9 @@ function resizeWindow() {
   if (window.outerHeight < min_height) {
     window.resizeTo(min_width, min_height);
   }
-
-  if (document.addEventListener) {
-    document.addEventListener('keydown', winclose, false);
-  } else {
-    document.attachEvent('onkeydown', winclose);
-  }
+  $(document).keydown(function(e) {
+    close_window(e);
+  });
 }
 
 /** Parse URL query parameters into urlParams hash. */
@@ -324,18 +321,8 @@ function pin_sort(a,b) {
   return -1;
 }
 
-function winclose(e) {
-  var code;
-  if (e.keyCode) {
-    code = e.keyCode;
-  } else {
-    if (e.which) {
-      code = e.which;
-    }
-  }
-  if (code == 27) {
-    if (!(pin_tagcomplete && pin_tagcomplete.active())) {
-      window.close();
-    }
+function close_window(e) {
+  if (e.keyCode == 27) {
+    window.close();
   }
 }
