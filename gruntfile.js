@@ -1,5 +1,8 @@
 module.exports = function(grunt) {
 
+  grunt.registerTask('default', [
+    'jshint',
+  ]);
   grunt.registerTask('watch', [ 'watch' ]);
 
   grunt.initConfig({
@@ -8,6 +11,15 @@ module.exports = function(grunt) {
         files: {
           'build/module.js': ['popup.js'],
         }
+      }
+    },
+    jshint: {
+      files: [
+        '*.js',
+        '!node_modules/**/*',
+      ],
+      options: {
+        jshintrc: '.jshintrc'
       }
     },
     concat: {
@@ -40,8 +52,8 @@ module.exports = function(grunt) {
     },
     watch: {
       js: {
-        files: ['*.js'],
-        tasks: ['browserify', 'concat:js', 'uglify:js'],
+        files: ['*.js', '.jshintrc'],
+        tasks: ['browserify', 'jshint', 'concat:js', 'uglify:js'],
         options: {
           livereload: true,
         }
@@ -56,6 +68,7 @@ module.exports = function(grunt) {
     }
   });
 
+  grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-browserify');
   grunt.loadNpmTasks('grunt-contrib-concat');
   grunt.loadNpmTasks('grunt-contrib-uglify');

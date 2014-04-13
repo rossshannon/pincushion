@@ -1,14 +1,14 @@
-"use strict";
+'use strict';
 
-var urlParams;
+var url_params;
 
 $(function() {
-  resizeWindow();
-  parseUrlParameters();
-  authenticate();
-  setUpFormSubmission();
-  setUpFastClick();
-  setUpTagAutoComplete();
+  resize_window();
+  parse_url_parameters();
+  authenticate_user();
+  set_up_form_submission();
+  set_up_fast_click();
+  set_up_tag_auto_complete();
   check_for_existing_bookmark_details();
   get_suggested_tags();
   update_user_tags();
@@ -17,7 +17,7 @@ $(function() {
 });
 
 /** Ensure window is tall enough to show all form elements. */
-function resizeWindow() {
+function resize_window() {
   var min_width = 600;
   var min_height = 700;
   if (window.outerHeight < min_height) {
@@ -28,55 +28,56 @@ function resizeWindow() {
   });
 }
 
-/** Parse URL query parameters into urlParams hash. */
-function parseUrlParameters() {
+/** Parse URL query parameters into url_params hash. */
+function parse_url_parameters() {
   (window.onpopstate = function () {
     var match,
         pl     = /\+/g,  // Regex for replacing addition symbol with a space
         search = /([^&=]+)=?([^&]*)/g,
-        decode = function (s) { return decodeURIComponent(s.replace(pl, " ")); },
+        decode = function (s) { return decodeURIComponent(s.replace(pl, ' ')); },
         query  = window.location.search.substring(1);
 
-    urlParams = {};
-    while (match = search.exec(query))
-       urlParams[decode(match[1])] = decode(match[2]);
+    url_params = {};
+    while (match = search.exec(query)) {
+      url_params[decode(match[1])] = decode(match[2]);
+    }
   })();
 
   /* Set form inputs to values passed via URL query parameters. */
-  $('input#url').val(urlParams['url']);
-  $('input#title').val(urlParams['title']);
-  $('textarea#description').val(urlParams['description']);
+  $('input#url').val(url_params['url']);
+  $('input#title').val(url_params['title']);
+  $('textarea#description').val(url_params['description']);
   $('#suggestion_row, #suggested').hide(); // We’ll show it again later if there are any suggestions
 }
 
-function authenticate() {
-  if (!(urlParams['user'] && urlParams['token'])) {
-    alert("You must provide both ‘user’ and ‘token’ parameters to this page to allow it to use the Pinboard API.");
+function authenticate_user() {
+  if (!(url_params['user'] && url_params['token'])) {
+    alert('You must provide both ‘user’ and ‘token’ parameters to this page to allow it to use the Pinboard API.');
     $('#submit').addClass('fail');
-    $('#submit').prop('disabled', true)
+    $('#submit').prop('disabled', true);
     $('#spinner').addClass('hidden');
   }
 }
 
 function auth_token() {
-  return urlParams['user'] + ':' + urlParams['token'];
+  return url_params['user'] + ':' + url_params['token'];
 }
 
 function serialized_inputs() {
-  var serialized_inputs = $('#url, #title, #description, #tags').serialize();
+  var serialized_form_inputs = $('#url, #title, #description, #tags').serialize();
   if ($('#private').prop('checked')) {
-    serialized_inputs += '&shared=no';
+    serialized_form_inputs += '&shared=no';
   }
   if ($('#toread').prop('checked')) {
-    serialized_inputs += '&toread=yes';
+    serialized_form_inputs += '&toread=yes';
   }
-  return serialized_inputs;
+  return serialized_form_inputs;
 }
 
 /** Check for pre-existing bookmark for this URL. */
 function check_for_existing_bookmark_details() {
-  if (!urlParams['url']) { return; }
-  var bookmark_details_api = "https://pinboard-bridge.herokuapp.com/posts/get?format=json&auth_token=" + auth_token() + "&url=" + urlParams['url'];
+  if (!url_params['url']) { return; }
+  var bookmark_details_api = 'https://pinboard-bridge.herokuapp.com/posts/get?format=json&auth_token=' + auth_token() + '&url=' + url_params['url'];
 
   $.get(bookmark_details_api, 'json')
     .done(function(response) {
@@ -87,45 +88,45 @@ function check_for_existing_bookmark_details() {
       $('textarea#description').val(bookmark['extended'] + '\n\n' + $('textarea#description').val());
       prepopulate_tags(bookmark['tags']);
 
-      if (bookmark['shared'] == 'no') {
+      if (bookmark['shared'] === 'no') {
         $('#private').prop('checked', true);
       }
-      if (bookmark['toread'] == 'yes') {
+      if (bookmark['toread'] === 'yes') {
         $('#toread').prop('checked', true);
       }
       if (bookmark['time']) {
         var date = new Date(bookmark['time']);
-        $('#bookmark-status').text("Previously saved on " + date.getFullYear() + "/" + date.getMonth() + "/" + date.getDate());
+        $('#bookmark-status').text('Previously saved on ' + date.getFullYear() + '/' + date.getMonth() + '/' + date.getDate());
       }
       $('#submit span.text').text('Update bookmark');
       $('#spinner').addClass('hidden');
     })
 
     .fail(function(response) {
-      if (response.status == '401') {
-        alert("401 Unauthorised. Please check your username and API access token.");
+      if (response.status === '401') {
+        alert('401 Unauthorised. Please check your username and API access token.');
       }
     });
 }
 
 /** Submit the form with Ajax */
-function setUpFormSubmission() {
+function set_up_form_submission() {
   $('#post-to-pinboard').on('submit', function(event) {
     event.preventDefault();
 
-    var post_bookmark_api = "https://pinboard-bridge.herokuapp.com/posts/add?format=json&auth_token=" + auth_token() + "&" + serialized_inputs();
+    var post_bookmark_api = 'https://pinboard-bridge.herokuapp.com/posts/add?format=json&auth_token=' + auth_token() + '&' + serialized_inputs();
 
     $.get(post_bookmark_api, 'json')
       .done(function(response) {
-        if (response['result_code'] == 'done') {
-          console.log("Bookmark saved correctly.");
+        if (response['result_code'] === 'done') {
+          console.log('Bookmark saved correctly.');
           Ladda.stopAll();
           $('#submit').addClass('success');
           setTimeout(function() {
             window.close();
             $('#submit').removeClass('success'); // for windows that aren't popups
           }, 900);
-        } else if (response['result_code'] == 'must provide title') {
+        } else if (response['result_code'] === 'must provide title') {
           Ladda.stopAll();
           $('#submit').addClass('fail');
           setTimeout(function() {
@@ -138,8 +139,8 @@ function setUpFormSubmission() {
       .fail(function(response) {
         Ladda.stopAll();
         $('#submit').addClass('fail');
-        if (response.status == '401') {
-          alert("401 Unauthorised. Please check your username and API access token.");
+        if (response.status === '401') {
+          alert('401 Unauthorised. Please check your username and API access token.');
         }
       });
   });
@@ -149,7 +150,7 @@ function setUpFormSubmission() {
   });
 }
 
-function setUpFastClick() {
+function set_up_fast_click() {
   var SelectiveFastClick = require('selective-fastclick');
   var selectors = [
     'input[type=text], input[type=url], textarea',
@@ -159,18 +160,18 @@ function setUpFastClick() {
   SelectiveFastClick.attach(document.body, selectors);
 }
 
-function prepopulate_tags(tagString) {
-  var tags = tagString.split(' ');
+function prepopulate_tags(tag_string) {
+  var tags = tag_string.split(' ');
   for (var i = 0; i < tags.length; i++) {
     $('input#tags')[0].selectize.addOption({
       label: tags[i]
     });
     $('input#tags')[0].selectize.addItem(tags[i]);
-    $('input#tags')[0].selectize.close();
+    $('input#tags')[0].selectize.close(); // stop it from opening after these programmatic additions
   }
 }
 
-function setUpTagAutoComplete() {
+function set_up_tag_auto_complete() {
 
   $('input#tags').selectize({
     delimiter: ' ',
@@ -189,7 +190,7 @@ function setUpTagAutoComplete() {
   if (localStorage && localStorage['tags']) {
     var user_tags = JSON.parse(localStorage['tags']);
     console.log('Populating dropdown.');
-    $.each(user_tags, function(key, value) {
+    $.each(user_tags, function(key) {
       $('input#tags')[0].selectize.addOption({
         label: key
       });
@@ -198,8 +199,8 @@ function setUpTagAutoComplete() {
 }
 
 function get_suggested_tags() {
-  if (!urlParams['url']) { return; }
-  var suggested_tags_api = "https://pinboard-bridge.herokuapp.com/posts/suggest?format=json&url=" + urlParams['url'] + "&auth_token=" + auth_token();
+  if (!url_params['url']) { return; }
+  var suggested_tags_api = 'https://pinboard-bridge.herokuapp.com/posts/suggest?format=json&url=' + url_params['url'] + '&auth_token=' + auth_token();
 
   $('#spinner').removeClass('hidden');
   $.get(suggested_tags_api, function(data) {
@@ -212,7 +213,7 @@ function update_user_tags() {
   if (!localStorage.tags) {
     console.log('Downloading user’s tags.');
     localStorage['tags'] = JSON.stringify([]);
-    var all_tags_api = "https://pinboard-bridge.herokuapp.com/tags/get?format=json&auth_token=" + auth_token();
+    var all_tags_api = 'https://pinboard-bridge.herokuapp.com/tags/get?format=json&auth_token=' + auth_token();
 
     $.get(all_tags_api, 'json')
       .done(function(response) {
@@ -221,8 +222,8 @@ function update_user_tags() {
       })
 
       .fail(function(response) {
-        if (response.status == '401') {
-          alert("401 Unauthorised. Please check your username and API access token.");
+        if (response.status === '401') {
+          alert('401 Unauthorised. Please check your username and API access token.');
         }
       });
   } else {
@@ -237,19 +238,17 @@ function show_suggested_tags(tag_suggestions) {
     return tag.toLowerCase(); // lowercase all tags
   });
   tag_suggestions = $.unique(tag_suggestions); // filter out duplicates
-  $('#description')
-  tag_suggestions = removeSpuriousResults(tag_suggestions); // empty the array if they are the default/broken suggestions
-  tag_suggestions = removeOverlyCommonTags(tag_suggestions); // remove tags that appear very often across a wide range of pages
+  tag_suggestions = remove_spurious_results(tag_suggestions); // empty the array if they are the default/broken suggestions
+  tag_suggestions = remove_overly_common_tags(tag_suggestions); // remove tags that appear very often across a wide range of pages
 
   var suggested_tags = [];
   for (var i = 0; i < tag_suggestions.length; i++) {
-    var suggested_tag = tag_suggestions[i];
-    var suggested_tag = '<button type="button" class="suggested_tag">' + pin_cook(suggested_tag) + '</button>';
+    var suggested_tag = '<button type="button" class="suggested_tag">' + pin_cook(tag_suggestions[i]) + '</button>';
     suggested_tags.push(suggested_tag);
   }
 
   if (suggested_tags.length > 0) {
-    $('#suggested').append(suggested_tags.join(" "));
+    $('#suggested').append(suggested_tags.join(' '));
     $('#suggested button').on('click', function() {
       add_tag(pin_escape($(this).text()));
       $(this).hide(200);
@@ -264,7 +263,7 @@ function show_suggested_tags(tag_suggestions) {
 }
 
 /** Remove default set of tags that are suggested by the Pinboard API when there are no good suggestions. */
-function removeSpuriousResults(tag_suggestions) {
+function remove_spurious_results(tag_suggestions) {
   if ($.inArray('facebook', tag_suggestions) >= 0 && $.inArray('googlereader', tag_suggestions) >= 0 &&
       $.inArray('ifttt', tag_suggestions) >= 0 && $.inArray('objective-c', tag_suggestions) >= 0 &&
       $.inArray('twitter', tag_suggestions) >= 0 && $.inArray('twitterlink', tag_suggestions) >= 0 &&
@@ -276,16 +275,16 @@ function removeSpuriousResults(tag_suggestions) {
   }
 }
 
-function removeOverlyCommonTags(tag_suggestions) {
-  tag_suggestions = $.grep(tag_suggestions, function(tag, index) {
+function remove_overly_common_tags(tag_suggestions) {
+  tag_suggestions = $.grep(tag_suggestions, function(tag) {
     tag = tag.toLowerCase();
-    return (tag != 'bookmarks_bar' && tag != 'pin-later' && tag != 'unread' && tag != '*resources' &&
-            tag != 'unlabeled' && tag != 'via:packrati.us' && tag != 'bookmarks_menu' && tag != 'from' &&
-            tag != 'ifttt' && tag != 'later' && tag != 'saved' && tag != 'read' && tag != 'feedly' &&
-            tag != 'for' && tag != 'recently' && tag != 'tobookmarks' && tag != 'from:ifttt' &&
-            tag != 'instapaper' && tag != '!fromtwitter' && tag != 'feedbin' && tag != 'favorites_bar' &&
-            tag != 'imported' && tag != '.dailybrowse' && tag != 'barra_dei_preferiti' && tag != 'bookmarks_toolbar' &&
-            tag != 'from_pocket');
+    return (tag !== 'bookmarks_bar' && tag !== 'pin-later' && tag !== 'unread' && tag !== '*resources' &&
+            tag !== 'unlabeled' && tag !== 'via:packrati.us' && tag !== 'bookmarks_menu' && tag !== 'from' &&
+            tag !== 'ifttt' && tag !== 'later' && tag !== 'saved' && tag !== 'read' && tag !== 'feedly' &&
+            tag !== 'for' && tag !== 'recently' && tag !== 'tobookmarks' && tag !== 'from:ifttt' &&
+            tag !== 'instapaper' && tag !== '!fromtwitter' && tag !== 'feedbin' && tag !== 'favorites_bar' &&
+            tag !== 'imported' && tag !== '.dailybrowse' && tag !== 'barra_dei_preferiti' &&
+            tag !== 'bookmarks_toolbar' && tag !== 'from_pocket');
   });
   return tag_suggestions;
 }
@@ -315,16 +314,8 @@ RegExp.escape = function(text) {
   return text.replace(/[-[\]{}()*+?.,\\\\'"^$|#\s]/g, "\\$&"); //"'
 }
 
-function pin_sort(a,b) {
-  var l = a.toLowerCase ? a.toLowerCase() : a;
-  var r = b.toLowerCase ? b.toLowerCase() : b;
-  if (l == r) { return 0; }
-  if (l > r) { return 1; }
-  return -1;
-}
-
 function close_window(e) {
-  if (e.keyCode == 27) {
+  if (e.keyCode === 27) {
     window.close();
   }
 }
