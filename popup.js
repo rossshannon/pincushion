@@ -84,7 +84,7 @@ function check_for_existing_bookmark_details() {
       var bookmark = response['posts'][0];
 
       $('input#title').val(bookmark['description']);
-      $('textarea#description').val(bookmark['extended']);
+      $('textarea#description').val(bookmark['extended'] + '\n\n' + $('textarea#description').val());
       prepopulate_tags(bookmark['tags']);
 
       if (bookmark['shared'] == 'no') {
