@@ -190,13 +190,13 @@ input[type=checkbox] {
 #submit[disabled] {
   box-shadow: none;
 }
-button#submit.success {
+#submit.success {
   background-color: #4adc76;
   box-shadow: none;
   text-shadow: 1px 1px 2px #2aaa56;
   -webkit-animation: pop 0.3s ease 0.5s;
 }
-button#submit.fail {
+#submit.fail {
   background-color: #FF6868;
   box-shadow: none;
   -webkit-animation: non 1s 0 ease;
@@ -218,7 +218,7 @@ button#submit.fail {
   background-size: 24px 24px;
   opacity: 0.6;
 }
-#spinner.hidden {
+#spinner .hidden {
   -webkit-animation: squelch 0.4s linear;
   -webkit-animation-fill-mode: forwards;
 }
