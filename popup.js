@@ -11,7 +11,7 @@ $(function() {
   check_for_existing_bookmark_details();
   get_suggested_tags();
   set_up_form_submission();
-  update_user_tags();
+  download_user_tags();
   $('input#tags')[0].selectize.focus();
   Ladda.bind('button[type=submit]');
 });
@@ -98,6 +98,7 @@ function check_for_existing_bookmark_details() {
         var date = new Date(bookmark['time']);
         $('#bookmark-status').text('Previously saved on ' + date.getFullYear() + '/' + date.getMonth() + '/' + date.getDate());
       }
+      $('#updating').val('true');
       $('#submit span.text').text('Update bookmark');
       $('#spinner').addClass('hidden');
     })
@@ -122,10 +123,13 @@ function set_up_form_submission() {
           console.log('Bookmark saved correctly.');
           Ladda.stopAll();
           $('#submit').addClass('success');
-          setTimeout(function() {
-            window.close();
-            $('#submit').removeClass('success'); // for windows that aren't popups
-          }, 900);
+
+          save_updated_user_tags();
+
+          //setTimeout(function() {
+          //  window.close();
+          //  $('#submit').removeClass('success'); // for windows that aren't popups
+          //}, 900);
         } else if (response['result_code'] === 'must provide title') {
           Ladda.stopAll();
           $('#submit').addClass('fail');
@@ -161,6 +165,8 @@ function set_up_fast_click() {
 }
 
 function prepopulate_tags(tag_string) {
+  $('input#tags').data('previous_tags', tag_string);
+
   var tags = tag_string.split(' ');
   for (var i = 0; i < tags.length; i++) {
     $('input#tags')[0].selectize.addOption({
@@ -280,8 +286,8 @@ function add_tag(tag) {
   $('input#tags')[0].selectize.addItem(tag);
 }
 
-function update_user_tags() {
-  if (!localStorage.tags) {
+function download_user_tags() {
+  if (!(localStorage && localStorage.tags)) {
     console.log('Downloading user’s tags.');
     localStorage['tags'] = JSON.stringify([]);
     var all_tags_api = 'https://pinboard-bridge.herokuapp.com/tags/get?format=json&auth_token=' + auth_token();
@@ -300,6 +306,25 @@ function update_user_tags() {
   } else {
     console.log('Have tags already.');
   }
+}
+
+function save_updated_user_tags() {
+  var user_tags = JSON.parse(localStorage['tags']);
+  var potentially_new_tags = $('#tags').val().split(' ');
+
+  for (var i = 0; i < potentially_new_tags.length; i++) {
+    if (user_tags[potentially_new_tags[i]]) {
+      if ($('input#tags').data('previous_tags').indexOf(potentially_new_tags[i]) !== -1) {
+        continue; // this tag was already present when the bookmark was saved previously
+      } else {
+        user_tags[potentially_new_tags[i]] = parseInt(user_tags[potentially_new_tags[i]]) + 1; // new tag, increment count
+      }
+    } else {
+      user_tags[potentially_new_tags[i]] = 1; // completely new tag, instantiate it in local tag set
+    }
+  }
+  localStorage['tags'] = JSON.stringify(user_tags);
+  localStorage['tags-updated'] = new Date();
 }
 
 function pin_escape(s) {
