@@ -138,13 +138,12 @@ textarea {
   content: "";
 }
 
-#suggested button:hover {
+#suggested button:hover, #suggested button:focus {
   background-color: #20a5e4;
   background-image: linear-gradient(to bottom, #1da7ee, #178ee9);
   border: 1px solid #1083cb;
   box-shadow: 2px 2px 4px #bcd;
   -webkit-transform: translateX(0px) translateY(-2px);
-
 }
 
 #modifiers {
@@ -192,6 +191,11 @@ input[type=checkbox] {
   box-shadow: inset 0 0 13px #48aadf;
   -webkit-transform: perspective(1200);
   transition: -webkit-transform 1s ease, text-shadow 0.2s linear;
+}
+
+#submit:focus {
+  -webkit-animation: pop 0.3s ease 0.5s;
+  box-shadow: 2px 2px 7px #ddd;
 }
 
 #submit[disabled] {

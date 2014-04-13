@@ -36,7 +36,7 @@
       <td></td>
       <td id="bookmark-save">
         <span id="spinner"></span>
-        <button type="submit" id="submit" class="ladda-button" data-style="expand-left" data-size="m" data-color="blue">
+        <button type="submit" id="submit" class="ladda-button" tabindex="7" data-style="expand-left" data-size="m" data-color="blue">
           <span class="ladda-label text">Add bookmark</span>
         </button>
         <div id="bookmark-status"></div>
@@ -46,27 +46,27 @@
   <tbody>
     <tr>
       <th><label for="title">title</label></th>
-      <td><input type="text" name="description" id="title" size="70" autocomplete="off" autocapitalize="none"></td>
+      <td><input type="text" name="description" id="title" size="70" tabindex="1" autocomplete="off" autocapitalize="none"></td>
     </tr>
     <tr>
       <th><label for="url">URL</label></th>
-      <td><input type="url" name="url" id="url" size="70" placeholder="http://" autocorrect="off" autocapitalize="none"></td>
+      <td><input type="url" name="url" id="url" size="70" tabindex="2" placeholder="http://" autocorrect="off" autocapitalize="none"></td>
     </tr>
     <tr>
       <th><label for="description">description</label></th>
-      <td><textarea name="extended" id="description" cols="70" rows="11" autocomplete="off" autocapitalize="none"></textarea></td>
+      <td><textarea name="extended" id="description" cols="70" rows="11" tabindex="3" autocomplete="off" autocapitalize="none"></textarea></td>
     </tr>
     <tr>
       <td></td>
       <td id="modifiers">
-        <label><input type="checkbox" name="private" id="private"> private</label>
-        <label><input type="checkbox" name="toread" id="toread"> read later</label>
+        <label><input type="checkbox" name="private" id="private" tabindex="4"> private</label>
+        <label><input type="checkbox" name="toread" id="toread" tabindex="5"> read later</label>
       </td>
     </tr>
 
     <tr>
       <th><label for="tags">tags</label></th>
-      <td><input type="text" name="tags" id="tags" size="70" autocomplete="off" autocorrect="off" autocapitalize="none"></td>
+      <td><input type="text" name="tags" id="tags" size="70" autocomplete="off" autocorrect="off" autocapitalize="none" tabindex="6"></td>
     </tr>
     <tr id="suggestion_row">
       <th>suggested tags</th>
