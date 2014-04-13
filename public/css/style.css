@@ -156,6 +156,7 @@ textarea {
   background-color: #fff;
   text-transform: capitalize;
   box-shadow: 0 1px 4px #ddd;
+  transition: -webkit-transform 0.1s ease;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   -khtml-user-select: none;
@@ -166,6 +167,9 @@ textarea {
 }
 #modifiers label:hover {
   border-color: #aaa;
+}
+#modifiers label:active {
+  -webkit-transform: translateX(2px) translateY(2px);
 }
 input[type=checkbox] {
   margin: 0 5px 0 13px;
