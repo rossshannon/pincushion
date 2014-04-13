@@ -3,13 +3,20 @@ module.exports = function(grunt) {
   grunt.registerTask('watch', [ 'watch' ]);
 
   grunt.initConfig({
+    browserify: {
+      dist: {
+        files: {
+          'build/module.js': ['popup.js'],
+        }
+      }
+    },
     concat: {
       js: {
         options: {
           separator: ';'
         },
         src: [
-          'popup.js'
+          'build/module.js'
         ],
         dest: 'public/js/main.min.js'
       },
@@ -34,7 +41,7 @@ module.exports = function(grunt) {
     watch: {
       js: {
         files: ['*.js'],
-        tasks: ['concat:js', 'uglify:js'],
+        tasks: ['browserify', 'concat:js', 'uglify:js'],
         options: {
           livereload: true,
         }
@@ -49,9 +56,9 @@ module.exports = function(grunt) {
     }
   });
 
+  grunt.loadNpmTasks('grunt-browserify');
   grunt.loadNpmTasks('grunt-contrib-concat');
   grunt.loadNpmTasks('grunt-contrib-uglify');
   grunt.loadNpmTasks('grunt-contrib-less');
   grunt.loadNpmTasks('grunt-contrib-watch');
-
 };

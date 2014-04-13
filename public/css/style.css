@@ -214,11 +214,11 @@ input[type=checkbox] {
   height: 24px;
   margin: -4px 6px 0 0;
   vertical-align: middle;
-  background: url(spinner_2x.gif) 0 0 no-repeat;
+  background: url(../../spinner_2x.gif) 0 0 no-repeat;
   background-size: 24px 24px;
   opacity: 0.6;
 }
-#spinner .hidden {
+#spinner.hidden {
   -webkit-animation: squelch 0.4s linear;
   -webkit-animation-fill-mode: forwards;
 }

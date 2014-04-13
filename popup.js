@@ -4,8 +4,8 @@ $(function() {
   resizeWindow();
   parseUrlParameters();
   authenticate();
-  FastClick.attach(document.body);
   setUpFormSubmission();
+  setUpFastClick();
   setUpTagAutoComplete();
   check_for_existing_bookmark_details();
   get_suggested_tags();
@@ -150,6 +150,16 @@ function setUpFormSubmission() {
   });
 }
 
+function setUpFastClick() {
+  var SelectiveFastClick = require('selective-fastclick');
+  var selectors = [
+    'input[type=text], input[type=url], textarea',
+    'button.suggested_tag',
+    'label'
+  ];
+  SelectiveFastClick.attach(document.body, selectors);
+}
+
 function prepopulate_tags(tagString) {
   var tags = tagString.split(' ');
   for (var i = 0; i < tags.length; i++) {
@@ -235,15 +245,17 @@ function show_suggested_tags(tag_suggestions) {
   var suggested_tags = [];
   for (var i = 0; i < tag_suggestions.length; i++) {
     var suggested_tag = tag_suggestions[i];
-    var escaped = pin_escape(suggested_tag);
-    var cooked  = pin_cook(suggested_tag);
-    var suggested_tag = '<button type="button" class="suggested_tag" onclick="add_tag(\''  +
-                escaped + '\'); $(this).hide(200); return false;">' + cooked + '</button>';
+    var suggested_tag = '<button type="button" class="suggested_tag">' + pin_cook(suggested_tag) + '</button>';
     suggested_tags.push(suggested_tag);
   }
 
   if (suggested_tags.length > 0) {
     $('#suggested').append(suggested_tags.join(" "));
+    $('#suggested button').on('click', function() {
+      add_tag(pin_escape($(this).text()));
+      $(this).hide(200);
+      return false;
+    });
     $('#suggestion_row').show();
     $('#suggested').show(800);
   } else {
@@ -279,6 +291,13 @@ function removeOverlyCommonTags(tag_suggestions) {
   return tag_suggestions;
 }
 
+function add_tag(tag) {
+  $('input#tags')[0].selectize.addOption({
+    label: tag
+  });
+  $('input#tags')[0].selectize.addItem(tag);
+}
+
 function pin_escape(s) {
   s = s.replace(/\\/g, "\\\\");
   s = s.replace(/'/g, "\\'"); // "
@@ -295,13 +314,6 @@ function pin_cook(s) {
 
 RegExp.escape = function(text) {
   return text.replace(/[-[\]{}()*+?.,\\\\'"^$|#\s]/g, "\\$&"); //"'
-}
-
-function add_tag(tag) {
-  $('input#tags')[0].selectize.addOption({
-    label: tag
-  });
-  $('input#tags')[0].selectize.addItem(tag);
 }
 
 function pin_sort(a,b) {
