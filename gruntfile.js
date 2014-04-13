@@ -24,13 +24,13 @@ module.exports = function(grunt) {
         }
       }
     },
-    //less: {
-    //  style: {
-    //    files: {
-    //      "public/css/style.css": "less/style.less"
-    //    }
-    //  }
-    //},
+    less: {
+      style: {
+        files: {
+          "public/css/style.css": "popup.less"
+        }
+      }
+    },
     watch: {
       js: {
         files: ['*.js'],
@@ -39,13 +39,13 @@ module.exports = function(grunt) {
           livereload: true,
         }
       },
-      //css: {
-      //  files: ['less/*.less'],
-      //  tasks: ['less:style'],
-      //  options: {
-      //    livereload: true,
-      //  }
-      //}
+      css: {
+        files: ['*.less'],
+        tasks: ['less:style'],
+        options: {
+          livereload: true,
+        }
+      }
     }
   });
 
