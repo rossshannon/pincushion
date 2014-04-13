@@ -6,11 +6,11 @@ $(function() {
   resize_window();
   parse_url_parameters();
   authenticate_user();
-  set_up_form_submission();
   set_up_fast_click();
   set_up_tag_auto_complete();
   check_for_existing_bookmark_details();
   get_suggested_tags();
+  set_up_form_submission();
   update_user_tags();
   $('input#tags')[0].selectize.focus();
   Ladda.bind('button[type=submit]');
@@ -168,11 +168,14 @@ function prepopulate_tags(tag_string) {
     });
     $('input#tags')[0].selectize.addItem(tags[i]);
     $('input#tags')[0].selectize.close(); // stop it from opening after these programmatic additions
+
+    $('#suggested button').filter(function() { // don’t suggest tags that the bookmark already has
+      return $(this).text().toLowerCase() === tags[i];
+    }).hide();
   }
 }
 
 function set_up_tag_auto_complete() {
-
   $('input#tags').selectize({
     delimiter: ' ',
     create: true,
@@ -209,28 +212,6 @@ function get_suggested_tags() {
   }, 'json');
 }
 
-function update_user_tags() {
-  if (!localStorage.tags) {
-    console.log('Downloading user’s tags.');
-    localStorage['tags'] = JSON.stringify([]);
-    var all_tags_api = 'https://pinboard-bridge.herokuapp.com/tags/get?format=json&auth_token=' + auth_token();
-
-    $.get(all_tags_api, 'json')
-      .done(function(response) {
-        localStorage['tags'] = JSON.stringify(response);
-        localStorage['tags-updated'] = new Date();
-      })
-
-      .fail(function(response) {
-        if (response.status === '401') {
-          alert('401 Unauthorised. Please check your username and API access token.');
-        }
-      });
-  } else {
-    console.log('Have tags already.');
-  }
-}
-
 function show_suggested_tags(tag_suggestions) {
   if (!tag_suggestions) { return; }
   tag_suggestions = $.merge(tag_suggestions[0]['popular'], tag_suggestions[1]['recommended']); // flatten JSON
@@ -243,8 +224,11 @@ function show_suggested_tags(tag_suggestions) {
 
   var suggested_tags = [];
   for (var i = 0; i < tag_suggestions.length; i++) {
-    var suggested_tag = '<button type="button" class="suggested_tag">' + pin_cook(tag_suggestions[i]) + '</button>';
-    suggested_tags.push(suggested_tag);
+    /* Don’t show a suggested tag if it is already present in the tag field. */
+    if ((' ' + $('#tags').val() + ' ').indexOf(' ' + tag_suggestions[i] + ' ') === -1) {
+      var suggested_tag = '<button type="button" class="suggested_tag">' + pin_cook(tag_suggestions[i]) + '</button>';
+      suggested_tags.push(suggested_tag);
+    }
   }
 
   if (suggested_tags.length > 0) {
@@ -294,6 +278,28 @@ function add_tag(tag) {
     label: tag
   });
   $('input#tags')[0].selectize.addItem(tag);
+}
+
+function update_user_tags() {
+  if (!localStorage.tags) {
+    console.log('Downloading user’s tags.');
+    localStorage['tags'] = JSON.stringify([]);
+    var all_tags_api = 'https://pinboard-bridge.herokuapp.com/tags/get?format=json&auth_token=' + auth_token();
+
+    $.get(all_tags_api, 'json')
+      .done(function(response) {
+        localStorage['tags'] = JSON.stringify(response);
+        localStorage['tags-updated'] = new Date();
+      })
+
+      .fail(function(response) {
+        if (response.status === '401') {
+          alert('401 Unauthorised. Please check your username and API access token.');
+        }
+      });
+  } else {
+    console.log('Have tags already.');
+  }
 }
 
 function pin_escape(s) {
