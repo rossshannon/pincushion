@@ -1,7 +1,7 @@
 module.exports = function(grunt) {
 
   grunt.registerTask('default', [
-    'jshint',
+    'jshint', 'connect'
   ]);
   grunt.registerTask('watch', [ 'watch' ]);
 
@@ -53,7 +53,7 @@ module.exports = function(grunt) {
     watch: {
       js: {
         files: ['*.js', '.jshintrc'],
-        tasks: ['browserify', 'jshint', 'concat:js', 'uglify:js'],
+        tasks: ['browserify', 'concat:js', 'uglify:js'],
         options: {
           livereload: true,
         }
@@ -65,7 +65,10 @@ module.exports = function(grunt) {
           livereload: true,
         }
       }
-    }
+    },
+    connect: {
+      server: {},
+    },
   });
 
   grunt.loadNpmTasks('grunt-contrib-jshint');
@@ -74,4 +77,5 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-uglify');
   grunt.loadNpmTasks('grunt-contrib-less');
   grunt.loadNpmTasks('grunt-contrib-watch');
+  grunt.loadNpmTasks('grunt-contrib-connect');
 };
