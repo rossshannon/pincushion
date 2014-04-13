@@ -271,7 +271,8 @@ function removeOverlyCommonTags(tag_suggestions) {
             tag != 'unlabeled' && tag != 'via:packrati.us' && tag != 'bookmarks_menu' && tag != 'from' &&
             tag != 'ifttt' && tag != 'later' && tag != 'saved' && tag != 'read' && tag != 'feedly' &&
             tag != 'for' && tag != 'recently' && tag != 'tobookmarks' && tag != 'from:ifttt' &&
-            tag != 'instapaper' && tag != '!fromtwitter');
+            tag != 'instapaper' && tag != '!fromtwitter' && tag != 'feedbin' && tag != 'favorites_bar' &&
+            tag != 'imported' && tag != '.dailybrowse' && tag != 'barra_dei_preferiti' && tag != 'bookmarks_toolbar');
   });
   return tag_suggestions;
 }

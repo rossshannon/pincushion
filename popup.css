@@ -126,10 +126,10 @@ textarea {
   text-shadow: 1px 1px 1px #333;
   cursor: pointer;
   opacity: 0.9;
-  transition: box-shadow 0.2s ease, -webkit-transform 0.1s ease;
+  transition: background-color 0.1s ease, box-shadow 0.2s ease, -webkit-transform 0.1s ease;
 }
 
-#suggested button:after {
+#suggested button:after { /* Expand click area. */
   position: absolute;
   left: -7%;
   top: -8px;
@@ -141,8 +141,9 @@ textarea {
 #suggested button:hover, #suggested button:focus {
   background-color: #20a5e4;
   background-image: linear-gradient(to bottom, #1da7ee, #178ee9);
-  border: 1px solid #1083cb;
+  border: 1px solid #1073bb;
   box-shadow: 2px 2px 4px #bcd;
+  text-shadow: 1px 1px 1px #222;
   -webkit-transform: translateX(0px) translateY(-2px);
 }
 
