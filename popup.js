@@ -273,7 +273,8 @@ function remove_overly_common_tags(tag_suggestions) {
             tag !== 'for' && tag !== 'recently' && tag !== 'tobookmarks' && tag !== 'from:ifttt' &&
             tag !== 'instapaper' && tag !== '!fromtwitter' && tag !== 'feedbin' && tag !== 'favorites_bar' &&
             tag !== 'imported' && tag !== '.dailybrowse' && tag !== 'barra_dei_preferiti' &&
-            tag !== 'bookmarks_toolbar' && tag !== 'from_pocket');
+            tag !== 'bookmarks_toolbar' && tag !== 'from_pocket' && tag !== 'pocket' && tag !== 'archive' &&
+            tag !== 'toread');
   });
   return tag_suggestions;
 }
