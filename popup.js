@@ -87,8 +87,10 @@ function check_for_existing_bookmark_details() {
       var bookmark = response['posts'][0];
 
       $('input#title').val(bookmark['description']);
-      if (bookmark['extended']) {
+      if (bookmark['extended'] && $('textarea#description').val().length > 0) {
         $('textarea#description').val(bookmark['extended'] + '\n\n' + $('textarea#description').val());
+      } else {
+        $('textarea#description').val(bookmark['extended']);
       }
       prepopulate_tags(bookmark['tags']);
 
