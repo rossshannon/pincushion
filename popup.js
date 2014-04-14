@@ -219,7 +219,7 @@ function get_suggested_tags() {
 
 function show_suggested_tags(tag_suggestions) {
   if (!tag_suggestions) { return; }
-  tag_suggestions = $.merge(tag_suggestions[0]['popular'], tag_suggestions[1]['recommended']); // flatten JSON
+  tag_suggestions = $.merge(tag_suggestions[1]['recommended'], tag_suggestions[0]['popular']); // flatten JSON
   tag_suggestions = tag_suggestions.map(function(tag) {
     return tag.toLowerCase(); // lowercase all tags
   });
