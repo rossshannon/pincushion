@@ -79,7 +79,7 @@ function serialized_inputs() {
 function check_for_existing_bookmark_details() {
   if (!url_params['url']) { return; }
   var bookmark_details_api = api_endpoint + 'posts/get?format=json&auth_token=' + auth_token() +
-                             '&url=' + url_params['url'];
+                             '&url=' + clean_url(url_params['url']);
 
   $.get(bookmark_details_api, 'json')
     .done(function(response) {
@@ -122,7 +122,8 @@ function set_up_form_submission() {
   $('#post-to-pinboard').on('submit', function(event) {
     event.preventDefault();
 
-    var post_bookmark_api = api_endpoint + 'posts/add?format=json&auth_token=' + auth_token() + '&' + serialized_inputs();
+    var post_bookmark_api = api_endpoint + 'posts/add?format=json&auth_token=' + auth_token() + '&' +
+                            serialized_inputs();
 
     $.get(post_bookmark_api, 'json')
       .done(function(response) {
@@ -215,8 +216,8 @@ function set_up_tag_auto_complete() {
 
 function get_suggested_tags() {
   if (!url_params['url']) { return; }
-  var suggested_tags_api = api_endpoint + 'posts/suggest?format=json&url=' + url_params['url'] +
-                           '&auth_token=' + auth_token();
+  var suggested_tags_api = api_endpoint + 'posts/suggest?format=json&auth_token=' + auth_token() +
+                           '&url=' + clean_url(url_params['url']);
 
   $('#spinner').removeClass('hidden');
   $.get(suggested_tags_api, function(data) {
@@ -348,6 +349,10 @@ function pin_cook(s) {
   s = s.replace(/>/g, '&gt;');
   s = s.replace(/"/g, '&quot;');  //"
   return s;
+}
+
+function clean_url(url) {
+  return encodeURIComponent(url);
 }
 
 RegExp.escape = function(text) {
