@@ -101,7 +101,7 @@ function check_for_existing_bookmark_details() {
       if (bookmark['time']) {
         var date = new Date(bookmark['time']);
         $('#bookmark-status').text('Previously saved on ' +
-                                  date.getFullYear() + '/' + date.getMonth() + '/' + date.getDate());
+                                   date.getFullYear() + '/' + date.getMonth() + '/' + date.getDate());
       }
       $('#updating').val('true');
       $('#submit span.text').text('Update bookmark');
