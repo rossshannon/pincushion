@@ -1,6 +1,7 @@
 'use strict';
 
-var url_params;
+var url_params,
+    api_endpoint = 'https://pinboard-bridge.herokuapp.com/';
 
 $(function() {
   resize_window();
@@ -77,7 +78,8 @@ function serialized_inputs() {
 /** Check for pre-existing bookmark for this URL. */
 function check_for_existing_bookmark_details() {
   if (!url_params['url']) { return; }
-  var bookmark_details_api = 'https://pinboard-bridge.herokuapp.com/posts/get?format=json&auth_token=' + auth_token() + '&url=' + url_params['url'];
+  var bookmark_details_api = api_endpoint + 'posts/get?format=json&auth_token=' + auth_token() +
+                             '&url=' + url_params['url'];
 
   $.get(bookmark_details_api, 'json')
     .done(function(response) {
@@ -96,7 +98,8 @@ function check_for_existing_bookmark_details() {
       }
       if (bookmark['time']) {
         var date = new Date(bookmark['time']);
-        $('#bookmark-status').text('Previously saved on ' + date.getFullYear() + '/' + date.getMonth() + '/' + date.getDate());
+        $('#bookmark-status').text('Previously saved on ' +
+                                  date.getFullYear() + '/' + date.getMonth() + '/' + date.getDate());
       }
       $('#updating').val('true');
       $('#submit span.text').text('Update bookmark');
@@ -115,7 +118,7 @@ function set_up_form_submission() {
   $('#post-to-pinboard').on('submit', function(event) {
     event.preventDefault();
 
-    var post_bookmark_api = 'https://pinboard-bridge.herokuapp.com/posts/add?format=json&auth_token=' + auth_token() + '&' + serialized_inputs();
+    var post_bookmark_api = api_endpoint + 'posts/add?format=json&auth_token=' + auth_token() + '&' + serialized_inputs();
 
     $.get(post_bookmark_api, 'json')
       .done(function(response) {
@@ -208,7 +211,8 @@ function set_up_tag_auto_complete() {
 
 function get_suggested_tags() {
   if (!url_params['url']) { return; }
-  var suggested_tags_api = 'https://pinboard-bridge.herokuapp.com/posts/suggest?format=json&url=' + url_params['url'] + '&auth_token=' + auth_token();
+  var suggested_tags_api = api_endpoint + 'posts/suggest?format=json&url=' + url_params['url'] +
+                           '&auth_token=' + auth_token();
 
   $('#spinner').removeClass('hidden');
   $.get(suggested_tags_api, function(data) {
@@ -290,7 +294,7 @@ function download_user_tags() {
   if (!(localStorage && localStorage.tags)) {
     console.log('Downloading user’s tags.');
     localStorage['tags'] = JSON.stringify([]);
-    var all_tags_api = 'https://pinboard-bridge.herokuapp.com/tags/get?format=json&auth_token=' + auth_token();
+    var all_tags_api = api_endpoint + 'tags/get?format=json&auth_token=' + auth_token();
 
     $.get(all_tags_api, 'json')
       .done(function(response) {
