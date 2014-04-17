@@ -219,7 +219,7 @@ input[type=checkbox] {
   text-align: right;
   color: #aac;
 }
-#spinner {
+.spinner {
   display: inline-block;
   width: 24px;
   height: 24px;
@@ -229,7 +229,7 @@ input[type=checkbox] {
   background-size: 24px 24px;
   opacity: 0.6;
 }
-#spinner.hidden {
+.spinner.hidden {
   -webkit-animation: squelch 0.4s linear;
   -webkit-animation-fill-mode: forwards;
 }

@@ -48,7 +48,6 @@ function parse_url_parameters() {
   $('input#url').val(url_params['url']);
   $('input#title').val(url_params['title']);
   $('textarea#description').val(url_params['description']);
-  $('#suggestion_row, #suggested').hide(); // We’ll show it again later if there are any suggestions
 }
 
 function authenticate_user() {
@@ -56,7 +55,7 @@ function authenticate_user() {
     alert('You must provide both ‘user’ and ‘token’ parameters to this page to allow it to use the Pinboard API.');
     $('#submit').addClass('fail');
     $('#submit').prop('disabled', true);
-    $('#spinner').addClass('hidden');
+    $('#mainspinner').addClass('hidden');
   }
 }
 
@@ -83,12 +82,14 @@ function check_for_existing_bookmark_details() {
 
   $.get(bookmark_details_api, 'json')
     .done(function(response) {
+      $('#mainspinner').addClass('hidden');
       if (response['posts'].length < 1) { return; }
+
       var bookmark = response['posts'][0];
 
       $('input#title').val(bookmark['description']);
       if (bookmark['extended'] && $('textarea#description').val().length > 0) {
-        $('textarea#description').val(bookmark['extended'] + '\n\n' + $('textarea#description').val());
+        $('textarea#description').val(bookmark['extended'] + '\n' + $('textarea#description').val());
       } else {
         $('textarea#description').val(bookmark['extended']);
       }
@@ -107,7 +108,6 @@ function check_for_existing_bookmark_details() {
       }
       $('#updating').val('true');
       $('#submit span.text').text('Update bookmark');
-      $('#spinner').addClass('hidden');
     })
 
     .fail(function(response) {
@@ -223,10 +223,10 @@ function get_suggested_tags() {
   var suggested_tags_api = api_endpoint + 'posts/suggest?format=json&auth_token=' + auth_token() +
                            '&url=' + clean_url(url_params['url']);
 
-  $('#spinner').removeClass('hidden');
+  $('#tagspinner').removeClass('hidden');
   $.get(suggested_tags_api, function(data) {
     show_suggested_tags(data);
-    $('#spinner').addClass('hidden');
+    $('#tagspinner').addClass('hidden');
   }, 'json');
 }
 
@@ -256,11 +256,10 @@ function show_suggested_tags(tag_suggestions) {
       $(this).hide(200);
       return false;
     });
-    $('#suggestion_row').show();
-    $('#suggested').show(800);
+    $('#suggestion_row th').text('suggested tags');
   } else {
     $('#suggestion_row th').addClass('none').text('No tag suggestions for this page.');
-    $('#suggestion_row').show();
+    $('#suggested').hide(800);
   }
 }
 

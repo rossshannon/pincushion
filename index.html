@@ -34,7 +34,7 @@
     <tr>
       <td></td>
       <td id="bookmark-save">
-        <span id="spinner"></span>
+        <span class="spinner" id="mainspinner"></span>
         <button type="submit" id="submit" class="ladda-button" tabindex="7" data-style="expand-left" data-size="m" data-spinner-size="30" data-color="blue">
           <span class="ladda-label text">Add bookmark</span>
         </button>
@@ -69,7 +69,7 @@
       <td><input type="text" name="tags" id="tags" size="70" autocomplete="off" autocorrect="off" autocapitalize="none" tabindex="6"></td>
     </tr>
     <tr id="suggestion_row">
-      <th>suggested tags</th>
+      <th>finding suggested tags&hellip; <span class="spinner" id="tagspinner"></span></th>
       <td id="suggested"></td>
     </tr>
   </tbody>

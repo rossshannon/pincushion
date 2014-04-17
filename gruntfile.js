@@ -56,7 +56,7 @@ module.exports = function(grunt) {
     watch: {
       js: {
         files: ['*.js', '.jshintrc'],
-        tasks: ['browserify', 'uglify:js', 'concat:js'],
+        tasks: ['browserify', 'concat:js', 'uglify:js'],
         options: {
           livereload: true,
         }
