@@ -9,9 +9,9 @@ $(function() {
   authenticate_user();
   set_up_fast_click();
   set_up_tag_auto_complete();
+  set_up_form_submission();
   check_for_existing_bookmark_details();
   get_suggested_tags();
-  set_up_form_submission();
   download_user_tags();
   $('input#tags')[0].selectize.focus();
   Ladda.bind('button[type=submit]');
@@ -95,7 +95,7 @@ function check_for_existing_bookmark_details() {
       prepopulate_tags(bookmark['tags']);
 
       if (bookmark['shared'] === 'no') {
-        $('#private').prop('checked', true);
+        $('#private').prop('checked', true).change();
       }
       if (bookmark['toread'] === 'yes') {
         $('#toread').prop('checked', true);
@@ -159,6 +159,9 @@ function set_up_form_submission() {
 
   $('input, textarea').on('blur', function() {
     $('body').animate({ scrollTop: 0 }, 200);
+  });
+  $('#private').on('change', function() {
+    reflectPrivateStatus();
   });
 }
 
@@ -261,6 +264,14 @@ function show_suggested_tags(tag_suggestions) {
   }
 }
 
+function reflectPrivateStatus() {
+  if ($('#private').prop('checked') === true) {
+    $('body').addClass('private');
+  } else {
+    $('body').removeClass('private');
+  }
+}
+
 /** Remove default set of tags that are suggested by the Pinboard API when there are no good suggestions. */
 function remove_spurious_results(tag_suggestions) {
   if ($.inArray('facebook', tag_suggestions) >= 0 && $.inArray('googlereader', tag_suggestions) >= 0 &&
@@ -284,7 +295,7 @@ function remove_overly_common_tags(tag_suggestions) {
             tag !== 'instapaper' && tag !== '!fromtwitter' && tag !== 'feedbin' && tag !== 'favorites_bar' &&
             tag !== 'imported' && tag !== '.dailybrowse' && tag !== 'barra_dei_preferiti' &&
             tag !== 'bookmarks_toolbar' && tag !== 'from_pocket' && tag !== 'pocket' && tag !== 'archive' &&
-            tag !== 'toread');
+            tag !== 'toread' && tag !== 'readlater');
   });
   return tag_suggestions;
 }

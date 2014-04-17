@@ -7,6 +7,10 @@ body {
   padding: 0 0.8em 0 0.6em;
   background: #fdfdfd;
   color: #333;
+  transition: background-color 0.6s ease;
+}
+body.private {
+  background: #f2f2f4;
 }
 body,
 input,
@@ -192,7 +196,7 @@ input[type=checkbox] {
   box-shadow: 2px 2px 7px #ddd;
 }
 #submit:active {
-  -webkit-transform: translateX(3px) translateY(3px);
+  -webkit-transform: translateX(1px) translateY(3px);
 }
 #submit[disabled] {
   box-shadow: none;
