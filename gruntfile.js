@@ -1,11 +1,8 @@
 module.exports = function(grunt) {
 
-  grunt.registerTask('default', [
-    'jshint', 'connect'
-  ]);
-  grunt.registerTask('watch', [ 'watch' ]);
-
   grunt.initConfig({
+    pkg: grunt.file.readJSON('package.json'),
+
     browserify: {
       dist: {
         files: {
@@ -13,6 +10,31 @@ module.exports = function(grunt) {
         }
       }
     },
+
+    concat: {
+      js: {
+        options: {
+          separator: ';'
+        },
+        src: [
+          'build/module.js'
+        ],
+        dest: 'build/main.js'
+      },
+    },
+
+    uglify: {
+      options: {
+        mangle: false,
+        sourceMap: true,
+      },
+      js: {
+        files: {
+          'public/js/main.min.js': ['build/main.js']
+        }
+      }
+    },
+
     jshint: {
       files: [
         '*.js',
@@ -22,38 +44,19 @@ module.exports = function(grunt) {
         jshintrc: '.jshintrc'
       }
     },
-    concat: {
-      js: {
-        options: {
-          separator: ';'
-        },
-        src: [
-          'build/module.js'
-        ],
-        dest: 'public/js/main.min.js'
-      },
-    },
-    uglify: {
-      options: {
-        mangle: false
-      },
-      js: {
-        files: {
-          'public/js/main.min.js': ['public/js/main.min.js']
-        }
-      }
-    },
+
     less: {
       style: {
         files: {
-          "public/css/style.css": "popup.less"
+          'public/css/style.css': 'popup.less'
         }
       }
     },
+
     watch: {
       js: {
         files: ['*.js', '.jshintrc'],
-        tasks: ['browserify', 'concat:js', 'uglify:js'],
+        tasks: ['browserify', 'uglify:js', 'concat:js'],
         options: {
           livereload: true,
         }
@@ -66,16 +69,13 @@ module.exports = function(grunt) {
         }
       }
     },
+
     connect: {
       server: {},
     },
   });
 
-  grunt.loadNpmTasks('grunt-contrib-jshint');
-  grunt.loadNpmTasks('grunt-browserify');
-  grunt.loadNpmTasks('grunt-contrib-concat');
-  grunt.loadNpmTasks('grunt-contrib-uglify');
-  grunt.loadNpmTasks('grunt-contrib-less');
-  grunt.loadNpmTasks('grunt-contrib-watch');
-  grunt.loadNpmTasks('grunt-contrib-connect');
+  require('load-grunt-tasks')(grunt);
+
+  grunt.registerTask('default', ['browserify', 'concat:js', 'uglify:js', 'watch']);
 };
