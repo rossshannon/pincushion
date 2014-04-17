@@ -83,6 +83,7 @@ function check_for_existing_bookmark_details() {
   $.get(bookmark_details_api, 'json')
     .done(function(response) {
       $('#mainspinner').addClass('hidden');
+      $('#submit').data('stateText', 'Add bookmark');
       if (response['posts'].length < 1) { return; }
 
       var bookmark = response['posts'][0];
@@ -107,6 +108,7 @@ function check_for_existing_bookmark_details() {
                                    date.getFullYear() + '/' + date.getMonth() + '/' + date.getDate());
       }
       $('#updating').val('true');
+      $('#submit').data('stateText', 'Update bookmark');
       $('#submit span.text').text('Update bookmark');
     })
 
@@ -121,6 +123,7 @@ function check_for_existing_bookmark_details() {
 function set_up_form_submission() {
   $('#post-to-pinboard').on('submit', function(event) {
     event.preventDefault();
+    $('#submit span.text').html('Saving bookmark&hellip;');
 
     var post_bookmark_api = api_endpoint + 'posts/add?format=json&auth_token=' + auth_token() + '&' +
                             serialized_inputs();
@@ -131,11 +134,13 @@ function set_up_form_submission() {
           console.log('Bookmark saved correctly.');
           Ladda.stopAll();
           $('#submit').addClass('success');
+          $('#submit span.text').text('Bookmark saved!');
 
           save_updated_user_tags();
 
           setTimeout(function() {
             $('#submit').removeClass('success'); // for windows that aren't popups
+            $('#submit span.text').text($('#submit').data('stateText'));
             window.close(); // for windows that are popups
           }, 900);
         } else if (response['result_code'] === 'must provide title') {
@@ -143,6 +148,7 @@ function set_up_form_submission() {
           $('#submit').addClass('fail');
           setTimeout(function() {
             $('#submit').removeClass('fail'); // let user try again
+            $('#submit span.text').text($('#submit').data('stateText'));
           }, 1900);
           $('#title').focus();
         }
