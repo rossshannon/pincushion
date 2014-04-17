@@ -244,9 +244,9 @@ footer {
 }
 #logout input {
   padding: 5px 10px;
-  border: none;
+  border: 1px dashed #c8c8c8;
   border-radius: 4px;
-  background: #e3e3e3;
+  background: rgba(50, 50, 50, 0.1);
   -webkit-appearance: none;
 }
 @-webkit-keyframes pop {
