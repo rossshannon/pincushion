@@ -104,6 +104,10 @@ textarea {
 .selectize-control.multi div {
   letter-spacing: 1px !important;
 }
+.optioncount {
+  margin-left: 2em;
+  color: #ccc;
+}
 #suggestion_row th.none {
   color: #666;
   font-size: 85%;

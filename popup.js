@@ -139,9 +139,9 @@ function set_up_form_submission() {
           save_updated_user_tags();
 
           setTimeout(function() {
-            $('#submit').removeClass('success'); // for windows that aren't popups
-            $('#submit span.text').text($('#submit').data('stateText'));
             window.close(); // for windows that are popups
+            $('#submit').removeClass('success'); // for windows that aren't popups
+            $('#submit span.text').text($('#submit').data('stateText')); // revert text
           }, 900);
         } else if (response['result_code'] === 'must provide title') {
           Ladda.stopAll();
@@ -191,11 +191,11 @@ function prepopulate_tags(tag_string) {
     });
     $('input#tags')[0].selectize.addItem(tags[i]);
     $('input#tags')[0].selectize.close(); // stop it from opening after these programmatic additions
-
-    $('#suggested button').filter(function() { // don’t suggest tags that the bookmark already has
-      return $(this).text().toLowerCase() === tags[i];
-    }).hide();
   }
+
+  $('#suggested button').filter(function() { // don’t suggest tags that the bookmark already has
+    return $(this).text().toLowerCase() === tags[i];
+  }).hide();
 }
 
 function set_up_tag_auto_complete() {
@@ -203,7 +203,7 @@ function set_up_tag_auto_complete() {
     delimiter: ' ',
     create: true,
     openOnFocus: false,
-    maxOptions: 8,
+    maxOptions: 10,
     persist: false,
     createOnBlur: false,
     hideSelected: true,
@@ -211,14 +211,25 @@ function set_up_tag_auto_complete() {
     valueField: 'label',
     labelField: 'label',
     searchField: ['label'],
+    sortField: [
+      {field: '$score', direction: 'desc'},
+      {field: 'count', direction: 'desc'},
+      {field: 'label', direction: 'asc'},
+    ],
+    render: {
+      option: function(data, escape) {
+        return '<div class="item">' + escape(data.label) + '<span class="optioncount">' + escape(data.count) + '</span></div>';
+      }
+    }
   });
 
   if (localStorage && localStorage['tags']) {
     var user_tags = JSON.parse(localStorage['tags']);
     console.log('Populating dropdown.');
-    $.each(user_tags, function(key) {
+    $.each(user_tags, function(key, value) {
       $('input#tags')[0].selectize.addOption({
-        label: key
+        label: key,
+        count: value
       });
     });
   }
@@ -313,7 +324,8 @@ function add_tag(tag) {
 }
 
 function download_user_tags() {
-  if (!(localStorage && localStorage.tags)) {
+  if (!localStorage) { return; }
+  if (!localStorage.tags) {
     console.log('Downloading user’s tags.');
     localStorage['tags'] = JSON.stringify([]);
     var all_tags_api = api_endpoint + 'tags/get?format=json&auth_token=' + auth_token();
