@@ -218,6 +218,9 @@ function set_up_tag_auto_complete() {
       {field: 'count', direction: 'desc'},
       {field: 'label', direction: 'asc'},
     ],
+    onChange: function(value, $item) {
+      $('input#tags')[0].selectize.close();
+    },
     render: {
       option: function(data, escape) {
         return '<div class="item">' + escape(data.label) + '<span class="optioncount">' + escape(data.count) + '</span></div>';
