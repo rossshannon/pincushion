@@ -38,7 +38,7 @@ form {
 }
 @media only screen and (max-width: 480px) {
   form {
-    background-position-x: 30%;
+    background-position: 20% 4px;
   }
 }
 label,

@@ -15,7 +15,6 @@ $(function() {
   check_for_existing_bookmark_details();
   get_suggested_tags();
   download_user_tags();
-  $('input#tags')[0].selectize.focus();
   Ladda.bind('button[type=submit]');
 });
 
@@ -168,6 +167,11 @@ function set_up_form_submission() {
   $('input, textarea').on('blur', function() {
     $('body').animate({ scrollTop: 0 }, 200);
   });
+
+  if ('ontouchstart' in window) {
+    $('input#tags')[0].selectize.focus();
+  }
+
   $('#private').on('change', function() {
     reflectPrivateStatus();
   });
