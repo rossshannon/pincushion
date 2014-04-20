@@ -23,8 +23,9 @@
   "devDependencies": {
     "browserify": "~3.41.0",
     "grunt-browserify": "~2.0.7",
-    "grunt-contrib-jshint": "~0.10.0",
     "grunt-contrib-connect": "~0.7.1",
-    "load-grunt-tasks": "~0.4.0"
+    "grunt-contrib-jshint": "~0.10.0",
+    "load-grunt-tasks": "~0.4.0",
+    "selective-fastclick": "^0.1.1"
   }
 }

@@ -1,5 +1,7 @@
 'use strict';
 
+(function() {
+
 var url_params,
     api_endpoint = 'https://pinboard-bridge.herokuapp.com/';
 
@@ -393,3 +395,5 @@ function close_window(e) {
     window.close();
   }
 }
+
+}());
