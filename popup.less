@@ -36,6 +36,10 @@ form {
   padding: 0;
   background: url(../images/padlock.png) 50% 8px no-repeat;
   background-size: 55px 55px;
+
+  @media only screen and (max-width: 480px) {
+    background-position-x: 30%;
+  }
 }
 
 label, input[type=checkbox] {
@@ -47,6 +51,10 @@ table {
   width: 100%;
   border: none;
   border-spacing: 0;
+
+  @media only screen and (max-width: 480px) {
+    max-width: 300px;
+  }
 }
 
 th, td {
@@ -160,11 +168,11 @@ textarea {
 }
 
 #modifiers {
-  margin: 0.5em 0 0.2em;
+  margin: 0.4em 0 0.2em;
 
   label {
     display: inline-block;
-    min-width: 110px;
+    min-width: 105px;
     font-size: 110%;
     margin: 0 15px 0 0;
     padding: 10px 14px 10px 0;
