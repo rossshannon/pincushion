@@ -30,6 +30,7 @@ a {
   color: #00f;
 }
 form {
+  max-width: 740px;
   margin: 0;
   padding: 0;
 }
@@ -65,7 +66,8 @@ input[type=text],
 input[type=url],
 textarea {
   box-sizing: border-box;
-  width: 480px;
+  width: 100%;
+  max-width: 740px;
   padding: 10px 1px 10px 7px;
   border: 1px solid #c8c8c8;
   border-bottom-color: #bbb;
@@ -74,6 +76,14 @@ textarea {
   background: #fff;
   -webkit-appearance: none;
   transition: border-color 0.1s ease;
+}
+@media only screen and (max-width: 480px) {
+  input[type=text],
+  input[type=url],
+  textarea {
+    max-width: 300px;
+    max-height: 90px;
+  }
 }
 input[type=text]:hover,
 input[type=url]:hover,
@@ -91,15 +101,6 @@ textarea {
   line-height: 1.7;
   padding: 6px;
   text-indent: 1.8em;
-}
-@media only screen and (max-width: 480px) {
-  table,
-  input[type=text],
-  input[type=url],
-  textarea {
-    max-width: 300px;
-    max-height: 90px;
-  }
 }
 .selectize-control.multi div {
   letter-spacing: 1px !important;
