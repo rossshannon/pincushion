@@ -141,8 +141,10 @@ function set_up_form_submission() {
 
           setTimeout(function() {
             window.close(); // for windows that are popups
-            $('#submit').removeClass('success'); // for windows that aren't popups
-            $('#submit span.text').text($('#submit').data('stateText')); // revert text
+            setTimeout(function() {
+              $('#submit').removeClass('success'); // for windows that aren't popups
+              $('#submit span.text').text($('#submit').data('stateText')); // revert text
+            }, 300);
           }, 900);
         } else if (response['result_code'] === 'must provide title') {
           Ladda.stopAll();
