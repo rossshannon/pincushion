@@ -17,6 +17,9 @@ module.exports = function(grunt) {
           separator: ';'
         },
         src: [
+          'vendor/spin.min.js',
+          'vendor/ladda.min.js',
+          'vendor/selectize.min.js',
           'build/module.js'
         ],
         dest: 'build/main.js'
