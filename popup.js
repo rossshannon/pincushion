@@ -264,7 +264,9 @@ function show_suggested_tags(tag_suggestions) {
   tag_suggestions = tag_suggestions.map(function(tag) {
     return tag.toLowerCase(); // lowercase all tags
   });
-  tag_suggestions = $.unique(tag_suggestions); // filter out duplicates
+  tag_suggestions = $.grep(tag_suggestions, function(v, k) {
+    return $.inArray(v, tag_suggestions) === k; // filter out duplicates
+  });
   tag_suggestions = remove_spurious_results(tag_suggestions); // empty the array if they are the default/broken suggestions
   tag_suggestions = remove_overly_common_tags(tag_suggestions); // remove tags that appear very often across a wide range of pages
 
@@ -281,7 +283,7 @@ function show_suggested_tags(tag_suggestions) {
     $('#suggested').append(suggested_tags.join(' '));
     $('#suggested button').on('click', function() {
       add_tag(pin_escape($(this).text()));
-      $(this).hide(200);
+      $(this).hide(150);
       return false;
     });
     $('#suggestion_row th').text('suggested tags');
@@ -345,6 +347,7 @@ function download_user_tags() {
       .done(function(response) {
         localStorage['tags'] = JSON.stringify(response);
         localStorage['tags-updated'] = new Date();
+        console.log('Downloaded tags.');
       })
 
       .fail(function(response) {
