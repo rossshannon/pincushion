@@ -170,7 +170,7 @@ function set_up_form_submission() {
     $('body').animate({ scrollTop: 0 }, 200);
   });
 
-  if ('ontouchstart' in window) {
+  if (!('ontouchstart' in window)) {
     $('input#tags')[0].selectize.focus();
   }
 
