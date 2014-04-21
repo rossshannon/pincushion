@@ -121,12 +121,12 @@ textarea {
   margin-left: 2em;
   color: #ccc;
 }
-#suggestion_row th.none {
-  color: #666;
-  font-size: 85%;
-}
 #suggested {
-  margin: 0 0 0.8em;
+  margin: 0.5em 0 0.8em;
+}
+#suggested.none {
+  color: #99a;
+  font-size: 80%;
 }
 #suggested button {
   position: relative;

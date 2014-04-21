@@ -286,8 +286,8 @@ function show_suggested_tags(tag_suggestions) {
     });
     $('#suggestion_row th').text('suggested tags');
   } else {
-    $('#suggestion_row th').addClass('none').text('No tag suggestions for this page.');
-    $('#suggested').hide(800);
+    $('#suggestion_row th').hide(300);
+    $('#suggested').addClass('none').text('No suggested tags for this page.');
   }
 }
 
