@@ -90,7 +90,7 @@ function check_for_existing_bookmark_details() {
       var bookmark = response['posts'][0];
 
       $('input#title').val(bookmark['description']);
-      if (bookmark['extended'] && $('textarea#description').val().length > 0) {
+      if ((bookmark['extended'] && $('textarea#description').val().length > 0) || bookmark['extended'].length === 0) {
         $('textarea#description').val(bookmark['extended'] + '\n' + $('textarea#description').val());
       } else {
         $('textarea#description').val(bookmark['extended']);
@@ -212,7 +212,7 @@ function set_up_tag_autocomplete() {
     create: true,
     openOnFocus: false,
     maxOptions: 10,
-    persist: false,
+    persist: true,
     createOnBlur: false,
     hideSelected: true,
     diacritics: true,
