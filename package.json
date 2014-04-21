@@ -24,6 +24,7 @@
     "browserify": "~3.41.0",
     "grunt-browserify": "~2.0.7",
     "grunt-contrib-connect": "~0.7.1",
+    "grunt-contrib-cssmin": "^0.9.0",
     "grunt-contrib-jshint": "~0.10.0",
     "load-grunt-tasks": "~0.4.0",
     "selective-fastclick": "^0.1.1"

@@ -23,7 +23,7 @@ module.exports = function(grunt) {
           'build/module.js'
         ],
         dest: 'build/main.js'
-      },
+      }
     },
 
     uglify: {
@@ -33,7 +33,7 @@ module.exports = function(grunt) {
       },
       js: {
         files: {
-          'public/js/main.min.js': ['build/main.js']
+          'public/js/scripts.min.js': ['build/main.js']
         }
       }
     },
@@ -51,8 +51,26 @@ module.exports = function(grunt) {
     less: {
       style: {
         files: {
-          'public/css/style.css': 'popup.less'
+          'build/main.css': 'popup.less'
         }
+      }
+    },
+
+    cssmin: {
+      combine: {
+        files: {
+          'build/merged.css':
+          [
+            'vendor/ladda.min.css',
+            'vendor/selectize.css',
+            'vendor/selectize.default.css',
+            'build/main.css',
+          ]
+        }
+      },
+      minify: {
+        src: 'build/merged.css',
+        dest: 'public/css/style.min.css'
       }
     },
 
@@ -64,9 +82,16 @@ module.exports = function(grunt) {
           livereload: true,
         }
       },
-      css: {
+      less: {
         files: ['*.less'],
         tasks: ['less:style'],
+        options: {
+          livereload: true,
+        }
+      },
+      css: {
+        files: 'build/main.css',
+        tasks: ['cssmin:combine', 'cssmin:minify'],
         options: {
           livereload: true,
         }
@@ -80,5 +105,5 @@ module.exports = function(grunt) {
 
   require('load-grunt-tasks')(grunt);
 
-  grunt.registerTask('default', ['browserify', 'concat:js', 'uglify:js', 'watch']);
+  grunt.registerTask('default', ['browserify', 'concat:js', 'uglify:js', 'less:style', 'cssmin:combine', 'cssmin:minify', 'watch']);
 };
