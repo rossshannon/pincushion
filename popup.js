@@ -85,7 +85,7 @@ function check_for_existing_bookmark_details() {
     .done(function(response) {
       $('#mainspinner').addClass('hidden');
       $('#submit').data('stateText', 'Add bookmark');
-      if (response['posts'].length < 1) { return; }
+      if (response['posts'].length !== 1) { return; }
 
       var bookmark = response['posts'][0];
 
