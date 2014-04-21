@@ -10,7 +10,7 @@ $(function() {
   parse_url_parameters();
   authenticate_user();
   set_up_fast_click();
-  set_up_tag_auto_complete();
+  set_up_tag_autocomplete();
   set_up_form_submission();
   check_for_existing_bookmark_details();
   get_suggested_tags();
@@ -206,7 +206,7 @@ function prepopulate_tags(tag_string) {
   }).hide();
 }
 
-function set_up_tag_auto_complete() {
+function set_up_tag_autocomplete() {
   $('input#tags').selectize({
     delimiter: ' ',
     create: true,
@@ -234,6 +234,10 @@ function set_up_tag_auto_complete() {
     }
   });
 
+  populate_dropdown();
+}
+
+function populate_dropdown() {
   if (localStorage && localStorage['tags']) {
     var user_tags = JSON.parse(localStorage['tags']);
     console.log('Populating dropdown.');
@@ -348,6 +352,7 @@ function download_user_tags() {
         localStorage['tags'] = JSON.stringify(response);
         localStorage['tags-updated'] = new Date();
         console.log('Downloaded tags.');
+        populate_dropdown();
       })
 
       .fail(function(response) {
