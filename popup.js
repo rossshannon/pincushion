@@ -319,16 +319,11 @@ function remove_spurious_results(tag_suggestions) {
 }
 
 function remove_overly_common_tags(tag_suggestions) {
+  var ignored_tags = [
+    'bookmarks_bar', 'pin-later', 'unread', '*resources', 'unlabeled', 'via:packrati.us', 'bookmarks_menu', 'from', 'ifttt', 'later', 'saved', 'read', 'feedly', 'for', 'recently', 'tobookmarks', 'from:ifttt', 'instapaper', '!fromtwitter', 'feedbin', 'favorites_bar', 'imported', '.dailybrowse', 'barra_dei_preferiti', 'bookmarks_toolbar', 'from_pocket', 'pocket', 'archive', 'toread', 'readlater', 'via:popular', '!tweet', 'twitter-fav'
+  ];
   tag_suggestions = $.grep(tag_suggestions, function(tag) {
-    tag = tag.toLowerCase();
-    return (tag !== 'bookmarks_bar' && tag !== 'pin-later' && tag !== 'unread' && tag !== '*resources' &&
-            tag !== 'unlabeled' && tag !== 'via:packrati.us' && tag !== 'bookmarks_menu' && tag !== 'from' &&
-            tag !== 'ifttt' && tag !== 'later' && tag !== 'saved' && tag !== 'read' && tag !== 'feedly' &&
-            tag !== 'for' && tag !== 'recently' && tag !== 'tobookmarks' && tag !== 'from:ifttt' &&
-            tag !== 'instapaper' && tag !== '!fromtwitter' && tag !== 'feedbin' && tag !== 'favorites_bar' &&
-            tag !== 'imported' && tag !== '.dailybrowse' && tag !== 'barra_dei_preferiti' &&
-            tag !== 'bookmarks_toolbar' && tag !== 'from_pocket' && tag !== 'pocket' && tag !== 'archive' &&
-            tag !== 'toread' && tag !== 'readlater' && tag !== 'via:popular' && tag !== '!tweet' && tag !== 'twitter-fav');
+    return $.inArray(tag.toLowerCase(), ignored_tags) === -1;
   });
   return tag_suggestions;
 }
