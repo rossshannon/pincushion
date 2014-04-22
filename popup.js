@@ -328,7 +328,7 @@ function remove_overly_common_tags(tag_suggestions) {
             tag !== 'instapaper' && tag !== '!fromtwitter' && tag !== 'feedbin' && tag !== 'favorites_bar' &&
             tag !== 'imported' && tag !== '.dailybrowse' && tag !== 'barra_dei_preferiti' &&
             tag !== 'bookmarks_toolbar' && tag !== 'from_pocket' && tag !== 'pocket' && tag !== 'archive' &&
-            tag !== 'toread' && tag !== 'readlater');
+            tag !== 'toread' && tag !== 'readlater' && tag !== 'via:popular' && tag !== '!tweet' && tag !== 'twitter-fav');
   });
   return tag_suggestions;
 }
