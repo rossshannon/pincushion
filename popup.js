@@ -171,7 +171,7 @@ function set_up_form_submission() {
   });
 
   if (!('ontouchstart' in window)) {
-    $('input#tags')[0].selectize.focus();
+    $('input#tags')[0].selectize.focus(); // focus tags field for non-touch-based browsers
   }
 
   $('#private').on('change', function() {

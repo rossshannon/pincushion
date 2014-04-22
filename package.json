@@ -1,17 +1,19 @@
 {
-  "name": "pinboard-post",
+  "name": "pincushion",
   "keywords": [
     "pinboard",
     "tagging",
     "bookmarks",
-    "delicious"
+    "bookmarking",
+    "delicious",
+    "bookmarklet"
   ],
-  "description": "Pinboard-post presents a modernised way to post bookmarks to the Pinboard.in service.",
+  "description": "Pincushion presents an enhanced version of the Pinboard.in “Add Bookmark” page, which takes advantage of the capabilities of modern browsers",
   "version": "0.1.0",
   "author": "Ross Shannon <ross@commutable.com>",
   "repository": {
     "type": "git",
-    "url": "git@github.com:rossshannon/pinboard-post.git"
+    "url": "git@github.com:rossshannon/pincushion.git"
   },
   "dependencies": {
     "grunt-cli": "latest",
