@@ -103,6 +103,8 @@ module.exports = function(grunt) {
     },
   });
 
+  require('time-grunt')(grunt);
+
   require('load-grunt-tasks')(grunt);
 
   grunt.registerTask('default', ['browserify', 'concat:js', 'uglify:js', 'less:style', 'cssmin:combine', 'cssmin:minify', 'watch']);
