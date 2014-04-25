@@ -15,7 +15,6 @@ $(function() {
   check_for_existing_bookmark_details();
   get_suggested_tags();
   download_user_tags();
-  Ladda.bind('button[type=submit]');
 });
 
 /** Ensure window is tall enough to show all form elements. */
@@ -177,6 +176,8 @@ function set_up_form_submission() {
   $('#private').on('change', function() {
     reflectPrivateStatus();
   });
+
+  Ladda.bind('button[type=submit]');
 }
 
 function set_up_fast_click() {
