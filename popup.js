@@ -47,7 +47,7 @@ function parse_url_parameters() {
 
   /* Set form inputs to values passed via URL query parameters. */
   $('input#url').val(url_params['url']);
-  $('input#title').val(url_params['title']);
+  $('input#title').val(clean_title(url_params['title']));
   $('textarea#description').val(url_params['description']);
 }
 
@@ -305,6 +305,10 @@ function reflectPrivateStatus() {
   } else {
     $('body').removeClass('private');
   }
+}
+
+function clean_title(title_string) {
+  return title_string.replace(/^▶ /, '');
 }
 
 /** Remove default set of tags that are suggested by the Pinboard API when there are no good suggestions. */
