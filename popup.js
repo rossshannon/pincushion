@@ -273,6 +273,7 @@ function show_suggested_tags(tag_suggestions) {
   });
   tag_suggestions = remove_spurious_results(tag_suggestions); // empty the array if they are the default/broken suggestions
   tag_suggestions = remove_overly_common_tags(tag_suggestions); // remove tags that appear very often across a wide range of pages
+  tag_suggestions = rank_users_tags_higher(tag_suggestions); // make tags that a user has used before appear early in the list
 
   var suggested_tags = [];
   for (var i = 0; i < tag_suggestions.length; i++) {
@@ -320,12 +321,28 @@ function remove_spurious_results(tag_suggestions) {
 
 function remove_overly_common_tags(tag_suggestions) {
   var ignored_tags = [
-    'bookmarks_bar', 'pin-later', 'unread', '*resources', 'unlabeled', 'via:packrati.us', 'bookmarks_menu', 'from', 'ifttt', 'later', 'saved', 'read', 'feedly', 'for', 'recently', 'tobookmarks', 'from:ifttt', 'instapaper', '!fromtwitter', 'feedbin', 'favorites_bar', 'imported', '.dailybrowse', 'barra_dei_preferiti', 'bookmarks_toolbar', 'via:pocket', 'from_pocket', 'pocket', 'archive', 'toread', 'readlater', 'via:popular', '!tweet', 'twitter-fav', 'created-by:ifttt'
+    'bookmarks_bar', 'pin-later', 'unread', '*resources', 'unlabeled', 'via:packrati.us', 'bookmarks_menu', 'from', 'ifttt', 'later', 'saved', 'read', 'feedly', 'for', 'recently', 'tobookmarks', 'from:ifttt', 'instapaper', '!fromtwitter', 'feedbin', 'favorites_bar', 'imported', '.dailybrowse', 'barra_dei_preferiti', 'bookmarks_toolbar', 'via:pocket', 'from_pocket', 'pocket', 'archive', 'toread', 'readlater', 'via:popular', '!tweet', 'twitter-fav', 'created-by:ifttt', 'starred', 'soon'
   ];
   tag_suggestions = $.grep(tag_suggestions, function(tag) {
     return $.inArray(tag.toLowerCase(), ignored_tags) === -1;
   });
   return tag_suggestions;
+}
+
+function rank_users_tags_higher(tag_suggestions) {
+  if (!(localStorage && localStorage['tags'])) { return; }
+
+  var ranked_tags = [];
+  var user_tags = JSON.parse(localStorage['tags']);
+
+  $.each(tag_suggestions, function(index, tag) {
+    if (user_tags.hasOwnProperty(tag)) { // user has used this tag before
+      ranked_tags.unshift(tag); // prepend to array
+    } else {
+      ranked_tags.push(tag); // append to array
+    }
+  });
+  return ranked_tags;
 }
 
 function add_tag(tag) {
