@@ -229,7 +229,8 @@ function set_up_tag_autocomplete() {
     },
     render: {
       option: function(data, escape) {
-        return '<div class="item">' + escape(data.label) + '<span class="optioncount">' + escape(data.count) + '</span></div>';
+        return '<div class="item">' + escape(data.label) +
+          '<span class="optioncount ' + tagweight(escape(data.count)) + '">' + escape(data.count) + '</span></div>';
       }
     }
   });
@@ -395,6 +396,15 @@ function save_updated_user_tags() {
   }
   localStorage['tags'] = JSON.stringify(user_tags);
   localStorage['tags-updated'] = new Date();
+}
+
+function tagweight(count) {
+  switch (true) {
+    case (count > 100): return 'tw100'; break;
+    case (count > 50): return 'tw50'; break;
+    case (count > 10): return 'tw10'; break;
+    case (count > 1): return 'tw1'; break;
+  }
 }
 
 function pin_escape(s) {
