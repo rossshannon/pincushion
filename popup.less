@@ -69,6 +69,10 @@ th {
   -webkit-font-smoothing: antialiased;
 }
 
+th label {
+  transition: color 0.3s ease;
+}
+
 input[type=text] {
   font-size: 120%;
   -webkit-font-smoothing: antialiased;
@@ -239,7 +243,7 @@ textarea {
 input[type=checkbox] {
   margin: 0 5px 0 13px;
   -webkit-transform: scale(1.5, 1.5);
-  vertical-align: 5%;
+  vertical-align: 10%;
 }
 
 #bookmark-save {
@@ -277,7 +281,17 @@ input[type=checkbox] {
   &.fail {
     background-color: #FF6868;
     box-shadow: none;
-    -webkit-animation: non 1s 0 ease;
+    -webkit-animation: non 0.8s 0 ease;
+  }
+}
+
+.error {
+  display: block;
+  color: #FF6868;
+  text-shadow: 1px 1px 1px #fff;
+
+  .helptext {
+    display: none;
   }
 }
 

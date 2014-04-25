@@ -145,14 +145,28 @@ function set_up_form_submission() {
               $('#submit span.text').text($('#submit').data('stateText')); // revert text
             }, 300);
           }, 900);
-        } else if (response['result_code'] === 'must provide title') {
+        } else {
           Ladda.stopAll();
           $('#submit').addClass('fail');
+
+          if (response['result_code'] === 'missing url') {
+            $('label[for=url]').addClass('error').append('<span class="helptext"> is required</span>');
+            $('#url').focus();
+          }
+          if (response['result_code'] === 'must provide title') {
+            $('label[for=title]').addClass('error').append('<span class="helptext"> is required</span>');
+            $('#title').focus();
+          }
+
+          $('.helptext').fadeIn();
           setTimeout(function() {
-            $('#submit').removeClass('fail'); // let user try again
+            $('#submit').removeClass('fail');
             $('#submit span.text').text($('#submit').data('stateText'));
+            $('label span.helptext').fadeOut(100, function() {
+              $(this).remove();
+              $('label').removeClass('error');
+            });
           }, 1900);
-          $('#title').focus();
         }
       })
 
