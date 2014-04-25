@@ -30,6 +30,8 @@ module.exports = function(grunt) {
       options: {
         mangle: false,
         sourceMap: true,
+        sourceMapIncludeSources: false,
+        preserveComments: false
       },
       js: {
         files: {

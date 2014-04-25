@@ -321,7 +321,7 @@ function remove_spurious_results(tag_suggestions) {
 
 function remove_overly_common_tags(tag_suggestions) {
   var ignored_tags = [
-    'bookmarks_bar', 'pin-later', 'unread', '*resources', 'unlabeled', 'via:packrati.us', 'bookmarks_menu', 'from', 'ifttt', 'later', 'saved', 'read', 'feedly', 'for', 'recently', 'tobookmarks', 'from:ifttt', 'instapaper', '!fromtwitter', 'feedbin', 'favorites_bar', 'imported', '.dailybrowse', 'barra_dei_preferiti', 'bookmarks_toolbar', 'via:pocket', 'from_pocket', 'pocket', 'archive', 'toread', 'readlater', 'via:popular', '!tweet', 'twitter-fav', 'created-by:ifttt', 'starred', 'soon'
+    'bookmarks_bar', 'pin-later', 'unread', '*resources', 'unlabeled', 'via:packrati.us', 'bookmarks_menu', 'from', 'ifttt', 'later', 'saved', 'read', 'feedly', 'for', 'recently', 'tobookmarks', 'from:ifttt', 'instapaper', '!fromtwitter', 'feedbin', 'favorites_bar', 'imported', '.dailybrowse', 'barra_dei_preferiti', 'bookmarks_toolbar', 'via:pocket', 'from_pocket', 'pocket', 'archive', 'toread', 'readlater', 'via:popular', '!tweet', 'twitter-fav', 'created-by:ifttt', 'starred', 'soon', 'riposte', 'github:starred'
   ];
   tag_suggestions = $.grep(tag_suggestions, function(tag) {
     return $.inArray(tag.toLowerCase(), ignored_tags) === -1;
