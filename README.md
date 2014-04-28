@@ -1,6 +1,6 @@
 # Pincushion
 
-Pincushion is an alternative bookmarklet that you can add to your browser, and use to save bookmarks to [Pinboard](https://pinboard.in). It is designed to be mobile-friendly, fast and interactive, and harnesses the capabilities of modern browsers to enhance the experience of tagging and saving bookmarks.
+Pincushion is an alternative bookmarklet for [Pinboard](https://pinboard.in) that you can add to your browser, and use to save and edit bookmarks. It is designed to be mobile-friendly, fast and interactive, and harnesses the capabilities of modern browsers to enhance the experience of tagging and saving bookmarks.
 
 ## Features
 
@@ -9,7 +9,7 @@ Pincushion adapts to the size of your mobile device’s screen, to make reading 
 - **Interactive**
 The form is enhanced with animation to guide interaction, and more clearly explain what is happening while you edit and save your bookmarks.
 - **Easily add tags**
-Pincushion uses as intelligent autocomplete widget that shows the tags you’ve previously used, along with the number of times you’ve used them.
+Pincushion uses as intelligent autocomplete widget that shows the tags you’ve previously used, along with the number of times you’ve used them. The autocomplete even lets you search within your tags without having to type the exact letters that a tag begins with.
 - **Search across *all* of your tags**
 The first time you use Pincushion, it downloads a local copy of all of your tags into your browser’s “LocalStorage”, which allows you to store about 2.5MB of data and preferences for each site you use regularly. This means that from then on, the autocomplete widget can search across your entire collection. The autocomplete can use each tag’s score to be smarter about which tags to suggest to you as you are typing. (Tag autocomplete has been tested on a data set of over 9000 tags, which totalled 180KB when downloaded.)
 
@@ -21,7 +21,7 @@ To use the bookmarklet, you will need to have an account on http://pinboard.in. 
 
 Your API token is a way to grant applications or websites the ability to send bookmarks to your Pinboard account, without having to give them your password.
 
-To add the bookmarklet to your browser, simply add a bookmark and use the following text as the URL:
+To add the bookmarklet to your browser, simply add a new bookmark, give it any name you want, and use the following text as the URL:
 
     javascript:q=location.href;d=(window.getSelection?window.getSelection():document.getSelection?document.getSelection():document.selection.createRange().text);p=document.title;void(open('https://rossshannon.github.io/pincushion/?user=USERNAME&token=API_TOKEN&url='+encodeURIComponent(q)+'&description='+encodeURIComponent(d)+'&title='+encodeURIComponent(p),'Pinboard','toolbar=yes,width=600,height=700,left=50,top=50'));
 
@@ -36,8 +36,8 @@ Pincushion is open source software, [licensed](LICENSE) under the MIT License. S
 ### Acknowledgements
 
 Pincushion uses a number of excellent open source libraries.
-- [jQuery](https://github.com/jquery/jquery) (2.1.0)
-- [selectize.js](https://brianreavis.github.io/selectize.js/) autocomplete library for tagging
+- [jQuery](https://github.com/jquery/jquery) (2.1.0).
+- [selectize.js](https://brianreavis.github.io/selectize.js/) autocomplete library for tagging.
 - [Pinboard-Bridge](https://github.com/aaronpowell/pinboard-bridge), a Node.js-based wrapper which allows use of the Pinboard API with Ajax methods, as the API does not natively support [cross-origin resource sharing (CORS)](https://groups.google.com/d/topic/pinboard-dev/RtyJC1Gm67E/discussion). An instance of pinboard-bridge is deployed for use on [Heroku](https://www.heroku.com/) (https://pinboard-bridge.herokuapp.com/).
 - [Ladda](https://github.com/hakimel/Ladda) for the submit buttons with integrated progress indicators.
 - [Grunt](http://gruntjs.com/) and for building and asset management, and [LESS](http://lesscss.org/) for CSS.
