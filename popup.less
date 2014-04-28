@@ -87,7 +87,7 @@ input[type=text], input[type=url], textarea {
   border-bottom-color: #bbb;
   border-radius: 2px;
   box-shadow: 0 1px 4px #ddf;
-  background: #fff;
+  background: #fefefe;
   -webkit-appearance: none;
   transition: border-color 0.1s ease;
 
@@ -98,10 +98,12 @@ input[type=text], input[type=url], textarea {
 
   &:hover {
     border-color: #aaa;
+    background-color: #fff;
   }
 
   &:focus {
     border-color: #ccc;
+    background-color: #fffffc !important;
   }
 }
 
@@ -111,6 +113,17 @@ textarea {
   line-height: 1.7;
   padding: 6px;
   text-indent: 1.8em;
+}
+
+.selectize-input.has-options {
+  border: 1px solid #c8c8c8;
+  border-bottom-color: #bbb;
+  box-shadow: 0 1px 4px #ddf;
+}
+
+.selectize-input:hover, .selectize-input.focus {
+  border-color: #aaa;
+  background-color: #fffffc !important;
 }
 
 .selectize-control.multi div {
