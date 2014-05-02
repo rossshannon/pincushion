@@ -51,7 +51,7 @@ module.exports = function(grunt) {
     },
 
     less: {
-      style: {
+      default: {
         files: {
           'build/main.css': 'popup.less'
         }
@@ -86,7 +86,7 @@ module.exports = function(grunt) {
       },
       less: {
         files: ['*.less'],
-        tasks: ['less:style'],
+        tasks: ['less'],
         options: {
           livereload: true,
         }
@@ -106,8 +106,11 @@ module.exports = function(grunt) {
   });
 
   require('time-grunt')(grunt);
-
   require('load-grunt-tasks')(grunt);
 
-  grunt.registerTask('default', ['browserify', 'concat:js', 'uglify:js', 'less:style', 'cssmin:combine', 'cssmin:minify', 'watch']);
+  grunt.registerTask('default', [
+                     'less', 'cssmin:combine', 'cssmin:minify',
+                     'browserify', 'concat:js', 'uglify:js',
+                     'watch'
+                    ]);
 };

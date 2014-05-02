@@ -30,6 +30,7 @@
     "grunt-contrib-jshint": "~0.10.0",
     "load-grunt-tasks": "~0.4.0",
     "selective-fastclick": "^0.1.1",
-    "time-grunt": "~0.3.1"
+    "time-grunt": "~0.3.1",
+    "grunt-contrib-less": "~0.11.0"
   }
 }
