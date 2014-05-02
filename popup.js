@@ -250,7 +250,15 @@ function set_up_tag_autocomplete() {
       {field: 'count', direction: 'desc'},
       {field: 'label', direction: 'asc'},
     ],
-    onChange: function(value, $item) {
+    onChange: function(value) {
+      $('input#tags')[0].selectize.close();
+    },
+    onItemAdd: function(value, $item) {
+      $('.suggested_tag').each(function() {
+        if ($(this).text() === value) {
+          $(this).hide(400);
+        }
+      });
       $('input#tags')[0].selectize.close();
     },
     render: {
