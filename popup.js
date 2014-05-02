@@ -313,10 +313,14 @@ function show_suggested_tags(tag_suggestions) {
 
   var suggested_tags = [];
   for (var i = 0; i < tag_suggestions.length; i++) {
+    /* Draw separator between user's previously-used tags and others, if present */
+    if (tag_suggestions[i] === '$separator') {
+      suggested_tags.push('<hr>');
+      continue;
+    }
     /* Don’t show a suggested tag if it is already present in the tag field. */
     if ((' ' + $('#tags').val() + ' ').indexOf(' ' + tag_suggestions[i] + ' ') === -1) {
-      var suggested_tag = '<button type="button" class="suggested_tag">' + pin_cook(tag_suggestions[i]) + '</button>';
-      suggested_tags.push(suggested_tag);
+      suggested_tags.push('<button type="button" class="suggested_tag">' + pin_cook(tag_suggestions[i]) + '</button>');
     }
   }
 
@@ -324,7 +328,13 @@ function show_suggested_tags(tag_suggestions) {
     $('#suggested').append(suggested_tags.join(' '));
     $('#suggested button').on('click', function() {
       add_tag(pin_escape($(this).text()));
-      $(this).hide(150);
+      $(this).hide(150, function() {
+        $(this).remove();
+        if ($('#suggested').children(':visible').get(0).tagName === 'HR') {
+          $('#suggested hr').hide(200);
+        }
+      });
+
       return false;
     });
     $('#suggestion_row th').text('suggested tags');
@@ -374,9 +384,14 @@ function rank_users_tags_higher(tag_suggestions) {
 
   var ranked_tags = [];
   var user_tags = JSON.parse(localStorage['tags']);
+  var separator = true;
 
   $.each(tag_suggestions, function(index, tag) {
     if (user_tags.hasOwnProperty(tag)) { // user has used this tag before
+      if (separator) {
+        ranked_tags.unshift('$separator');
+        separator = false;
+      }
       ranked_tags.unshift(tag); // prepend to array
     } else {
       ranked_tags.push(tag); // append to array
