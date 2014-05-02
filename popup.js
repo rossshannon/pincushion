@@ -256,7 +256,8 @@ function set_up_tag_autocomplete() {
     render: {
       option: function(data, escape) {
         return '<div class="item">' + escape(data.label) +
-          '<span class="optioncount ' + tagweight(escape(data.count)) + '">' + escape(data.count) + '</span></div>';
+               '<span class="optioncount ' + tagweight(escape(data.count)) + '">' +
+               (data.count !== undefined ? escape(data.count) : '0') + '</span></div>';
       }
     }
   });
