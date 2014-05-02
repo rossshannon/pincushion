@@ -159,14 +159,7 @@ function set_up_form_submission() {
           }
 
           $('.helptext').fadeIn();
-          setTimeout(function() {
-            $('#submit').removeClass('fail');
-            $('#submit span.text').text($('#submit').data('stateText'));
-            $('label span.helptext').fadeOut(100, function() {
-              $(this).remove();
-              $('label').removeClass('error');
-            });
-          }, 1900);
+          removeErrorStateAfterDelay();
         }
       })
 
@@ -175,6 +168,13 @@ function set_up_form_submission() {
         $('#submit').addClass('fail');
         if (response.status === '401') {
           alert('401 Unauthorised. Please check your username and API access token.');
+        }
+        if (response.status === '414') {
+          $('label[for=description]').addClass('error').append('<span class="helptext"> is too long</span>');
+          $('#description').focus();
+
+          $('.helptext').fadeIn();
+          removeErrorStateAfterDelay();
         }
       });
   });
@@ -192,6 +192,17 @@ function set_up_form_submission() {
   });
 
   Ladda.bind('button[type=submit]');
+}
+
+function removeErrorStateAfterDelay() {
+  setTimeout(function() {
+    $('#submit').removeClass('fail');
+    $('#submit span.text').text($('#submit').data('stateText'));
+    $('label span.helptext').fadeOut(100, function() {
+      $(this).remove();
+      $('label').removeClass('error');
+    });
+  }, 1900);
 }
 
 function set_up_fast_click() {
