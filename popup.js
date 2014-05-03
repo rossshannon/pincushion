@@ -245,6 +245,7 @@ function set_up_tag_autocomplete() {
     persist: true,
     createOnBlur: false,
     hideSelected: true,
+    selectOnTab: false,
     diacritics: true,
     valueField: 'label',
     labelField: 'label',

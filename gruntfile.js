@@ -53,7 +53,7 @@ module.exports = function(grunt) {
     less: {
       default: {
         files: {
-          'build/main.css': ['popup.less', 'remove_button.less']
+          'build/main.css': ['vendor/selectize.less', 'vendor/selectize.default.less', 'popup.less']
         }
       }
     },
@@ -64,8 +64,6 @@ module.exports = function(grunt) {
           'build/merged.css':
           [
             'vendor/ladda.min.css',
-            'vendor/selectize.css',
-            'vendor/selectize.default.css',
             'build/main.css',
           ]
         }
@@ -85,7 +83,7 @@ module.exports = function(grunt) {
         }
       },
       less: {
-        files: ['*.less'],
+        files: ['*.less', 'vendor/*.less'],
         tasks: ['less'],
         options: {
           livereload: true,
