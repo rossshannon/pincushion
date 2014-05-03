@@ -288,7 +288,7 @@ input[type=checkbox] {
   }
 
   &.fail {
-    background-color: #FF6868;
+    background-color: #ff6868;
     .box-shadow(none);
     .animation(non 0.8s ease 0);
   }
@@ -296,8 +296,9 @@ input[type=checkbox] {
 
 .error {
   display: block;
-  color: #FF6868;
+  color: #ff6868;
   text-shadow: 1px 1px 1px #fff;
+  .animation(ahem 0.8s ease 0);
 
   .helptext {
     display: none;
@@ -349,5 +350,7 @@ footer {
 .keyframes(~'pop, 0% { transform: scale(0.98); } 50% { transform: scale(1.05); } 100% { transform: scale(1.0); }');
 
 .keyframes(~'non, 20% { transform: translateX(0); } 45% { transform: translateX(-5px); } 60% { transform: translateX(6px); } 75% { transform: translateX(-7px); } 90% { transform: translateX(6px); }');
+
+.keyframes(~'ahem, 30% { text-shadow: 0 0 3px #ff7868; } ');
 
 .keyframes(~'squelch, 100% { transform: scale(0); opacity: 0; } ');

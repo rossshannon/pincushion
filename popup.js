@@ -113,7 +113,7 @@ function check_for_existing_bookmark_details() {
     })
 
     .fail(function(response) {
-      if (response.status === '401') {
+      if (response.status === 401) {
         alert('401 Unauthorised. Please check your username and API access token.');
       }
     });
@@ -170,10 +170,10 @@ function set_up_form_submission() {
         if (response.status === 0 && response.statusText === 'error') {
           alert('Cross-domain request failed. The request may be too long; please try shortening the description text.');
         }
-        if (response.status === '401') {
+        if (response.status === 401) {
           alert('401 Unauthorised. Please check your username and API access token.');
         }
-        if (response.status === '414') {
+        if (response.status === 414) {
           $('label[for=description]').addClass('error').append('<span class="helptext"> is too long</span>');
           $('#description').focus();
         }
@@ -206,7 +206,7 @@ function removeErrorStateAfterDelay() {
       $(this).remove();
       $('label').removeClass('error');
     });
-  }, 1900);
+  }, 2900);
 }
 
 function set_up_fast_click() {
@@ -427,7 +427,7 @@ function download_user_tags() {
       })
 
       .fail(function(response) {
-        if (response.status === '401') {
+        if (response.status === 401) {
           alert('401 Unauthorised. Please check your username and API access token.');
         }
       });
