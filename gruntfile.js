@@ -53,7 +53,7 @@ module.exports = function(grunt) {
     less: {
       default: {
         files: {
-          'build/main.css': 'popup.less'
+          'build/main.css': ['popup.less', 'remove_button.less']
         }
       }
     },

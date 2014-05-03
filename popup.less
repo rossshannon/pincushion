@@ -136,6 +136,27 @@ textarea {
   letter-spacing: 1px !important;
 }
 
+.selectize-control.plugin-remove_button [data-value] {
+  padding-right: 6px !important;
+  .transition(padding 0.2s ease);
+}
+
+.selectize-control.plugin-remove_button [data-value] .remove {
+  width: 1px;
+  opacity: 0;
+  .transition(width 0.1s ease, opacity 0.1s ease);
+}
+
+.selectize-control.plugin-remove_button [data-value]:hover {
+  padding-right: 24px !important;
+}
+
+.selectize-control.plugin-remove_button [data-value]:hover .remove {
+  display: block;
+  width: 15px;
+  opacity: 0.9;
+}
+
 .optioncount {
   margin-left: 65px;
   font-family: "Open Sans", sans-serif;
