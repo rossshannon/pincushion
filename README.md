@@ -33,12 +33,12 @@ Copyright &copy; 2014 [Ross Shannon](http://twitter.com/rossshannon).
 
 Pincushion is open source software, [licensed](LICENSE) under the MIT License. Suggestions and pull requests are welcome.
 
-### Acknowledgements
+## Acknowledgements
 
 Pincushion uses a number of excellent open source libraries.
 - [jQuery](https://github.com/jquery/jquery) (2.1.0).
 - [selectize.js](https://brianreavis.github.io/selectize.js/) autocomplete library for tagging.
 - [Pinboard-Bridge](https://github.com/aaronpowell/pinboard-bridge), a Node.js-based wrapper which allows use of the Pinboard API with Ajax methods, as the API does not natively support [cross-origin resource sharing (CORS)](https://groups.google.com/d/topic/pinboard-dev/RtyJC1Gm67E/discussion). An instance of pinboard-bridge is deployed for use on [Heroku](https://www.heroku.com/) (https://pinboard-bridge.herokuapp.com/).
 - [Ladda](https://github.com/hakimel/Ladda) for the submit buttons with integrated progress indicators.
-- [Grunt](http://gruntjs.com/) and for building and asset management, and [LESS](http://lesscss.org/) for CSS.
+- [Grunt](http://gruntjs.com/) for building and asset management, and [LESS](http://lesscss.org/) for CSS.
 - [Selective Fastclick](https://github.com/matthew-andrews/selective-fastclick) to bring native-feeling touch interaction to mobile browsers.

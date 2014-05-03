@@ -125,10 +125,10 @@ function set_up_form_submission() {
     event.preventDefault();
     $('#submit span.text').html('Saving bookmark&hellip;');
 
-    var post_bookmark_api = api_endpoint + 'posts/add?format=json&auth_token=' + auth_token() + '&' +
-                            serialized_inputs();
+    var post_bookmark_api = api_endpoint + 'posts/add?format=json&auth_token=' + auth_token() +
+                            '&' + serialized_inputs();
 
-    $.get(post_bookmark_api, 'json')
+    $.get(post_bookmark_api)
       .done(function(response) {
         if (response['result_code'] === 'done') {
           console.log('Bookmark saved correctly.');
@@ -145,7 +145,7 @@ function set_up_form_submission() {
               $('#submit span.text').text($('#submit').data('stateText')); // revert text
             }, 300);
           }, 900);
-        } else {
+        } else { // API errors
           Ladda.stopAll();
           $('#submit').addClass('fail');
 
@@ -163,19 +163,23 @@ function set_up_form_submission() {
         }
       })
 
-      .fail(function(response) {
+      .fail(function(response) { // HTTP errors
         Ladda.stopAll();
         $('#submit').addClass('fail');
+
+        if (response.status === 0 && response.statusText === 'error') {
+          alert('Cross-domain request failed. The request may be too long; please try shortening the description text.');
+        }
         if (response.status === '401') {
           alert('401 Unauthorised. Please check your username and API access token.');
         }
         if (response.status === '414') {
           $('label[for=description]').addClass('error').append('<span class="helptext"> is too long</span>');
           $('#description').focus();
-
-          $('.helptext').fadeIn();
-          removeErrorStateAfterDelay();
         }
+
+        $('.helptext').fadeIn();
+        removeErrorStateAfterDelay();
       });
   });
 
