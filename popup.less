@@ -147,12 +147,23 @@ textarea {
   }
 }
 
-.selectize-control.plugin-remove_button [data-value]:hover {
-  padding-right: 24px !important;
+.selectize-control.plugin-remove_button [data-value].active {
+  padding-right: 32px !important;
 
   .remove {
-    width: 17px;
     opacity: 0.9;
+    width: 22px !important;
+  }
+}
+
+@media only screen and (min-width: 480px) {
+  .selectize-control.plugin-remove_button [data-value]:hover {
+    padding-right: 32px !important;
+
+    .remove {
+      opacity: 0.9;
+      width: 22px !important;
+    }
   }
 }
 

@@ -255,7 +255,11 @@ function set_up_tag_autocomplete() {
       {field: 'count', direction: 'desc'},
       {field: 'label', direction: 'asc'},
     ],
-    plugins: ['remove_button'],
+    plugins: {
+      'remove_button': {
+        title: 'Remove this tag'
+      }
+    },
     onChange: function(value) {
       $('input#tags')[0].selectize.close();
     },
