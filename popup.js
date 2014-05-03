@@ -3,7 +3,9 @@
 (function() {
 
 var url_params,
-    api_endpoint = 'https://pinboard-bridge.herokuapp.com/';
+    api_endpoint = 'https://pinboard-bridge.herokuapp.com/',
+    submission_block_timer = false,
+    SUBMISSION_BLOCK_DELAY = 1000;
 
 $(function() {
   resize_window();
@@ -260,8 +262,18 @@ function set_up_tag_autocomplete() {
         title: 'Remove this tag'
       }
     },
+    onEnterKeypress: function(el) {
+      if (submission_block_timer === false) { // only if user is not entering tags
+        $('#submit').click();
+      }
+    },
     onChange: function(value) {
       $('input#tags')[0].selectize.close();
+
+      submission_block_timer = true
+      setTimeout(function() {
+        submission_block_timer = false; // allow submission
+      }, SUBMISSION_BLOCK_DELAY);
     },
     onItemAdd: function(value, $item) {
       $('.suggested_tag').each(function() {
