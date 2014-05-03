@@ -202,7 +202,7 @@ function removeErrorStateAfterDelay() {
   setTimeout(function() {
     $('#submit').removeClass('fail');
     $('#submit span.text').text($('#submit').data('stateText'));
-    $('label span.helptext').fadeOut(100, function() {
+    $('label span.helptext').fadeOut(300, function() {
       $(this).remove();
       $('label').removeClass('error');
     });
@@ -262,7 +262,8 @@ function set_up_tag_autocomplete() {
       $('.suggested_tag').each(function() {
         if ($(this).text() === value) {
           $(this).hide(400, function() {
-            removeSuggestedTag($(this));
+            $(this).remove();
+            removeSuggestedTagSeparator();
           });
         }
       });
@@ -336,11 +337,13 @@ function show_suggested_tags(tag_suggestions) {
     $('#suggested button').on('click', function() {
       add_tag(pin_escape($(this).text()));
       $(this).hide(100, function() {
-        removeSuggestedTag($(this));
+        $(this).remove();
+        removeSuggestedTagSeparator();
       });
 
       return false;
     });
+    removeSuggestedTagSeparator();
     $('#suggestion_row th').text('suggested tags');
   } else {
     $('#suggestion_row th').hide(300);
@@ -348,15 +351,18 @@ function show_suggested_tags(tag_suggestions) {
   }
 }
 
-function removeSuggestedTag($tag) {
-  $tag.remove();
-  // Remove <hr> separator also if there are no tags on either side
+/* Remove <hr> separator  if there are no tags on either side */
+function removeSuggestedTagSeparator() {
   if ($('#suggested').children().length > 0 &&
       ($('#suggested').children(':visible').first()[0].tagName === 'HR' ||
        $('#suggested').children(':visible').last()[0].tagName === 'HR')) {
     $('#suggested hr').hide(200, function() {
       $(this).remove();
     });
+  }
+  if ($('#suggested button').length === 0) {
+    $('#suggestion_row th').hide(300);
+    $('#suggested').addClass('none').text('No suggested tags for this page.');
   }
 }
 
@@ -387,7 +393,7 @@ function remove_spurious_results(tag_suggestions) {
 
 function remove_overly_common_tags(tag_suggestions) {
   var ignored_tags = [
-    'bookmarks_bar', 'pin-later', 'unread', '*resources', 'unlabeled', 'via:packrati.us', 'bookmarks_menu', 'from', 'ifttt', 'later', 'saved', 'read', 'feedly', 'for', 'recently', 'tobookmarks', 'from:ifttt', 'instapaper', '!fromtwitter', 'feedbin', 'favorites_bar', 'imported', '.dailybrowse', 'barra_dei_preferiti', 'bookmarks_toolbar', 'via:pocket', 'from_pocket', 'pocket', 'archive', 'toread', 'readlater', 'via:popular', '!tweet', 'twitter-fav', 'created-by:ifttt', 'starred', 'soon', 'riposte', 'github:starred', 'iftttfeedly', 'github-starred-to-pinboard'
+    'bookmarks_bar', 'pin-later', 'unread', '*resources', 'unlabeled', 'via:packrati.us', 'bookmarks_menu', 'from', 'ifttt', 'later', 'saved', 'read', 'feedly', 'for', 'recently', 'tobookmarks', 'from:ifttt', 'instapaper', '!fromtwitter', 'feedbin', 'favorites_bar', 'imported', '.dailybrowse', 'barra_dei_preferiti', 'bookmarks_toolbar', 'via:pocket', 'from_pocket', 'pocket', 'archive', 'toread', 'readlater', 'via:popular', '!tweet', 'twitter-fav', 'created-by:ifttt', 'starred', 'soon', 'riposte', 'github:starred', 'iftttfeedly', 'github-starred-to-pinboard', 'appdotnet'
   ];
   tag_suggestions = $.grep(tag_suggestions, function(tag) {
     return $.inArray(tag.toLowerCase(), ignored_tags) === -1;
