@@ -233,7 +233,7 @@ function prepopulate_tags(tag_string) {
 
   $('#suggested button').filter(function() { // don’t suggest tags that the bookmark already has
     return $(this).text().toLowerCase() === tags[i];
-  }).hide();
+  }).remove();
 }
 
 function set_up_tag_autocomplete() {
