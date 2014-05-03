@@ -260,7 +260,12 @@ function set_up_tag_autocomplete() {
     onItemAdd: function(value, $item) {
       $('.suggested_tag').each(function() {
         if ($(this).text() === value) {
-          $(this).hide(400);
+          $(this).hide(400, function() {
+            $(this).remove();
+            if ($('#suggested').children(':visible').get(0).tagName === 'HR') {
+              $('#suggested hr').hide(200);
+            }
+          });
         }
       });
       $('input#tags')[0].selectize.close();
