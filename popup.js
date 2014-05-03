@@ -115,6 +115,9 @@ function check_for_existing_bookmark_details() {
     })
 
     .fail(function(response) {
+      if (response.status === 0 && response.statusText === 'No Transport') {
+        alert('Cross-domain request failed. Your browser is denying this request from being sent.');
+      }
       if (response.status === 401) {
         alert('401 Unauthorised. Please check your username and API access token.');
       }
