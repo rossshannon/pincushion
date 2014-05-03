@@ -262,10 +262,7 @@ function set_up_tag_autocomplete() {
       $('.suggested_tag').each(function() {
         if ($(this).text() === value) {
           $(this).hide(400, function() {
-            $(this).remove();
-            if ($('#suggested').children(':visible').get(0).tagName === 'HR') {
-              $('#suggested hr').hide(200);
-            }
+            removeSuggestedTag($(this));
           });
         }
       });
@@ -338,11 +335,8 @@ function show_suggested_tags(tag_suggestions) {
     $('#suggested').append(suggested_tags.join(' '));
     $('#suggested button').on('click', function() {
       add_tag(pin_escape($(this).text()));
-      $(this).hide(150, function() {
-        $(this).remove();
-        if ($('#suggested').children(':visible').get(0).tagName === 'HR') {
-          $('#suggested hr').hide(200);
-        }
+      $(this).hide(100, function() {
+        removeSuggestedTag($(this));
       });
 
       return false;
@@ -351,6 +345,18 @@ function show_suggested_tags(tag_suggestions) {
   } else {
     $('#suggestion_row th').hide(300);
     $('#suggested').addClass('none').text('No suggested tags for this page.');
+  }
+}
+
+function removeSuggestedTag($tag) {
+  $tag.remove();
+  // Remove <hr> separator also if there are no tags on either side
+  if ($('#suggested').children().length > 0 &&
+      ($('#suggested').children(':visible').first()[0].tagName === 'HR' ||
+       $('#suggested').children(':visible').last()[0].tagName === 'HR')) {
+    $('#suggested hr').hide(200, function() {
+      $(this).remove();
+    });
   }
 }
 
