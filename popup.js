@@ -353,15 +353,15 @@ function show_suggested_tags(tag_suggestions) {
   }
 
   if (suggested_tags.length > 0) {
-    $('#suggested').append(suggested_tags.join(' '));
-    $('#suggested button').on('click', function() {
+    $('#suggested').append(suggested_tags.join(''));
+    $('#suggested button').on('click', function(event) {
+      event.preventDefault();
       add_tag(pin_escape($(this).text()));
+
       $(this).hide(100, function() {
         $(this).remove();
         removeSuggestedTagSeparator();
       });
-
-      return false;
     });
     removeSuggestedTagSeparator();
     $('#suggestion_row th').text('suggested tags');
