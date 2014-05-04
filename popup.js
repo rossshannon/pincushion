@@ -395,7 +395,7 @@ function reflectPrivateStatus() {
 }
 
 function clean_title(title_string) {
-  return title_string.replace(/^▶ /, '');
+  return (title_string ? title_string.replace(/^▶ /, '') : '');
 }
 
 /** Remove default set of tags that are suggested by the Pinboard API when there are no good suggestions. */
