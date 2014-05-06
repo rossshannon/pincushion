@@ -5,7 +5,7 @@
 var url_params,
     api_endpoint = 'https://pinboard-bridge.herokuapp.com/',
     submission_block_timer = false,
-    SUBMISSION_BLOCK_DELAY = 1000;
+    SUBMISSION_BLOCK_DELAY = 100;
 
 $(function() {
   resize_window();
