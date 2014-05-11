@@ -82,7 +82,8 @@ function check_for_existing_bookmark_details() {
   var bookmark_details_api = api_endpoint + 'posts/get?format=json&auth_token=' + auth_token() +
                              '&url=' + clean_url(url_params['url']);
 
-  $.get(bookmark_details_api, 'json')
+  $.support.cors = true;
+  $.get(bookmark_details_api)
     .done(function(response) {
       $('#mainspinner').addClass('hidden');
       $('#submit').data('stateText', 'Add bookmark');
@@ -115,7 +116,7 @@ function check_for_existing_bookmark_details() {
     })
 
     .fail(function(response) {
-      if (response.status === 0 && response.statusText === 'No Transport') {
+      if (response.status === 0 && (response.statusText === 'No Transport' || 'Error: Access is denied.')) {
         alert('Cross-domain request failed. Your browser is denying this request from being sent.');
       }
       if (response.status === 401) {
@@ -323,7 +324,7 @@ function get_suggested_tags() {
   $.get(suggested_tags_api, function(data) {
     show_suggested_tags(data);
     $('#tagspinner').addClass('hidden');
-  }, 'json');
+  });
 }
 
 function show_suggested_tags(tag_suggestions) {
@@ -459,7 +460,7 @@ function download_user_tags() {
     localStorage['tags'] = JSON.stringify([]);
     var all_tags_api = api_endpoint + 'tags/get?format=json&auth_token=' + auth_token();
 
-    $.get(all_tags_api, 'json')
+    $.get(all_tags_api)
       .done(function(response) {
         localStorage['tags'] = JSON.stringify(response);
         localStorage['tags-updated'] = new Date();

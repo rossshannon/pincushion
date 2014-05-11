@@ -27,6 +27,10 @@ To add the bookmarklet to your browser, simply add a new bookmark, give it any n
 
 Often the easiest way to do this is to bookmark the page you’re currently reading, and then edit this bookmark and replace the URL with the above code. Replace `USERNAME` with your Pinboard username, and `API_TOKEN` with your 20-character API token and you’re all set. Click the bookmarklet and it will open the Pincushion interface.
 
+### Browser Support
+
+Pincushion is designed for modern browsers like Chrome, Safari, Firefox, Internet Explorer 10+, and mobile varieties of Safari and Chrome. Earlier version of Internet Explorer have problems with the cross-domain Ajax required.
+
 ## License
 
 Copyright &copy; 2014 [Ross Shannon](http://twitter.com/rossshannon).
