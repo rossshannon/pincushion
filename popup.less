@@ -197,6 +197,11 @@ textarea {
 
 #suggested {
   margin: 0.5em 0 0.8em;
+  line-height: 1.9;
+
+  @media only screen and (max-width: 480px) {
+    line-height: 2.4;
+  }
 
   &.none {
     color: #99a;
@@ -220,6 +225,13 @@ textarea {
     cursor: pointer;
     opacity: 0.9;
     .transition(background-color 0.1s ease, box-shadow 0.2s ease, transform 0.1s ease);
+
+    @media only screen and (max-width: 480px) {
+      font-size: 13px;
+      padding-top: 5px;
+      padding-bottom: 6px;
+      margin: 0 0.4em 0 0.3em;
+    }
 
     &:after { /* Expand click area. */
       position: absolute;
