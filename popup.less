@@ -336,6 +336,11 @@ input[type=checkbox] {
     .box-shadow(none);
     .animation(non 0.8s ease 0);
   }
+
+  &.fail[disabled] {
+    background-color: #988;
+    opacity: 0.7;
+  }
 }
 
 .error {
@@ -382,6 +387,6 @@ footer {
 
 .keyframes(~'non, 20% { transform: translateX(0); } 45% { transform: translateX(-5px); } 60% { transform: translateX(6px); } 75% { transform: translateX(-7px); } 90% { transform: translateX(6px); }');
 
-.keyframes(~'ahem, 30% { text-shadow: 0 0 3px #ff7868; } ');
+.keyframes(~'ahem, 30% { text-shadow: 0 0 2px #ff7868; } ');
 
 .keyframes(~'squelch, 100% { transform: scale(0); opacity: 0; } ');

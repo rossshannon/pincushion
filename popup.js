@@ -5,7 +5,9 @@
 var url_params,
     api_endpoint = 'https://pinboard-bridge.herokuapp.com/',
     submission_block_timer = false,
-    SUBMISSION_BLOCK_DELAY = 100;
+    SUBMISSION_BLOCK_DELAY = 100,
+    submit_error_timer,
+    field_error_timer;
 
 $(function() {
   resize_window();
@@ -54,11 +56,16 @@ function parse_url_parameters() {
 
 function authenticate_user() {
   if (!(url_params['user'] && url_params['token'])) {
-    alert('You must provide both ‘user’ and ‘token’ parameters to this page to allow it to use the Pinboard API.');
-    $('#submit').addClass('fail');
-    $('#submit').prop('disabled', true);
-    $('#mainspinner').addClass('hidden');
+    display_critical_error('You must provide both ‘user’ and ‘token’ parameters to this page to allow it to use the Pinboard API.')
   }
+}
+
+function display_critical_error(message) {
+  alert(message);
+  $('.helptext').remove();
+  $('#submit').addClass('fail');
+  $('#submit').prop('disabled', true);
+  $('#mainspinner').addClass('hidden');
 }
 
 function auth_token() {
@@ -117,10 +124,10 @@ function check_for_existing_bookmark_details() {
 
     .fail(function(response) {
       if (response.status === 0 && (response.statusText === 'No Transport' || 'Error: Access is denied.')) {
-        alert('Cross-domain request failed. Your browser is denying this request from being sent.');
+        display_critical_error('Cross-domain request failed. Your browser is denying this request from being sent.');
       }
       if (response.status === 401) {
-        alert('401 Unauthorised. Please check your username and API access token.');
+        display_critical_error('401 Unauthorised. Please check the username and API access token you provided.');
       }
     });
 }
@@ -153,6 +160,7 @@ function set_up_form_submission() {
           }, 900);
         } else { // API errors
           Ladda.stopAll();
+          $('.helptext').remove();
           $('#submit').addClass('fail');
 
           if (response['result_code'] === 'missing url') {
@@ -171,17 +179,18 @@ function set_up_form_submission() {
 
       .fail(function(response) { // HTTP errors
         Ladda.stopAll();
+        $('.helptext').remove();
         $('#submit').addClass('fail');
 
         if (response.status === 0 && response.statusText === 'error') {
           alert('Cross-domain request failed. The request may be too long; please try shortening the description text.');
         }
-        if (response.status === 401) {
-          alert('401 Unauthorised. Please check your username and API access token.');
-        }
         if (response.status === 414) {
           $('label[for=description]').addClass('error').append('<span class="helptext"> is too long</span>');
           $('#description').focus();
+        }
+        if (response.status === 401) {
+          display_critical_error('401 Unauthorised. Please check the username and API access token you provided.');
         }
 
         $('.helptext').fadeIn();
@@ -205,9 +214,14 @@ function set_up_form_submission() {
 }
 
 function removeErrorStateAfterDelay() {
-  setTimeout(function() {
+  clearTimeout(submit_error_timer);
+  clearTimeout(field_error_timer);
+
+  submit_error_timer = setTimeout(function() {
     $('#submit').removeClass('fail');
     $('#submit span.text').text($('#submit').data('stateText'));
+  }, 1500);
+  field_error_timer = setTimeout(function() {
     $('label span.helptext').fadeOut(300, function() {
       $(this).remove();
       $('label').removeClass('error');
@@ -321,10 +335,16 @@ function get_suggested_tags() {
                            '&url=' + clean_url(url_params['url']);
 
   $('#tagspinner').removeClass('hidden');
-  $.get(suggested_tags_api, function(data) {
-    show_suggested_tags(data);
-    $('#tagspinner').addClass('hidden');
-  });
+  $.get(suggested_tags_api)
+    .done(function(response) {
+      show_suggested_tags(response);
+      $('#tagspinner').addClass('hidden');
+    })
+
+    .fail(function(response) {
+      $('#suggestion_row th').hide(800);
+      $('#tagspinner').hide(300);
+    });
 }
 
 function show_suggested_tags(tag_suggestions) {
@@ -470,7 +490,7 @@ function download_user_tags() {
 
       .fail(function(response) {
         if (response.status === 401) {
-          alert('401 Unauthorised. Please check your username and API access token.');
+          display_critical_error('401 Unauthorised. Please check the username and API access token you provided.');
         }
       });
   } else {
