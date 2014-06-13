@@ -3,9 +3,9 @@
 (function() {
 
 var url_params,
-    api_endpoint = 'https://pinboard-bridge.herokuapp.com/',
-    submission_block_timer = false,
+    API_ENDPOINT = 'https://pinboard-bridge.herokuapp.com/',
     SUBMISSION_BLOCK_DELAY = 100,
+    submission_block_timer = false,
     submit_error_timer,
     field_error_timer;
 
@@ -86,7 +86,7 @@ function serialized_inputs() {
 /** Check for pre-existing bookmark for this URL. */
 function check_for_existing_bookmark_details() {
   if (!url_params['url']) { return; }
-  var bookmark_details_api = api_endpoint + 'posts/get?format=json&auth_token=' + auth_token() +
+  var bookmark_details_api = API_ENDPOINT + 'posts/get?format=json&auth_token=' + auth_token() +
                              '&url=' + clean_url(url_params['url']);
 
   $.support.cors = true;
@@ -99,6 +99,7 @@ function check_for_existing_bookmark_details() {
       var bookmark = response['posts'][0];
 
       $('input#title').val(bookmark['description']);
+
       if ((bookmark['extended'] && $('textarea#description').val().length > 0) || bookmark['extended'].length === 0) {
         $('textarea#description').val(bookmark['extended'] + '\n' + $('textarea#description').val());
       } else {
@@ -118,7 +119,7 @@ function check_for_existing_bookmark_details() {
           .attr('title', moment(date).format("dddd, MMMM Do YYYY, h:mma"))
           .text('Previously saved ' + moment(date).fromNow());
       }
-      $('#updating').val('true');
+
       $('#submit').data('stateText', 'Update bookmark');
       $('#submit span.text').text('Update bookmark');
     })
@@ -139,7 +140,7 @@ function set_up_form_submission() {
     event.preventDefault();
     $('#submit span.text').html('Saving bookmark&hellip;');
 
-    var post_bookmark_api = api_endpoint + 'posts/add?format=json&auth_token=' + auth_token() +
+    var post_bookmark_api = API_ENDPOINT + 'posts/add?format=json&auth_token=' + auth_token() +
                             '&' + serialized_inputs();
 
     $.get(post_bookmark_api)
@@ -332,7 +333,7 @@ function populate_dropdown() {
 
 function get_suggested_tags() {
   if (!url_params['url']) { return; }
-  var suggested_tags_api = api_endpoint + 'posts/suggest?format=json&auth_token=' + auth_token() +
+  var suggested_tags_api = API_ENDPOINT + 'posts/suggest?format=json&auth_token=' + auth_token() +
                            '&url=' + clean_url(url_params['url']);
 
   $('#tagspinner').removeClass('hidden');
@@ -479,7 +480,7 @@ function download_user_tags() {
   if (!localStorage.tags) {
     console.log('Downloading user’s tags.');
     localStorage['tags'] = JSON.stringify([]);
-    var all_tags_api = api_endpoint + 'tags/get?format=json&auth_token=' + auth_token();
+    var all_tags_api = API_ENDPOINT + 'tags/get?format=json&auth_token=' + auth_token();
 
     $.get(all_tags_api)
       .done(function(response) {
