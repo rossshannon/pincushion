@@ -114,8 +114,9 @@ function check_for_existing_bookmark_details() {
       }
       if (bookmark['time']) {
         var date = new Date(bookmark['time']);
-        $('#bookmark-status').text('Previously saved on ' +
-                                   date.getFullYear() + '/' + date.getMonth() + '/' + date.getDate());
+        $('#bookmark-status')
+          .attr('title', moment(date).format("dddd, MMMM Do YYYY, h:mma"))
+          .text('Previously saved ' + moment(date).fromNow());
       }
       $('#updating').val('true');
       $('#submit').data('stateText', 'Update bookmark');
