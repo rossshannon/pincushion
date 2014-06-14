@@ -51,7 +51,6 @@ function parse_url_parameters() {
   /* Set form inputs to values passed via URL query parameters. */
   $('input#url').val(url_params['url']);
   $('input#title').val(clean_title(url_params['title']));
-  $('textarea#description').val(url_params['description']);
 }
 
 function authenticate_user() {
@@ -73,6 +72,7 @@ function auth_token() {
 }
 
 function serialized_inputs() {
+  $('#description').val($.trim($('#description').val()));
   var serialized_form_inputs = $('#url, #title, #description, #tags').serialize();
   if ($('#private').prop('checked')) {
     serialized_form_inputs += '&shared=no';
@@ -100,11 +100,19 @@ function check_for_existing_bookmark_details() {
 
       $('input#title').val(bookmark['description']);
 
-      if ((bookmark['extended'] && $('textarea#description').val().length > 0) || bookmark['extended'].length === 0) {
-        $('textarea#description').val(bookmark['extended'] + '\n' + $('textarea#description').val());
+      if (bookmark['extended']) { // previously-saved bookmark description
+        console.log('here');
+        console.log($.trim(bookmark['extended']));
+        console.log($.trim(url_params['description']));
+        if ($.trim(bookmark['extended']) !== $.trim(url_params['description'])) { // ignore duplication
+          console.log('NOT identical');
+          $('textarea#description').val($.trim(bookmark['extended']) + '\n\n' + $.trim(url_params['description']));
+        }
       } else {
-        $('textarea#description').val(bookmark['extended']);
+        $('textarea#description').val($.trim(url_params['description'])); // just trim selected text
       }
+      leaveAGap();
+
       prepopulate_tags(bookmark['tags']);
 
       if (bookmark['shared'] === 'no') {
@@ -117,7 +125,7 @@ function check_for_existing_bookmark_details() {
         var date = new Date(bookmark['time']);
         $('#bookmark-status')
           .attr('title', moment(date).format("dddd, MMMM Do YYYY, h:mma"))
-          .text('Previously saved ' + moment(date).fromNow());
+          .text('Originally saved ' + moment(date).fromNow());
       }
 
       $('#submit').data('stateText', 'Update bookmark');
@@ -208,11 +216,23 @@ function set_up_form_submission() {
     $('input#tags')[0].selectize.focus(); // focus tags field for non-touch-based browsers
   }
 
+  $('textarea#description').on('blur', function() {
+    leaveAGap();
+  });
+
   $('#private').on('change', function() {
     reflectPrivateStatus();
   });
 
   Ladda.bind('button[type=submit]');
+}
+
+function leaveAGap() {
+  $('textarea#description').val($.trim($('textarea#description').val()));
+  if ($('textarea#description').val() !== '') {
+    $('textarea#description').val($('textarea#description').val() + '\n\n');
+    $('textarea#description').animate({scrollTop: '800'}, 1000); // scroll to bottom
+  }
 }
 
 function removeErrorStateAfterDelay() {
