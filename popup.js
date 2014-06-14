@@ -18,7 +18,7 @@ $(function() {
   set_up_form_submission();
   check_for_existing_bookmark_details();
   get_suggested_tags();
-  download_user_tags();
+  prepare_user_tags();
 });
 
 /** Ensure window is tall enough to show all form elements. */
@@ -101,11 +101,7 @@ function check_for_existing_bookmark_details() {
       $('input#title').val(bookmark['description']);
 
       if (bookmark['extended']) { // previously-saved bookmark description
-        console.log('here');
-        console.log($.trim(bookmark['extended']));
-        console.log($.trim(url_params['description']));
         if ($.trim(bookmark['extended']) !== $.trim(url_params['description'])) { // ignore duplication
-          console.log('NOT identical');
           $('textarea#description').val($.trim(bookmark['extended']) + '\n\n' + $.trim(url_params['description']));
         }
       } else {
@@ -495,29 +491,34 @@ function add_tag(tag) {
   $('input#tags')[0].selectize.addItem(tag);
 }
 
-function download_user_tags() {
+function prepare_user_tags() {
   if (!localStorage) { return; }
   if (!localStorage.tags) {
-    console.log('Downloading user’s tags.');
-    localStorage['tags'] = JSON.stringify([]);
-    var all_tags_api = API_ENDPOINT + 'tags/get?format=json&auth_token=' + auth_token();
-
-    $.get(all_tags_api)
-      .done(function(response) {
-        localStorage['tags'] = JSON.stringify(response);
-        localStorage['tags-updated'] = new Date();
-        console.log('Downloaded tags.');
-        populate_dropdown();
-      })
-
-      .fail(function(response) {
-        if (response.status === 401) {
-          display_critical_error('401 Unauthorised. Please check the username and API access token you provided.');
-        }
-      });
+    download_user_tags();
   } else {
-    console.log('Have tags already.');
+    console.log('Have tags already, setting up delayed download.');
+    setTimeout(function() { download_user_tags(); }, 10000); // wait 10 seconds, then refresh tags
   }
+}
+
+function download_user_tags() {
+  console.log('Downloading user’s tags.');
+  localStorage['tags'] = JSON.stringify([]);
+  var all_tags_api = API_ENDPOINT + 'tags/get?format=json&auth_token=' + auth_token();
+
+  $.get(all_tags_api)
+    .done(function(response) {
+      localStorage['tags'] = JSON.stringify(response);
+      localStorage['tags-updated'] = new Date();
+      console.log('Downloaded tags.');
+      populate_dropdown();
+    })
+
+    .fail(function(response) {
+      if (response.status === 401) {
+        display_critical_error('401 Unauthorised. Please check the username and API access token you provided.');
+      }
+    });
 }
 
 function save_updated_user_tags() {
