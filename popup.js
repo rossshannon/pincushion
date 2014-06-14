@@ -111,7 +111,7 @@ function check_for_existing_bookmark_details() {
       } else {
         $('textarea#description').val($.trim(url_params['description'])); // just trim selected text
       }
-      leaveAGap();
+      leave_a_gap();
 
       prepopulate_tags(bookmark['tags']);
 
@@ -183,7 +183,7 @@ function set_up_form_submission() {
           }
 
           $('.helptext').fadeIn();
-          removeErrorStateAfterDelay();
+          remove_error_state_after_delay();
         }
       })
 
@@ -204,7 +204,7 @@ function set_up_form_submission() {
         }
 
         $('.helptext').fadeIn();
-        removeErrorStateAfterDelay();
+        remove_error_state_after_delay();
       });
   });
 
@@ -217,17 +217,17 @@ function set_up_form_submission() {
   }
 
   $('textarea#description').on('blur', function() {
-    leaveAGap();
+    leave_a_gap();
   });
 
   $('#private').on('change', function() {
-    reflectPrivateStatus();
+    reflect_private_status();
   });
 
   Ladda.bind('button[type=submit]');
 }
 
-function leaveAGap() {
+function leave_a_gap() {
   $('textarea#description').val($.trim($('textarea#description').val()));
   if ($('textarea#description').val() !== '') {
     $('textarea#description').val($('textarea#description').val() + '\n\n');
@@ -235,7 +235,7 @@ function leaveAGap() {
   }
 }
 
-function removeErrorStateAfterDelay() {
+function remove_error_state_after_delay() {
   clearTimeout(submit_error_timer);
   clearTimeout(field_error_timer);
 
@@ -320,7 +320,7 @@ function set_up_tag_autocomplete() {
         if ($(this).text() === value) {
           $(this).hide(400, function() {
             $(this).remove();
-            removeSuggestedTagSeparator();
+            remove_suggested_tag_separator();
           });
         }
       });
@@ -403,10 +403,10 @@ function show_suggested_tags(tag_suggestions) {
 
       $(this).hide(100, function() {
         $(this).remove();
-        removeSuggestedTagSeparator();
+        remove_suggested_tag_separator();
       });
     });
-    removeSuggestedTagSeparator();
+    remove_suggested_tag_separator();
     $('#suggestion_row th').text('suggested tags');
   } else {
     $('#suggestion_row th').hide(300);
@@ -415,7 +415,7 @@ function show_suggested_tags(tag_suggestions) {
 }
 
 /* Remove <hr> separator  if there are no tags on either side */
-function removeSuggestedTagSeparator() {
+function remove_suggested_tag_separator() {
   if ($('#suggested').children().length > 0 &&
       ($('#suggested').children(':visible').first()[0].tagName === 'HR' ||
        $('#suggested').children(':visible').last()[0].tagName === 'HR')) {
@@ -429,7 +429,7 @@ function removeSuggestedTagSeparator() {
   }
 }
 
-function reflectPrivateStatus() {
+function reflect_private_status() {
   if ($('#private').prop('checked') === true) {
     $('body').addClass('private');
   } else {
