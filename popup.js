@@ -463,7 +463,7 @@ function remove_overly_common_tags(tag_suggestions) {
 }
 
 function rank_users_tags_higher(tag_suggestions) {
-  if (!(localStorage && localStorage['tags'])) { return; }
+  if (!(localStorage && localStorage['tags'])) { return tag_suggestions; }
 
   var ranked_tags = [];
   var user_tags = JSON.parse(localStorage['tags']);
@@ -502,7 +502,6 @@ function prepare_user_tags() {
 
 function download_user_tags() {
   console.log('Downloading user’s tags.');
-  localStorage['tags'] = JSON.stringify([]);
   var all_tags_api = API_ENDPOINT + 'tags/get?format=json&auth_token=' + auth_token();
 
   $.get(all_tags_api)
