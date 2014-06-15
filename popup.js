@@ -51,6 +51,7 @@ function parse_url_parameters() {
   /* Set form inputs to values passed via URL query parameters. */
   $('input#url').val(url_params['url']);
   $('input#title').val(clean_title(url_params['title']));
+  $('textarea#description').val($.trim(url_params['description']));
 }
 
 function authenticate_user() {
@@ -104,8 +105,6 @@ function check_for_existing_bookmark_details() {
         if ($.trim(bookmark['extended']) !== $.trim(url_params['description'])) { // ignore duplication
           $('textarea#description').val($.trim(bookmark['extended']) + '\n\n' + $.trim(url_params['description']));
         }
-      } else {
-        $('textarea#description').val($.trim(url_params['description'])); // just trim selected text
       }
       leave_a_gap();
 
