@@ -386,7 +386,7 @@ function show_suggested_tags(tag_suggestions) {
       continue;
     }
     /* Don’t show a suggested tag if it is already present in the tag field. */
-    if ((' ' + $('#tags').val() + ' ').indexOf(' ' + tag_suggestions[i] + ' ') === -1) {
+    if ((' ' + $('#tags').val().toLowerCase() + ' ').indexOf(' ' + tag_suggestions[i] + ' ') === -1) {
       suggested_tags.push('<button type="button" class="suggested_tag">' + pin_cook(tag_suggestions[i]) + '</button>');
     }
   }
