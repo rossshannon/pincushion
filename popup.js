@@ -4,7 +4,7 @@
 
 var url_params,
     API_ENDPOINT = 'https://pinboard-bridge.herokuapp.com/',
-    SUBMISSION_BLOCK_DELAY = 100,
+    SUBMISSION_BLOCK_DELAY = 10,
     submission_block_timer = false,
     submit_error_timer,
     field_error_timer;
@@ -52,6 +52,7 @@ function parse_url_parameters() {
   $('input#url').val(url_params['url']);
   $('input#title').val(clean_title(url_params['title']));
   $('textarea#description').val($.trim(url_params['description']));
+  leave_a_gap();
 }
 
 function authenticate_user() {
