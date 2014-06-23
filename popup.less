@@ -132,18 +132,20 @@ textarea {
   background-color: #fffffc !important;
 }
 
-.selectize-control.multi div {
+.selectize-control.multi div { // items and dropdown entries
   letter-spacing: 1px !important;
-  .transition(background-color 0.2s ease, padding 0.2s ease);
+  .transition(background-color 0.1s ease);
+
+  &.item {
+    .transition(padding 0.2s ease);
+
+    &:nth-child(even) {
+      background-color: #f5fafd;
+    }
+  }
 
   &.active {
     background-color: #edf2f9;
-  }
-}
-
-.selectize-dropdown-content .item {
-  &:nth-child(even) {
-    background-color: #f5fafd;
   }
 }
 
