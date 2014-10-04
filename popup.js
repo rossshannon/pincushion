@@ -7,7 +7,8 @@ var url_params,
     SUBMISSION_BLOCK_DELAY = 10,
     submission_block_timer = false,
     submit_error_timer,
-    field_error_timer;
+    field_error_timer,
+    SUBMISSION_REQUEST_TIMEOUT = 20000; // 20 seconds
 
 $(function() {
   resize_window();
@@ -151,7 +152,11 @@ function set_up_form_submission() {
     var post_bookmark_api = API_ENDPOINT + 'posts/add?format=json&auth_token=' + auth_token() +
                             '&' + serialized_inputs();
 
-    $.get(post_bookmark_api)
+    $.ajax ({
+      type: 'GET',
+      url: post_bookmark_api,
+      timeout: SUBMISSION_REQUEST_TIMEOUT
+    })
       .done(function(response) {
         if (response['result_code'] === 'done') {
           console.log('Bookmark saved correctly.');
