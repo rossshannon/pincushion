@@ -119,9 +119,7 @@ function check_for_existing_bookmark_details() {
       }
       if (bookmark['time']) {
         var date = new Date(bookmark['time']);
-        $('#bookmark-status')
-          .attr('title', moment(date).format("dddd, MMMM Do YYYY, h:mma"))
-          .text('Originally saved ' + moment(date).fromNow());
+        showBookmarkTimestamp(date);
       }
 
       $('#submit').data('stateText', 'Update bookmark');
@@ -136,6 +134,12 @@ function check_for_existing_bookmark_details() {
         display_critical_error('401 Unauthorised. Please check the username and API access token you provided.');
       }
     });
+}
+
+function showBookmarkTimestamp(date) {
+  $('#bookmark-status')
+    .attr('title', moment(date).format("dddd, MMMM Do YYYY, h:mma"))
+    .text('Originally saved ' + moment(date).fromNow());
 }
 
 /** Submit the form with Ajax */
@@ -162,6 +166,7 @@ function set_up_form_submission() {
             setTimeout(function() {
               $('#submit').removeClass('success'); // for windows that aren't popups
               $('#submit span.text').text($('#submit').data('stateText')); // revert text
+              showBookmarkTimestamp(new Date());
             }, 300);
           }, 900);
         } else { // API errors
