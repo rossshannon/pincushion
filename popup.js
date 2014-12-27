@@ -431,7 +431,7 @@ function remove_suggested_tag_separator() {
   }
   if ($('#suggested button').length === 0) {
     $('#suggestion_row th').hide(300);
-    $('#suggested').addClass('none').text('No suggested tags for this page.');
+    $('#suggested').addClass('none').text('No more suggested tags for this page.');
   }
 }
 

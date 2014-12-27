@@ -17,10 +17,10 @@ module.exports = function(grunt) {
           separator: ';'
         },
         src: [
-          'vendor/spin.min.js',
-          'vendor/ladda.min.js',
-          'vendor/selectize.min.js',
-          'vendor/moment.min.js',
+          'vendor/spin.js',
+          'vendor/ladda.js',
+          'vendor/selectize.js',
+          'vendor/moment.js',
           'build/module.js'
         ],
         dest: 'build/main.js'
