@@ -512,7 +512,7 @@ function prepare_user_tags() {
 }
 
 function download_user_tags() {
-  console.log('Downloading user’s tags.');
+  console.log('Downloading user’s tags...');
   var all_tags_api = API_ENDPOINT + 'tags/get?format=json&auth_token=' + auth_token();
 
   $.get(all_tags_api)
