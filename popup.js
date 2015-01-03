@@ -449,7 +449,7 @@ function clean_title(title_string) {
 
 /** Remove default set of tags that are suggested by the Pinboard API when there are no good suggestions. */
 function remove_spurious_results(tag_suggestions) {
-  if ($.inArray('facebook', tag_suggestions) >= 0 && $.inArray('googlereader', tag_suggestions) >= 0 &&
+  if ($.inArray('facebook', tag_suggestions) >= 0 && $.inArray('aiviq', tag_suggestions) >= 0 &&
       $.inArray('@autoreleasepool', tag_suggestions) >= 0 && $.inArray('objective-c', tag_suggestions) >= 0 &&
       $.inArray('twitter', tag_suggestions) >= 0 && $.inArray('twitterlink', tag_suggestions) >= 0 &&
       $.inArray('wsh', tag_suggestions) >= 0 && $.inArray('@codepo8', tag_suggestions) >= 0 &&
