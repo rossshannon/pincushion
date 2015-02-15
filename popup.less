@@ -8,7 +8,7 @@ html {
 body {
   min-height: 1100px;
   margin: 0;
-  padding: 0 0.8em 0 0.6em;
+  padding: 0 0.6em 0 0.6em;
   background: #fdfdfd;
   color: #333;
   .transition(background-color 0.6s ease);
@@ -122,6 +122,10 @@ textarea {
   text-indent: 1.8em;
 }
 
+.selectize-input {
+  width: 95%;
+}
+
 .selectize-input.has-options {
   border: 1px solid #c8c8c8;
   border-bottom-color: #bbb;
@@ -148,7 +152,16 @@ textarea {
       background-color: #edf2f9;
     }
   }
+}
 
+.selectize-dropdown-content {
+  max-height: none;
+}
+
+.selectize-dropdown .item {
+  font-size: 1rem;
+  padding-top: 0.8rem;
+  padding-bottom: 0.8rem;
 }
 
 .selectize-control.plugin-remove_button [data-value] {
