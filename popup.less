@@ -13,6 +13,10 @@ body {
   color: #333;
   .transition(background-color 0.6s ease);
 
+  @media only screen and (min-width: 480px) {
+    min-height: 1400px;
+  }
+
   &.private {
     background-color: #f2f2f4;
   }
@@ -54,10 +58,6 @@ table {
   width: 100%;
   border: none;
   border-spacing: 0;
-
-  @media only screen and (max-width: 480px) {
-    max-width: 300px;
-  }
 }
 
 th, td {
@@ -100,7 +100,6 @@ input[type=text], input[type=url], textarea {
   .transition(border-color 0.1s ease);
 
   @media only screen and (max-width: 480px) {
-    max-width: 300px;
     max-height: 90px;
   }
 
