@@ -29,11 +29,11 @@ Often the easiest way to do this is to bookmark the page you’re currently read
 
 ### Browser Support
 
-Pincushion is designed for modern browsers like Chrome, Safari, Firefox, Internet Explorer 10+, and mobile varieties of Safari and Chrome. Earlier version of Internet Explorer have problems with the cross-domain Ajax required.
+Pincushion is designed for modern browsers like Chrome, Safari, Firefox, Internet Explorer 10+, and mobile varieties of Safari and Chrome. Earlier versions of Internet Explorer have problems with the cross-domain Ajax required.
 
 ## License
 
-Copyright &copy; 2014 [Ross Shannon](http://twitter.com/rossshannon).
+Copyright &copy; 2014–2015 [Ross Shannon](http://twitter.com/rossshannon).
 
 Pincushion is open source software, [licensed](LICENSE) under the MIT License. Suggestions and pull requests are welcome.
 
