@@ -140,8 +140,17 @@ textarea {
 .selectize-control.multi div { // items and dropdown entries
   letter-spacing: 1px !important;
   .transition(background-color 0.1s ease);
+}
 
-  &.item {
+.selectize-dropdown-content {
+  max-height: none;
+}
+
+.selectize-dropdown {
+  .item, .create {
+    font-size: 1rem;
+    padding-top: 0.8rem;
+    padding-bottom: 0.8rem;
     .transition(padding 0.2s ease);
 
     &:nth-child(even) {
@@ -152,16 +161,10 @@ textarea {
       background-color: #edf2f9;
     }
   }
-}
 
-.selectize-dropdown-content {
-  max-height: none;
-}
-
-.selectize-dropdown .item {
-  font-size: 1rem;
-  padding-top: 0.8rem;
-  padding-bottom: 0.8rem;
+  .create {
+    border-bottom: 1px dotted #ccc;
+  }
 }
 
 .selectize-control.plugin-remove_button [data-value] {
