@@ -120,6 +120,11 @@ textarea {
   line-height: 1.7;
   padding: 6px;
   text-indent: 1.8em;
+  .transition(height 0.4s ease);
+
+  &.expanded {
+    height: 700px;
+  }
 }
 
 .selectize-input {

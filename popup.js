@@ -203,6 +203,7 @@ function set_up_form_submission() {
         }
         if (response.status === 414) {
           $('label[for=description]').addClass('error').append('<span class="helptext"> is too long</span>');
+          $('#description').addClass('expanded');
           $('#description').focus();
         }
         if (response.status === 401) {
