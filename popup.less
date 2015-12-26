@@ -419,6 +419,25 @@ input[type=checkbox] {
   }
 }
 
+#reload {
+  margin-right: 0.4em;
+  font-size: 180%;
+  vertical-align: middle;
+  color: #999;
+  background: transparent;
+  border: none;
+  outline: none;
+  -webkit-appearance: none;
+  -webkit-backface-visibility: hidden;
+  cursor: pointer;
+  .transition(color 0.3s ease);
+
+  &.active {
+    .animation(rotate 1s linear forwards infinite);
+    color: #666;
+  }
+}
+
 footer {
   margin: 3em 0 1em;
   padding: 1em 0.6em 0;
@@ -432,3 +451,5 @@ footer {
 .keyframes(~'ahem, 30% { text-shadow: 0 0 2px #ff7868; } ');
 
 .keyframes(~'squelch, 100% { transform: scale(0); opacity: 0; } ');
+
+.keyframes(~'rotate, 100% { transform: rotate(360deg); } ');

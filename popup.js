@@ -130,6 +130,7 @@ function check_for_existing_bookmark_details() {
     .fail(function(response) {
       if (response.status === 0 && (response.statusText === 'No Transport' || 'Error: Access is denied.')) {
         display_critical_error('Cross-domain request failed. Your browser is denying this request from being sent.');
+        display_reload_button();
       }
       if (response.status === 401) {
         display_critical_error('401 Unauthorised. Please check the username and API access token you provided.');
@@ -200,6 +201,7 @@ function set_up_form_submission() {
 
         if (response.status === 0 && response.statusText === 'error') {
           alert('Cross-domain request failed. Your connection may have dropped, or the request may be too long; please try shortening the description text.');
+          display_reload_button();
         }
         if (response.status === 414) {
           $('label[for=description]').addClass('error').append('<span class="helptext"> is too long</span>');
@@ -434,6 +436,15 @@ function remove_suggested_tag_separator() {
     $('#suggestion_row th').hide(300);
     $('#suggested').addClass('none').text('No more suggested tags for this page.');
   }
+}
+
+function display_reload_button() {
+  $('#mainspinner').replaceWith('<button id="reload"><i class="fa fa-repeat"></i></button>');
+  $('#reload').click(function() {
+    event.preventDefault();
+    $(this).addClass('active');
+    window.location.reload();
+  });
 }
 
 function reflect_private_status() {
