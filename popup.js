@@ -58,7 +58,7 @@ function parse_url_parameters() {
 
 function authenticate_user() {
   if (!(url_params['user'] && url_params['token'])) {
-    display_critical_error('You must provide both ‘user’ and ‘token’ parameters to this page to allow it to use the Pinboard API.')
+    display_critical_error('You must provide both ‘user’ and ‘token’ parameters to this page to allow it to use the Pinboard API.');
   }
 }
 
@@ -292,7 +292,7 @@ function set_up_tag_autocomplete() {
     delimiter: ' ',
     create: true,
     openOnFocus: false,
-    maxOptions: 10,
+    maxOptions: 15,
     persist: true,
     createOnBlur: false,
     hideSelected: true,
@@ -301,25 +301,27 @@ function set_up_tag_autocomplete() {
     valueField: 'label',
     labelField: 'label',
     searchField: ['label'],
-    sortField: [
-      {field: '$score', direction: 'desc'},
-      {field: 'count', direction: 'desc'},
-      {field: 'label', direction: 'asc'},
-    ],
+    score: function(search) {
+      var score = this.getScoreFunction(search);
+
+      return function(item) {
+        return score(item) * (1 + (item.count / 100));
+      };
+    },
     plugins: {
       'remove_button': {
         title: 'Remove this tag'
       }
     },
-    onEnterKeypress: function(el) {
+    onEnterKeypress: function() {
       if (submission_block_timer === false) { // only if user is not entering tags
         $('#submit').click();
       }
     },
-    onChange: function(value) {
+    onChange: function() {
       $('input#tags')[0].selectize.close();
 
-      submission_block_timer = true
+      submission_block_timer = true;
       setTimeout(function() {
         submission_block_timer = false; // allow submission
       }, SUBMISSION_BLOCK_DELAY);
@@ -564,10 +566,10 @@ function save_updated_user_tags() {
 
 function tagweight(count) {
   switch (true) {
-    case (count > 100): return 'tw100'; break;
-    case (count > 50): return 'tw50'; break;
-    case (count > 10): return 'tw10'; break;
-    case (count > 1): return 'tw1'; break;
+    case (count > 100): return 'tw100';
+    case (count > 50): return 'tw50';
+    case (count > 10): return 'tw10';
+    case (count > 1): return 'tw1';
   }
 }
 
