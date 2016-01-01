@@ -300,7 +300,7 @@ function set_up_tag_autocomplete() {
     diacritics: true,
     valueField: 'label',
     labelField: 'label',
-    searchField: ['label'],
+    searchField: ['label', 'normalised_label'],
     score: function(search) {
       var score = this.getScoreFunction(search);
 
@@ -356,6 +356,7 @@ function populate_dropdown() {
     $.each(user_tags, function(key, value) {
       $('input#tags')[0].selectize.addOption({
         label: key,
+        normalised_label: key.replace(/[&-_\[\]#,+()$~%.'":*?<>{}]/g,''),
         count: value
       });
     });
