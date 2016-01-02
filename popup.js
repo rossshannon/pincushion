@@ -352,7 +352,7 @@ function set_up_tag_autocomplete() {
 function populate_dropdown() {
   if (localStorage && localStorage['tags']) {
     var user_tags = JSON.parse(localStorage['tags']);
-    console.log('Populating dropdown.');
+    console.log('Populating dropdown with ' + Object.keys(user_tags).length + ' tags.');
     $.each(user_tags, function(key, value) {
       $('input#tags')[0].selectize.addOption({
         label: key,

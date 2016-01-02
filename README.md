@@ -11,7 +11,7 @@ The form is enhanced with animation to guide interaction, and more clearly expla
 - **Easily add tags**
 Pincushion uses as intelligent autocomplete widget that shows the tags you’ve previously used, along with the number of times you’ve used them. The autocomplete even lets you search within your tags without having to type the exact letters that a tag begins with.
 - **Search across *all* of your tags**
-The first time you use Pincushion, it downloads a local copy of all of your tags into your browser’s “LocalStorage”, which allows you to store about 2.5MB of data and preferences for each site you use regularly. This means that from then on, the autocomplete widget can search across your entire collection. The autocomplete can use each tag’s score to be smarter about which tags to suggest to you as you are typing. (Tag autocomplete has been tested on a data set of over 9000 tags, which totalled 180KB when downloaded.)
+The first time you use Pincushion, it downloads a local copy of all of your tags into your browser’s “LocalStorage”, which allows you to store about 2.5MB of data and preferences for each site you use regularly. This means that from then on, the autocomplete widget can search across your entire collection. The autocomplete can use each tag’s score to be smarter about which tags to suggest to you as you are typing. (Tag autocomplete has been tested on a data set of over 11,000 tags, which totalled 180KB when downloaded.)
 
 ## Installing the Bookmarklet
 
@@ -33,7 +33,7 @@ Pincushion is designed for modern browsers like Chrome, Safari, Firefox, Interne
 
 ## License
 
-Copyright &copy; 2014–2015 [Ross Shannon](http://twitter.com/rossshannon).
+Copyright &copy; 2014–2016 [Ross Shannon](http://twitter.com/rossshannon).
 
 Pincushion is open source software, [licensed](LICENSE) under the MIT License. Suggestions and pull requests are welcome.
 
