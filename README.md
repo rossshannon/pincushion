@@ -31,6 +31,19 @@ Often the easiest way to do this is to bookmark the page you’re currently read
 
 Pincushion is designed for modern browsers like Chrome, Safari, Firefox, Internet Explorer 10+, and mobile varieties of Safari and Chrome. Earlier versions of Internet Explorer have problems with the cross-domain Ajax required.
 
+## Changelog
+
+### 1.1 (2016-01-3)
+
+- Improve tag sorting so that tags that are used more frequently will be sorted higher in the autocomplete list.
+- Allow autocomplete to match tags while ignoring punctuation (for example, typing “theo” will now match “the_onion”).
+
+### 1.0 (2014-10-04)
+
+- Local tag storage, autocomplete-based tag suggestions, Pinboard API integration, mobile compatibility, usability improvements and error-handling.
+
+### Project started (2014-04-04)
+
 ## License
 
 Copyright &copy; 2014–2016 [Ross Shannon](http://twitter.com/rossshannon).
