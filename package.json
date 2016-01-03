@@ -2,6 +2,7 @@
   "name": "pincushion",
   "keywords": [
     "pinboard",
+    "pinboard.in",
     "tagging",
     "bookmarks",
     "bookmarking",
@@ -9,7 +10,7 @@
     "bookmarklet"
   ],
   "description": "Pincushion presents an enhanced version of the Pinboard.in “Add Bookmark” page, which takes advantage of the capabilities of modern browsers",
-  "version": "0.1.0",
+  "version": "1.1",
   "author": "Ross Shannon <ross@commutable.com>",
   "repository": {
     "type": "git",
