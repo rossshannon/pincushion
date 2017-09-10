@@ -31,12 +31,11 @@ Often the easiest way to do this is to bookmark the page you’re currently read
 
 Pincushion is designed for modern browsers like Chrome, Safari, Firefox, Internet Explorer 10+, and mobile varieties of Safari and Chrome. Earlier versions of Internet Explorer have problems with the cross-domain Ajax required.
 
-
-### Running Locally
+#### Running Locally
 
 - Clone the repository to your computer. `git clone https://github.com/rossshannon/pincushion.git`
-- Run `yarn install` or `npm install`
-- Install the `foreman` gem using `gem install foreman`, and then run the `Procfile` using `foreman start`. Pincushion will be running on localhost port 5000.
+- Switch into the new directory and run `yarn install` or `npm install`
+- Install the `foreman` gem using `gem install foreman`, and then run the `Procfile` using `foreman start`. Grunt will build the required packages and a server will be booted to run Pincushion on localhost port 5000.
 
 ## Changelog
 
