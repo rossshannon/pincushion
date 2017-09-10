@@ -3,18 +3,17 @@
 (function() {
 
 var url_params,
-    API_ENDPOINT = 'https://pinboard-bridge.herokuapp.com/',
+    API_ENDPOINT = 'https://pinboard-api.herokuapp.com/',
     SUBMISSION_BLOCK_DELAY = 10,
     submission_block_timer = false,
     submit_error_timer,
     field_error_timer,
-    SUBMISSION_REQUEST_TIMEOUT = 20000; // 20 seconds
+    SUBMISSION_REQUEST_TIMEOUT = 25000; // 25 seconds
 
 $(function() {
   resize_window();
   parse_url_parameters();
   authenticate_user();
-  set_up_fast_click();
   set_up_tag_autocomplete();
   set_up_form_submission();
   check_for_existing_bookmark_details();
@@ -258,16 +257,6 @@ function remove_error_state_after_delay() {
       $('label').removeClass('error');
     });
   }, 2900);
-}
-
-function set_up_fast_click() {
-  var SelectiveFastClick = require('selective-fastclick');
-  var selectors = [
-    'input[type=text], input[type=url], textarea',
-    'button.suggested_tag',
-    'label'
-  ];
-  SelectiveFastClick.attach(document.body, selectors);
 }
 
 function prepopulate_tags(tag_string) {
