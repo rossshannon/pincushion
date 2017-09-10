@@ -31,7 +31,19 @@ Often the easiest way to do this is to bookmark the page you’re currently read
 
 Pincushion is designed for modern browsers like Chrome, Safari, Firefox, Internet Explorer 10+, and mobile varieties of Safari and Chrome. Earlier versions of Internet Explorer have problems with the cross-domain Ajax required.
 
+
+### Running Locally
+
+- Clone the repository to your computer. `git clone https://github.com/rossshannon/pincushion.git`
+- Run `yarn install` or `npm install`
+- Install the `foreman` gem using `gem install foreman`, and then run the `Procfile` using `foreman start`. Pincushion will be running on localhost port 5000.
+
 ## Changelog
+
+### 1.2 (2017-09-10)
+
+- Switched to a self-hosted version of the Pinboard API bridge to avoid occasional downtime or slow requests.
+- Updated development dependencies and added instructions for running locally.
 
 ### 1.1 (2016-01-3)
 
@@ -46,7 +58,7 @@ Pincushion is designed for modern browsers like Chrome, Safari, Firefox, Interne
 
 ## License
 
-Copyright &copy; 2014–2016 [Ross Shannon](http://twitter.com/rossshannon).
+Copyright &copy; 2014–2017 [Ross Shannon](http://twitter.com/rossshannon).
 
 Pincushion is open source software, [licensed](LICENSE) under the MIT License. Suggestions and pull requests are welcome.
 
@@ -55,7 +67,6 @@ Pincushion is open source software, [licensed](LICENSE) under the MIT License. S
 Pincushion uses a number of excellent open source libraries.
 - [jQuery](https://github.com/jquery/jquery) (2.1.0).
 - [selectize.js](https://brianreavis.github.io/selectize.js/) autocomplete library for tagging.
-- [Pinboard-Bridge](https://github.com/aaronpowell/pinboard-bridge), a Node.js-based wrapper which allows use of the Pinboard API with Ajax methods, as the API does not natively support [cross-origin resource sharing (CORS)](https://groups.google.com/d/topic/pinboard-dev/RtyJC1Gm67E/discussion). An instance of pinboard-bridge is deployed for use on [Heroku](https://www.heroku.com/) (https://pinboard-bridge.herokuapp.com/).
+- [Pinboard-Bridge](https://github.com/aaronpowell/pinboard-bridge), a Node.js-based wrapper which allows use of the Pinboard API with Ajax methods, as the API does not natively support [cross-origin resource sharing (CORS)](https://groups.google.com/d/topic/pinboard-dev/RtyJC1Gm67E/discussion). An instance of pinboard-bridge is deployed for use on [Heroku](https://www.heroku.com/) (https://pinboard-api.herokuapp.com/).
 - [Ladda](https://github.com/hakimel/Ladda) for the submit buttons with integrated progress indicators.
 - [Grunt](http://gruntjs.com/) for building and asset management, and [LESS](http://lesscss.org/) for CSS.
-- [Selective Fastclick](https://github.com/matthew-andrews/selective-fastclick) to bring native-feeling touch interaction to mobile browsers.
