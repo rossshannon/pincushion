@@ -55,6 +55,17 @@ module.exports = function(grunt) {
       default: {
         files: {
           'build/main.css': ['vendor/selectize.less', 'vendor/selectize.default.less', 'popup.less']
+        },
+        options: {
+          plugins: [
+            new(require('less-plugin-autoprefix'))({
+                browsers: ['last 2 versions']
+            }),
+            new(require('less-plugin-clean-css'))({
+                sourceMap: true,
+                advanced: true
+            })
+          ],
         }
       }
     },

@@ -31,8 +31,11 @@
     "grunt-contrib-cssmin": "^3.0.0",
     "grunt-contrib-jshint": "^2.1.0",
     "grunt-contrib-less": "^2.0.0",
+    "less-plugin-autoprefix": "^2.0.0",
+    "less-plugin-clean-css": "^1.5.1",
     "load-grunt-tasks": "^5.1.0",
     "npm-check": "^5.9.0",
+    "prettier": "^1.18.2",
     "time-grunt": "^2.0.0"
   },
   "scripts": {
