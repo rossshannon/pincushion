@@ -27,6 +27,10 @@ To add the bookmarklet to your browser, simply add a new bookmark, give it any n
 
 Often the easiest way to do this is to bookmark the page you’re currently reading, and then edit this bookmark and replace the URL with the above code. Replace `USERNAME` with your Pinboard username, and `API_TOKEN` with your 20-character API token and you’re all set. Click the bookmarklet and it will open the Pincushion interface.
 
+You can also pre-check the “private” and “to read” checkboxes by passing these properties with the value `true`:
+
+    javascript:q=location.href;d=(window.getSelection?window.getSelection():document.getSelection?document.getSelection():document.selection.createRange().text);p=document.title;void(open('https://rossshannon.github.io/pincushion/?user=USERNAME&token=API_TOKEN&url='+encodeURIComponent(q)+'&description='+encodeURIComponent(d)+'&title='+encodeURIComponent(p)+'&private=true&toread=true','Pinboard','toolbar=yes,width=600,height=700,left=50,top=50'));
+
 ### Browser Support
 
 Pincushion is designed for modern browsers like Chrome, Safari, Firefox, Internet Explorer 10+, and mobile varieties of Safari and Chrome. Earlier versions of Internet Explorer have problems with the cross-domain Ajax required.
@@ -35,9 +39,13 @@ Pincushion is designed for modern browsers like Chrome, Safari, Firefox, Interne
 
 - Clone the repository to your computer. `git clone https://github.com/rossshannon/pincushion.git`
 - Switch into the new directory and run `yarn install` or `npm install`
-- Install the `foreman` gem using `gem install foreman`, and then run the `Procfile` using `foreman start`. Grunt will build the required packages and a server will be booted to run Pincushion on localhost port 5000.
+- Install the `foreman` gem using `gem install foreman`, and then run the `Procfile` using `foreman start`. Grunt will build the required packages and a server will be booted to run Pincushion on localhost port 5000 (http://localhost:5000).
 
 ## Changelog
+
+### 1.3 (2021-06-14)
+
+- Added options to set the “private” and “to read” options to true by default via the bookmarklet URL.
 
 ### 1.2 (2017-09-10)
 
