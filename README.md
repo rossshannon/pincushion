@@ -72,7 +72,7 @@ Pincushion is open source software, [licensed](LICENSE) under the MIT License. S
 ## Acknowledgements
 
 Pincushion uses a number of excellent open source libraries.
-- [jQuery](https://github.com/jquery/jquery) (2.1.0).
+- [jQuery](https://github.com/jquery/jquery) (2.2.4).
 - [selectize.js](https://brianreavis.github.io/selectize.js/) autocomplete library for tagging.
 - [Pinboard-Bridge](https://github.com/aaronpowell/pinboard-bridge), a Node.js-based wrapper which allows use of the Pinboard API with Ajax methods, as the API does not natively support [cross-origin resource sharing (CORS)](https://groups.google.com/d/topic/pinboard-dev/RtyJC1Gm67E/discussion). An instance of pinboard-bridge is deployed for use on [Heroku](https://www.heroku.com/) (https://pinboard-api.herokuapp.com/).
 - [Ladda](https://github.com/hakimel/Ladda) for the submit buttons with integrated progress indicators.
