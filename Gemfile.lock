@@ -1,0 +1,12 @@
+GEM
+  specs:
+    foreman (0.87.2)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  foreman
+
+BUNDLED WITH
+   2.1.4

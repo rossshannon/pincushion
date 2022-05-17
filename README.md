@@ -39,7 +39,7 @@ Pincushion is designed for modern browsers like Chrome, Safari, Firefox, Interne
 
 - Clone the repository to your computer. `git clone https://github.com/rossshannon/pincushion.git`
 - Switch into the new directory and run `yarn install` or `npm install`
-- Install the `foreman` gem using `gem install foreman`, and then run the `Procfile` using `foreman start`. Grunt will build the required packages and a server will be booted to run Pincushion on localhost port 5000 (http://localhost:5000).
+- Install the `foreman` gem using `gem install foreman`, and then run the `Procfile` using `foreman start 5100`. Grunt will build the required packages and a server will be booted to run Pincushion on localhost port 5100 (http://localhost:5100).
 
 ## Changelog
 
