@@ -526,12 +526,11 @@
     if (
       $.inArray('facebook', tag_suggestions) >= 0 &&
       $.inArray('youtube', tag_suggestions) >= 0 &&
-      $.inArray('ifttt', tag_suggestions) >= 0 &&
       $.inArray('objective-c', tag_suggestions) >= 0 &&
       $.inArray('twitter', tag_suggestions) >= 0 &&
       $.inArray('twitterlink', tag_suggestions) >= 0 &&
       $.inArray('wsh', tag_suggestions) >= 0 &&
-      $.inArray('aiviq', tag_suggestions) >= 0 &&
+      $.inArray('.from:twitter', tag_suggestions) >= 0 &&
       $.inArray('@codepo8', tag_suggestions) >= 0 &&
       $.inArray('1960s', tag_suggestions) >= 0
     ) {
