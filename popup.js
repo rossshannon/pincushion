@@ -524,7 +524,9 @@
   /** Remove default set of tags that are suggested by the Pinboard API when there are no good suggestions. */
   function remove_spurious_results(tag_suggestions) {
     if (
+      $.inArray('ifttt', tag_suggestions) >= 0 &&
       $.inArray('facebook', tag_suggestions) >= 0 &&
+      $.inArray('youtube', tag_suggestions) >= 0 &&
       $.inArray('objective-c', tag_suggestions) >= 0 &&
       $.inArray('twitter', tag_suggestions) >= 0 &&
       $.inArray('twitterlink', tag_suggestions) >= 0 &&
@@ -548,6 +550,8 @@
       'unlabeled',
       'via:packrati.us',
       'bookmarks_menu',
+      '.from:twitter',
+      'twitterlink',
       'from',
       'ifttt',
       'later',
