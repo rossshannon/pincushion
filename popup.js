@@ -532,7 +532,7 @@
       $.inArray('twitterlink', tag_suggestions) >= 0 &&
       $.inArray('wsh', tag_suggestions) >= 0 &&
       $.inArray('.from:twitter', tag_suggestions) >= 0 &&
-      $.inArray('msa', tag_suggestions) >= 0 &&
+      $.inArray('@codepo8', tag_suggestions) >= 0 &&
       $.inArray('1960s', tag_suggestions) >= 0
     ) {
       return [];

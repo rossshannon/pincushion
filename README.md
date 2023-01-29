@@ -65,7 +65,7 @@ Pincushion is designed for modern browsers like Chrome, Safari, Firefox, Interne
 
 ## License
 
-Copyright &copy; 2014–2017 [Ross Shannon](http://twitter.com/rossshannon).
+Copyright &copy; 2014–2023 [Ross Shannon](http://twitter.com/rossshannon).
 
 Pincushion is open source software, [licensed](LICENSE) under the MIT License. Suggestions and pull requests are welcome.
 
