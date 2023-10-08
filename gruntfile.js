@@ -1,12 +1,36 @@
 module.exports = function(grunt) {
+  require('time-grunt')(grunt);
+  grunt.loadNpmTasks('grunt-contrib-jshint');
+  grunt.loadNpmTasks('grunt-babel');
+  grunt.loadNpmTasks('grunt-browserify');
+  grunt.loadNpmTasks('grunt-contrib-concat');
+  grunt.loadNpmTasks('grunt-contrib-uglify');
 
   grunt.initConfig({
     pkg: grunt.file.readJSON('package.json'),
 
+    jshint: {
+      files: ['*.js', '!node_modules/**/*'],
+      options: {
+        jshintrc: '.jshintrc'
+      }
+    },
+
+    babel: {
+      options: {
+        presets: ['@babel/preset-env']
+      },
+      dist: {
+        files: {
+          'build/app.js': ['popup.js']
+        }
+      }
+    },
+
     browserify: {
       dist: {
         files: {
-          'build/module.js': ['popup.js'],
+          'build/module.js': 'build/app.js'
         }
       }
     },
@@ -16,13 +40,7 @@ module.exports = function(grunt) {
         options: {
           separator: ';'
         },
-        src: [
-          'vendor/spin.js',
-          'vendor/ladda.js',
-          'vendor/selectize.js',
-          'vendor/moment.js',
-          'build/module.js'
-        ],
+        src: ['vendor/spin.js', 'vendor/ladda.js', 'vendor/selectize.js', 'vendor/moment.js', 'build/module.js'],
         dest: 'build/main.js'
       }
     },
@@ -41,16 +59,6 @@ module.exports = function(grunt) {
       }
     },
 
-    jshint: {
-      files: [
-        '*.js',
-        '!node_modules/**/*',
-      ],
-      options: {
-        jshintrc: '.jshintrc'
-      }
-    },
-
     less: {
       default: {
         files: {
@@ -58,14 +66,14 @@ module.exports = function(grunt) {
         },
         options: {
           plugins: [
-            new(require('less-plugin-autoprefix'))({
-                browsers: ['last 2 versions']
+            new (require('less-plugin-autoprefix'))({
+              browsers: ['last 2 versions']
             }),
-            new(require('less-plugin-clean-css'))({
-                sourceMap: true,
-                advanced: true
+            new (require('less-plugin-clean-css'))({
+              sourceMap: true,
+              advanced: true
             })
-          ],
+          ]
         }
       }
     },
@@ -73,11 +81,7 @@ module.exports = function(grunt) {
     cssmin: {
       combine: {
         files: {
-          'build/merged.css':
-          [
-            'vendor/ladda.min.css',
-            'build/main.css',
-          ]
+          'build/merged.css': ['vendor/ladda.min.css', 'build/main.css']
         }
       },
       minify: {
@@ -91,36 +95,34 @@ module.exports = function(grunt) {
         files: ['*.js', '.jshintrc'],
         tasks: ['browserify', 'concat:js', 'uglify:js'],
         options: {
-          livereload: true,
+          livereload: true
         }
       },
       less: {
         files: ['*.less', 'vendor/*.less'],
         tasks: ['less'],
         options: {
-          livereload: true,
+          livereload: true
         }
       },
       css: {
         files: 'build/main.css',
         tasks: ['cssmin:combine', 'cssmin:minify'],
         options: {
-          livereload: true,
+          livereload: true
         }
       }
     },
 
     connect: {
-      server: {},
-    },
+      server: {}
+    }
   });
-
-  require('time-grunt')(grunt);
-  require('load-grunt-tasks')(grunt);
 
   grunt.registerTask('default', [
                      'less', 'cssmin:combine', 'cssmin:minify',
-                     'browserify', 'concat:js', 'uglify:js',
+                     //'jshint',
+                     'babel', 'browserify', 'concat:js', 'uglify:js',
                      'watch'
                     ]);
 };

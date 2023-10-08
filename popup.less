@@ -96,6 +96,7 @@ input[type=text], input[type=url], textarea {
   border-radius: 2px;
   box-shadow: 0 1px 4px #ddf;
   background: #fefefe;
+  appearance: none;
   -webkit-appearance: none;
   transition: border-color 0.1s ease;
 
@@ -115,12 +116,14 @@ input[type=text], input[type=url], textarea {
 }
 
 textarea {
-  height: 150px;
   font-size: 85%;
   line-height: 1.7;
   padding: 6px;
   text-indent: 1.8em;
   transition: height 0.4s ease;
+  form-sizing: content;
+  min-height: 2lh;
+  max-height: 10lh;
 
   &.expanded {
     height: 700px;
@@ -426,7 +429,9 @@ input[type=checkbox] {
   background: transparent;
   border: none;
   outline: none;
+  appearance: none;
   -webkit-appearance: none;
+  backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   cursor: pointer;
   transition: color 0.3s ease;
