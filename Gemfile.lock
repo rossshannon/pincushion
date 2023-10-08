@@ -2,12 +2,14 @@ GEM
   remote: https://rubygems.org/
   specs:
     foreman (0.87.2)
+    webrick (1.8.1)
 
 PLATFORMS
   ruby
 
 DEPENDENCIES
   foreman
+  webrick
 
 RUBY VERSION
    ruby 3.1.4p223
