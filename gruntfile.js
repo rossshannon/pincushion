@@ -1,10 +1,14 @@
 module.exports = function(grunt) {
+
   require('time-grunt')(grunt);
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-babel');
   grunt.loadNpmTasks('grunt-browserify');
+  grunt.loadNpmTasks('grunt-contrib-less');
+  grunt.loadNpmTasks('grunt-contrib-cssmin');
   grunt.loadNpmTasks('grunt-contrib-concat');
   grunt.loadNpmTasks('grunt-contrib-uglify');
+  grunt.loadNpmTasks('grunt-contrib-watch');
 
   grunt.initConfig({
     pkg: grunt.file.readJSON('package.json'),
@@ -30,7 +34,7 @@ module.exports = function(grunt) {
     browserify: {
       dist: {
         files: {
-          'build/module.js': 'build/app.js'
+          'build/module.js': ['spin.js', 'ladda.js', 'build/app.js']
         }
       }
     },
@@ -40,7 +44,7 @@ module.exports = function(grunt) {
         options: {
           separator: ';'
         },
-        src: ['vendor/spin.js', 'vendor/ladda.js', 'vendor/selectize.js', 'vendor/moment.js', 'build/module.js'],
+        src: ['build/module.js'],
         dest: 'build/main.js'
       }
     },
@@ -93,7 +97,7 @@ module.exports = function(grunt) {
     watch: {
       js: {
         files: ['*.js', '.jshintrc'],
-        tasks: ['browserify', 'concat:js', 'uglify:js'],
+        tasks: ['babel', 'browserify', 'concat:js', 'uglify:js'],
         options: {
           livereload: true
         }
