@@ -11,7 +11,9 @@ The form is enhanced with animation to guide interaction, and more clearly expla
 - **Easily add tags**
 Pincushion uses as intelligent autocomplete widget that shows the tags you’ve previously used, along with the number of times you’ve used them. The autocomplete even lets you search within your tags without having to type the exact letters that a tag begins with.
 - **Search across *all* of your tags**
-The first time you use Pincushion, it downloads a local copy of all of your tags into your browser’s “LocalStorage”, which allows you to store about 2.5MB of data and preferences for each site you use regularly. This means that from then on, the autocomplete widget can search across your entire collection. The autocomplete can use each tag’s score to be smarter about which tags to suggest to you as you are typing. (Tag autocomplete has been tested on a data set of over 11,000 tags, which totalled 180KB when downloaded.)
+The first time you use Pincushion, it downloads a local copy of all of your tags into your browser’s “LocalStorage”, which allows you to store about 2.5MB of data and preferences for each site you use regularly. This means that from then on, the autocomplete widget can search across your entire collection.
+
+The autocomplete can use each tag’s score to be smarter about which tags to suggest to you as you are typing. (Tag autocomplete has been tested on a data set of over 12,500 tags, which totalled 184KB when downloaded.)
 
 ## Installing the Bookmarklet
 
@@ -39,7 +41,7 @@ Pincushion is designed for modern browsers like Chrome, Safari, Firefox, Interne
 
 - Clone the repository to your computer. `git clone https://github.com/rossshannon/pincushion.git`
 - Switch into the new directory and run `yarn install` or `npm install`
-- Install the `foreman` gem using `gem install foreman`, and then run the `Procfile` using `foreman start 5100`. Grunt will build the required packages and a server will be booted to run Pincushion on localhost port 5100 (http://localhost:5100).
+- Install the `foreman` gem using `gem install foreman`, and then run the `Procfile` using `foreman start -p 5000`. Grunt will build the required packages and a web server will be booted to run Pincushion on localhost port 5100 (http://localhost:5100).
 
 ## Changelog
 
