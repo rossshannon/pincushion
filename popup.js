@@ -1,4 +1,5 @@
 'use strict';
+import * as Ladda from 'ladda';
 
 (function() {
   var url_params,
@@ -523,22 +524,20 @@
 
   /** Remove default set of tags that are suggested by the Pinboard API when there are no good suggestions. */
   function remove_spurious_results(tag_suggestions) {
-    if (
-      $.inArray('ifttt', tag_suggestions) >= 0 &&
-      $.inArray('facebook', tag_suggestions) >= 0 &&
-      $.inArray('youtube', tag_suggestions) >= 0 &&
-      $.inArray('objective-c', tag_suggestions) >= 0 &&
-      $.inArray('twitter', tag_suggestions) >= 0 &&
-      $.inArray('twitterlink', tag_suggestions) >= 0 &&
-      $.inArray('wsh', tag_suggestions) >= 0 &&
-      $.inArray('.from:twitter', tag_suggestions) >= 0 &&
-      $.inArray('@codepo8', tag_suggestions) >= 0 &&
-      $.inArray('1960s', tag_suggestions) >= 0
-    ) {
-      return [];
-    } else {
-      return tag_suggestions;
-    }
+    const spuriousTags = [
+      'ifttt',
+      'facebook',
+      'youtube',
+      'objective-c',
+      'twitter',
+      'twitterlink',
+      'wsh',
+      '.from:twitter',
+      '@codepo8',
+      '1960s',
+    ];
+    const areAllSpuriousTagsPresent = spuriousTags.every(tag => tag_suggestions.includes(tag));
+    return areAllSpuriousTagsPresent ? [] : tag_suggestions;
   }
 
   function remove_overly_common_tags(tag_suggestions) {
