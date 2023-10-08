@@ -367,6 +367,9 @@ import * as Ladda from 'ladda';
         });
         $('input#tags')[0].selectize.close();
       },
+      onItemRemove: function(value, $item) {
+        append_suggested_tag(value);
+      },
       render: {
         option: function(data, escape) {
           return (
@@ -385,10 +388,14 @@ import * as Ladda from 'ladda';
     populate_dropdown();
   }
 
+  function numberWithCommas(x) {
+    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
   function populate_dropdown() {
     if (localStorage && localStorage['tags']) {
       var user_tags = JSON.parse(localStorage['tags']);
-      console.log('Populating dropdown with ' + Object.keys(user_tags).length + ' tags.');
+      console.log('Populating dropdown with ' + numberWithCommas(Object.keys(user_tags).length) + ' tags.');
       $.each(user_tags, function(key, value) {
         $('input#tags')[0].selectize.addOption({
           label: key,
@@ -443,13 +450,7 @@ import * as Ladda from 'ladda';
       }
       /* Don’t show a suggested tag if it is already present in the tag field. */
       if (
-        (
-          ' ' +
-          $('#tags')
-            .val()
-            .toLowerCase() +
-          ' '
-        ).indexOf(' ' + tag_suggestions[i] + ' ') === -1
+        (' ' + $('#tags').val().toLowerCase() + ' ').indexOf(' ' + tag_suggestions[i] + ' ') === -1
       ) {
         suggested_tags.push(
           '<button type="button" class="suggested_tag">' + pin_cook(tag_suggestions[i]) + '</button>'
@@ -459,23 +460,51 @@ import * as Ladda from 'ladda';
 
     if (suggested_tags.length > 0) {
       $('#suggested').append(suggested_tags.join(''));
-      $('#suggested button').on('click', function(event) {
-        event.preventDefault();
-        add_tag(pin_escape($(this).text()));
-
-        $(this).hide(100, function() {
-          $(this).remove();
-          remove_suggested_tag_separator();
-        });
-      });
+      add_tag_remove_button_handlers($('#suggested button'));
+      activate_suggested_tags();
       remove_suggested_tag_separator();
-      $('#suggestion_row th').text('suggested tags');
     } else {
+      check_if_suggested_tags_are_empty();
+    }
+  }
+
+  function add_tag_remove_button_handlers(selector) {
+    (selector).on('click', function(event) {
+      event.preventDefault();
+      add_tag(pin_escape($(this).text()));
+
+      $(this).hide(100, function() {
+        $(this).remove();
+        remove_suggested_tag_separator();
+        check_if_suggested_tags_are_empty();
+      });
+    });
+  }
+
+  function check_if_suggested_tags_are_empty() {
+    remove_suggested_tag_separator();
+    if ($('#suggestion_row th').length === 0) {
       $('#suggestion_row th').hide(300);
       $('#suggested')
         .addClass('none')
         .text('No suggested tags for this page.');
     }
+  }
+
+  function activate_suggested_tags() {
+    remove_suggested_tag_separator();
+    if ($('#suggested button').length === 0) {
+      $('#suggested')
+      .removeClass('none')
+      .text('');
+    }
+    $('#suggestion_row th').text('suggested tags');
+  }
+
+  function append_suggested_tag(tag) {
+    activate_suggested_tags();
+    $('#suggested').prepend('<button type="button" class="suggested_tag">' + pin_cook(tag) + '</button>');
+    add_tag_remove_button_handlers($('#suggested button:first'));
   }
 
   /* Remove <hr> separator  if there are no tags on either side */
