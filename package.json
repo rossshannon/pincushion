@@ -17,12 +17,14 @@
     "type": "git",
     "url": "git@github.com:rossshannon/pincushion.git"
   },
-  "dependencies": {},
+  "dependencies": {
+    "openai": "^4.11.1"
+  },
   "devDependencies": {
     "@babel/cli": "^7.23.0",
     "@babel/core": "^7.23.0",
     "@babel/preset-env": "^7.22.20",
-    "browserify": "^16.5.0",
+    "browserify": "^17.0.0",
     "browserslist": "^4.22.1",
     "grunt": "^1.5.3",
     "grunt-babel": "^8.0.0",
@@ -33,16 +35,16 @@
     "grunt-contrib-cssmin": "^3.0.0",
     "grunt-contrib-jshint": "^3.2.0",
     "grunt-contrib-less": "^2.0.0",
-    "grunt-contrib-uglify": "^4.0.1",
+    "grunt-contrib-uglify": "^5.2.2",
     "grunt-contrib-watch": "^1.1.0",
     "ladda": "^1.0.6",
     "less-plugin-autoprefix": "^2.0.0",
     "less-plugin-clean-css": "^1.5.1",
     "load-grunt-tasks": "^5.1.0",
     "npm-check": "^5.9.2",
-    "prettier": "^1.19.1",
+    "prettier": "^3.0.3",
     "time-grunt": "^2.0.0",
-    "trim-newlines": "^3.0.1"
+    "trim-newlines": "^5.0.0"
   },
   "scripts": {
     "upgrade-interactive": "npm-check --update"

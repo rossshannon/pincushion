@@ -1,5 +1,6 @@
 'use strict';
 import * as Ladda from 'ladda';
+import OpenAI from 'openai';
 
 (function() {
   var url_params,
@@ -155,6 +156,12 @@ import * as Ladda from 'ladda';
           display_critical_error('401 Unauthorised. Please check the username and API access token you provided.');
         }
       });
+
+
+
+  runConversation()
+    .then(console.log)
+    .catch(console.error);
   }
 
   function showBookmarkTimestamp(date) {
@@ -771,5 +778,48 @@ import * as Ladda from 'ladda';
     if (e.keyCode === 27) {
       window.close();
     }
+  }
+
+  async function runConversation() {
+    const openai = new OpenAI({
+      apiKey: url_params['openai_token'],
+      dangerouslyAllowBrowser: true
+    });
+    // Step 1: send the conversation to GPT
+    const system_prompt =
+      "Return a comma-separated string containing suggested tags to use when bookmarking a page on the web. You will be provided an URL, and sometimes a title, description and list of existing tags. The tags should all be in lowercase, and be single words with no whitespace. Use underscores instead of spaces. They should be in descending order of relevance. There should be up to 15 tags, but only include ones that you are quite sure are relevant. Don't include duplicates, or ones that are already present in existingTags. If you can't think of any tags, return an empty array. The format should be a comma-separated list: `spying, russia, 1980s, kim_peak, history`. Think of concepts, people, subjects, brands, years/decades, publishers, websites, related concepts, etc. that are relevant to the page.";
+
+    let contextInputs = {
+      url: url_params['url'],
+      title: url_params['title'],
+      description: url_params['description'],
+      existingTags: ''
+    };
+
+    prompt = system_prompt + '\n\n' + JSON.stringify(contextInputs) + '\n\n' + 'Tags:';
+
+    const completion = await openai.completions.create({
+      model: 'gpt-3.5-turbo-instruct',
+      prompt: prompt,
+      max_tokens: 200,
+      temperature: 0.2
+    });
+    console.log(completion);
+    const responseMessage = completion.choices[0].text;
+    const chat_suggested_tags = responseMessage.split(', ');
+    let chat_suggested_tag_buttons = [];
+
+    for (var i = 0; i < chat_suggested_tags.length; i++) {
+      chat_suggested_tag_buttons.push(
+        '<button type="button" class="suggested_tag">' + pin_cook(chat_suggested_tags[i]) + '</button>'
+      );
+    }
+    if (chat_suggested_tag_buttons.length > 0) {
+      $('#suggested').append(chat_suggested_tag_buttons.join(''));
+      add_tag_remove_button_handlers($('#suggested button'));
+      activate_suggested_tags();
+    }
+
+    return responseMessage;
   }
 })();
