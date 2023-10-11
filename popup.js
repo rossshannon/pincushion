@@ -539,7 +539,7 @@ import OpenAI from 'openai';
 
   function display_reload_button() {
     $('#mainspinner').replaceWith('<button id="reload"><i class="fa fa-repeat"></i></button>');
-    $('#reload').click(function() {
+    $('#reload').click(function(event) {
       event.preventDefault();
       $(this).addClass('active');
       window.location.reload();
@@ -787,13 +787,13 @@ import OpenAI from 'openai';
     });
     // Step 1: send the conversation to GPT
     const system_prompt =
-      "Return a comma-separated string containing suggested tags to use when bookmarking a page on the web. You will be provided an URL, and sometimes a title, description and list of existing tags. The tags should all be in lowercase, and be single words with no whitespace. Use underscores instead of spaces. They should be in descending order of relevance. There should be up to 15 tags, but only include ones that you are quite sure are relevant. Don't include duplicates, or ones that are already present in existingTags. If you can't think of any tags, return an empty array. The format should be a comma-separated list: `spying, russia, 1980s, kim_peak, history`. Think of concepts, people, subjects, brands, years/decades, publishers, websites, related concepts, etc. that are relevant to the page.";
+      "Return a comma-separated string containing suggested tags to use when bookmarking a page on the web. You will be provided an URL, and sometimes a title, description and list of existing tags. The tags should all be in lowercase, and be single words with no whitespace. Use underscores instead of spaces. They should be in ascending order of relevance. There should be up to 15 tags, but only include ones that you are quite sure are relevant. Don't include duplicates, or ones that are already present in existingTags. If you can't think of any tags, return an empty array. The format should be a comma-separated list: `spying, russia, 1980s, kim_peak, history`. Think of concepts, people, subjects, brands, years/decades, publishers, websites, related concepts, etc. that are relevant to the page.";
 
     let contextInputs = {
       url: url_params['url'],
       title: url_params['title'],
       description: url_params['description'],
-      existingTags: ''
+      existingTags: '' //todo
     };
 
     prompt = system_prompt + '\n\n' + JSON.stringify(contextInputs) + '\n\n' + 'Tags:';
@@ -802,23 +802,15 @@ import OpenAI from 'openai';
       model: 'gpt-3.5-turbo-instruct',
       prompt: prompt,
       max_tokens: 200,
-      temperature: 0.2
+      temperature: 0.5
     });
     console.log(completion);
     const responseMessage = completion.choices[0].text;
     const chat_suggested_tags = responseMessage.split(', ');
-    let chat_suggested_tag_buttons = [];
 
-    for (var i = 0; i < chat_suggested_tags.length; i++) {
-      chat_suggested_tag_buttons.push(
-        '<button type="button" class="suggested_tag">' + pin_cook(chat_suggested_tags[i]) + '</button>'
-      );
-    }
-    if (chat_suggested_tag_buttons.length > 0) {
-      $('#suggested').append(chat_suggested_tag_buttons.join(''));
-      add_tag_remove_button_handlers($('#suggested button'));
-      activate_suggested_tags();
-    }
+    chat_suggested_tags.forEach(suggested_tag => {
+      append_suggested_tag(suggested_tag);
+    });
 
     return responseMessage;
   }
