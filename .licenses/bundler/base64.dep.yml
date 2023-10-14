@@ -1,0 +1,9 @@
+---
+name: base64
+version: 0.1.1
+type: bundler
+summary: Support for encoding and decoding binary data using a Base64 representation.
+homepage: https://github.com/ruby/base64
+license: other
+licenses: []
+notices: []
