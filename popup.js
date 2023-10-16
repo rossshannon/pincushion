@@ -59,12 +59,15 @@ import * as Ladda from 'ladda';
           '<button id="remove-hash" class="fa fa-hashtag" title="Remove hash from URL"></button>'
         );
 
-        $('#remove-hash').click(function () {
+        $('#remove-hash').click(function (event) {
+          event.preventDefault();
           $('input#url').val($('input#url').val().replace(/#.*$/, ''));
-          $(this).remove();
-          $('input#url').removeClass('hash-detected');
+          $(this).slideUp(200);
+          setTimeout(function () {
+            $('input#url').removeClass('hash-detected');
+          }, 200);
         });
-      }, 500);
+      }, 300);
     }
 
     /* Set form inputs to values passed via URL query parameters. */
