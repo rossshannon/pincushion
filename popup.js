@@ -50,6 +50,21 @@ import * as Ladda from 'ladda';
       }
     })();
 
+    // detect if a hash character is present in the URL, and if so, set a class on the URL input field
+    if (url_params['url'] && url_params['url'].indexOf('#') !== -1) {
+      // add button beside URL input field to remove hash
+      $('input#url').after(
+        '<button id="remove-hash" class="fa fa-hashtag" title="Remove hash from URL"></button>'
+      );
+      $('input#url').addClass('hash-detected');
+    }
+
+    $('#remove-hash').click(function() {
+      $('input#url').val($('input#url').val().replace(/#.*$/, ''));
+      $(this).remove();
+      $('input#url').removeClass('hash-detected');
+    });
+
     /* Set form inputs to values passed via URL query parameters. */
     $('input#url').val(url_params['url']);
     $('input#title').val(clean_title(url_params['title']));
