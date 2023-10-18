@@ -124,9 +124,14 @@ module.exports = function(grunt) {
   });
 
   grunt.registerTask('default', [
-                     'less', 'cssmin:combine', 'cssmin:minify',
-                     //'jshint',
-                     'babel', 'browserify', 'concat:js', 'uglify:js',
-                     'watch'
-                    ]);
+    'less',
+    'cssmin:combine',
+    'cssmin:minify',
+    //'jshint',
+    'babel',
+    'browserify',
+    'concat:js',
+    'uglify:js',
+    'watch'
+  ]);
 };
