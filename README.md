@@ -14,6 +14,8 @@ Pincushion uses as intelligent autocomplete widget that shows the tags you’ve 
 The first time you use Pincushion, it downloads a local copy of all of your tags into your browser’s “LocalStorage”, which allows you to store about 2.5MB of data and preferences for each site you use regularly. This means that from then on, the autocomplete widget can search across your entire collection.
 
 The autocomplete can use each tag’s score to be smarter about which tags to suggest to you as you are typing. (Tag autocomplete has been tested on a data set of over 12,500 tags, which totalled 184KB when downloaded.)
+- **AI-based tag suggestions**
+When bookmarking a new page, the form will suggest tags based on your previous usage, other Pinboard members tags for that same page, as well as optionally using AI to propose relevant tags.
 
 ## Installing the Bookmarklet
 
@@ -33,6 +35,10 @@ You can also pre-check the “private” and “to read” checkboxes by passing
 
     javascript:q=location.href;d=(window.getSelection?window.getSelection():document.getSelection?document.getSelection():document.selection.createRange().text);p=document.title;void(open('https://rossshannon.github.io/pincushion/?user=USERNAME&token=API_TOKEN&url='+encodeURIComponent(q)+'&description='+encodeURIComponent(d)+'&title='+encodeURIComponent(p)+'&private=true&toread=true','Pinboard','toolbar=yes,width=600,height=700,left=50,top=50'));
 
+You can also enable the AI features by passing in an OpenAI user token as a parameter (`openai_token`).
+
+    javascript:q=location.href;d=(window.getSelection?window.getSelection():document.getSelection?document.getSelection():document.selection.createRange().text);p=document.title;void(open('https://rossshannon.github.io/pincushion/?user=USERNAME&token=API_TOKEN&url='+encodeURIComponent(q)+'&description='+encodeURIComponent(d)+'&title='+encodeURIComponent(p)+'&openai_token=sk-FasOvdWzKZDBlcQ6wONkT3BlbkFIVc9ihRqqBLSrF98ww3yX','Pinboard','toolbar=yes,width=600,height=700,left=50,top=50'));
+
 ### Browser Support
 
 Pincushion is designed for modern browsers like Chrome, Safari, Firefox, Internet Explorer 10+, and mobile varieties of Safari and Chrome. Earlier versions of Internet Explorer have problems with the cross-domain Ajax required.
@@ -44,6 +50,18 @@ Pincushion is designed for modern browsers like Chrome, Safari, Firefox, Interne
 - Install the `foreman` gem using `gem install foreman`, and then run the `Procfile` using `foreman start -p 5000`. Grunt will build the required packages and a web server will be booted to run Pincushion on localhost port 5100 (http://localhost:5100).
 
 ## Changelog
+
+### 1.6 (2023-10-18)
+
+- Add optional AI-based tag suggestions using OpenAI APIs.
+
+### 1.5 (2023-10-14)
+
+- Detect URL fragments (hashes) in URLs and give support to remove them if desired, so that canonical URLs are being bookmarked instead of sections of documents.
+
+### 1.4 (2023-10-08)
+
+- Revamp build process and dependencies. Improve how tag suggestions are handled.
 
 ### 1.3 (2021-06-14)
 

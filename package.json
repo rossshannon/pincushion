@@ -10,7 +10,7 @@
     "bookmarklet"
   ],
   "description": "Pincushion presents an enhanced version of the Pinboard.in “Add Bookmark” page, which takes advantage of the capabilities of modern browsers",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "author": "Ross Shannon <ross@commutable.com>",
   "license": "MIT",
   "repository": {
