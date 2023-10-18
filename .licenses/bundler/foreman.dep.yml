@@ -1,0 +1,14 @@
+---
+name: foreman
+version: 0.87.2
+type: bundler
+summary: Process manager for applications with multiple components
+homepage: http://github.com/ddollar/foreman
+license: mit
+licenses:
+- sources: README.md
+  text: |-
+    Foreman is licensed under the MIT license.
+
+    See LICENSE for the full license text.
+notices: []

@@ -3,3 +3,4 @@ ruby '3.1.4'
 
 gem 'foreman'
 gem 'webrick'
+gem 'licensed'

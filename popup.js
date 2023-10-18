@@ -51,6 +51,26 @@ import OpenAI from 'openai';
       }
     })();
 
+    // detect if a hash character is present in the URL, and if so, set a class on the URL input field
+    if (url_params['url'] && url_params['url'].indexOf('#') !== -1) {
+      $('input#url').addClass('hash-detected');
+      // add button beside URL input field to remove hash
+      setTimeout(function () {
+        $('input#url').after(
+          '<button id="remove-hash" class="fa fa-hashtag" title="Remove hash from URL"></button>'
+        );
+
+        $('#remove-hash').click(function (event) {
+          event.preventDefault();
+          $('input#url').val($('input#url').val().replace(/#.*$/, ''));
+          $(this).slideUp(200);
+          setTimeout(function () {
+            $('input#url').removeClass('hash-detected');
+          }, 200);
+        });
+      }, 300);
+    }
+
     /* Set form inputs to values passed via URL query parameters. */
     $('input#url').val(url_params['url']);
     $('input#title').val(clean_title(url_params['title']));
@@ -767,6 +787,7 @@ import OpenAI from 'openai';
   }
 
   function clean_url(url) {
+    url = url.replace(/#.*$/, ''); // remove URL fragments and hashes
     return encodeURIComponent(url);
   }
 

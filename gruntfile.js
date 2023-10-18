@@ -104,7 +104,7 @@ module.exports = function(grunt) {
       },
       less: {
         files: ['*.less', 'vendor/*.less'],
-        tasks: ['less'],
+        tasks: ['less', 'cssmin:combine', 'cssmin:minify'],
         options: {
           livereload: true
         }
