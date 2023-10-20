@@ -178,8 +178,7 @@ import OpenAI from 'openai';
       });
 
 
-
-  runConversation()
+  queryGPTForTags()
     .then(console.log)
     .catch(console.error);
   }
@@ -780,6 +779,7 @@ import OpenAI from 'openai';
   }
 
   function pin_cook(s) {
+    s = s.replace(/^\s+|\s+$/g, ''); // remove whitespace
     s = s.replace(/</g, '&lt;');
     s = s.replace(/>/g, '&gt;');
     s = s.replace(/"/g, '&quot;'); //"
@@ -801,35 +801,48 @@ import OpenAI from 'openai';
     }
   }
 
-  async function runConversation() {
+  async function queryGPTForTags() {
+    if (!url_params['openai_token']) {
+      return;
+    }
     const openai = new OpenAI({
       apiKey: url_params['openai_token'],
-      dangerouslyAllowBrowser: true
+      dangerouslyAllowBrowser: true,
     });
     // Step 1: send the conversation to GPT
     const system_prompt =
-      "Return a comma-separated string containing suggested tags to use when bookmarking a page on the web. You will be provided an URL, and sometimes a title, description and list of existing tags. The tags should all be in lowercase, and be single words with no whitespace. Use underscores instead of spaces. They should be in ascending order of relevance. There should be up to 15 tags, but only include ones that you are quite sure are relevant. Don't include duplicates, or ones that are already present in existingTags. If you can't think of any tags, return an empty array. The format should be a comma-separated list: `spying, russia, 1980s, kim_peak, history`. Think of concepts, people, subjects, brands, years/decades, publishers, websites, related concepts, etc. that are relevant to the page.";
+      "Return a comma-separated string containing suggested tags to use when bookmarking a page on the web. You will be provided an URL, and sometimes a title, description and list of existing tags. The tags should all be in lowercase, with no surrounding whitespace. Use underscores instead of spaces to combine words if necessary. Avoid punctuation marks. Think of related concepts so you're not locked into a single meaning or interpretation. The format should be a comma-separated list: spying, russia, 1980s, kim_peak, history\n" +
+      "Think of concepts, people, subjects, brands, years/decades, publishers, websites, related concepts, etc. that are relevant to the page. Don't include duplicates, or ones that are already present in the list of existing tags. There should be up to 14 tags, but only include ones that you are sure are relevant. Aim for at least 6. If you can't think of any tags, return an empty array. Sort the tags and return them in ascending order of relevance.";
 
     let contextInputs = {
       url: url_params['url'],
       title: url_params['title'],
       description: url_params['description'],
-      existingTags: '' //todo
+      existingTags: '', //todo
     };
 
-    prompt = system_prompt + '\n\n' + JSON.stringify(contextInputs) + '\n\n' + 'Tags:';
+    prompt =
+      system_prompt + '\n\n' + JSON.stringify(contextInputs) + '\n\n' + 'Tags:';
 
     const completion = await openai.completions.create({
       model: 'gpt-3.5-turbo-instruct',
       prompt: prompt,
-      max_tokens: 200,
-      temperature: 0.5
+      max_tokens: 250,
+      temperature: 0.4,
     });
     console.log(completion);
+    if (!completion.choices.length > 0) {
+      return;
+    }
     const responseMessage = completion.choices[0].text;
-    const chat_suggested_tags = responseMessage.split(', ');
+    let responseMessageCleaned = responseMessage.replace(/^\s+|\s+$/g, ''); // remove whitespace;
+    // remove trailing comma
+    if (responseMessageCleaned.endsWith(',')) {
+      responseMessageCleaned = responseMessageCleaned.slice(0, -1);
+    }
+    const chat_suggested_tags = responseMessageCleaned.split(',');
 
-    chat_suggested_tags.forEach(suggested_tag => {
+    chat_suggested_tags.forEach((suggested_tag) => {
       append_suggested_tag(suggested_tag);
     });
 
