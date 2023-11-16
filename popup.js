@@ -1,4 +1,3 @@
-'use strict';
 import * as Ladda from 'ladda';
 import OpenAI from 'openai';
 
@@ -398,15 +397,14 @@ import OpenAI from 'openai';
       },
       render: {
         option: function(data, escape) {
-          return (
-            '<div class="item">' +
-            escape(data.label) +
-            '<span class="optioncount ' +
-            tagweight(escape(data.count)) +
-            '">' +
-            (data.count !== undefined ? escape(data.count) : '0') +
-            '</span></div>'
-          );
+          const count = data.count !== undefined ? escape(data.count) : '0';
+          return `
+            <div class="item">
+              ${escape(data.label)}
+              <span class="optioncount ${tagweight(escape(data.count))}">
+                ${count}
+              </span>
+            </div>`;
         }
       }
     });
@@ -414,14 +412,10 @@ import OpenAI from 'openai';
     populate_dropdown();
   }
 
-  function numberWithCommas(x) {
-    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  }
-
   function populate_dropdown() {
     if (localStorage && localStorage['tags']) {
       var user_tags = JSON.parse(localStorage['tags']);
-      console.log('Populating dropdown with ' + numberWithCommas(Object.keys(user_tags).length) + ' tags.');
+      console.log('Populating dropdown with ' + Object.keys(user_tags).length.toLocaleString() + ' tags.');
       $.each(user_tags, function(key, value) {
         $('input#tags')[0].selectize.addOption({
           label: key,
