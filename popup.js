@@ -819,7 +819,7 @@ import OpenAI from 'openai';
       "Think of the key concepts, people, subjects, brands, years/decades, publishers, websites, related concepts, etc. that are likely to be relevant to the page. Think of related or alternative concepts so you're not locked into a single meaning or interpretation. Don't over-emphasise the content of the description field, as this may just be a single paragraph or user comment from the page. There should be up to 14 tags, but only include ones that you are sure are relevant. Aim for at least 6. If you can't think of any tags, return an empty array. Remove any duplicate tags, or ones that are already present in the list of existing tags (the existingTags field). Finally, sort the tags and return them in ascending order of relevance.";
 
     existingTags =
-      bookmark['tags'].length > 0 ? bookmark['tags'] : '';
+      bookmark ? bookmark['tags'] : '';
 
     let contextInputs = {
       url: url_params['url'],
@@ -828,22 +828,21 @@ import OpenAI from 'openai';
       existingTags: existingTags
     };
 
-    prompt =
-      system_prompt + '\n\n' + JSON.stringify(contextInputs) + '\n\n' + 'Tags:';
-
-    console.log(prompt);
-
-    const completion = await openai.completions.create({
-      model: 'gpt-3.5-turbo-instruct',
-      prompt: prompt,
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4',
       max_tokens: 250,
       temperature: GPT_TEMPERATURE,
+      messages: [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": "Here are my inputs: " + JSON.stringify(contextInputs)},
+        {"role": "assistant", "content": "Here are my tag suggestions:"}
+      ]
     });
-    console.log(completion);
+
     if (completion.choices.length === 0) {
       return;
     }
-    const responseMessage = completion.choices[0].text;
+    const responseMessage = completion.choices[0].message.content;
     let responseMessageCleaned = responseMessage.replace(/^\s+|\s+$/g, ''); // remove whitespace;
     // remove trailing comma
     if (responseMessageCleaned.endsWith(',')) {
