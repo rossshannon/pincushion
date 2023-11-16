@@ -2,13 +2,19 @@ import * as Ladda from 'ladda';
 import OpenAI from 'openai';
 
 (function() {
-  var url_params,
-    API_ENDPOINT = 'https://pinboard-api.herokuapp.com/',
-    SUBMISSION_BLOCK_DELAY = 10,
+  let url_params,
     submission_block_timer = false,
     submit_error_timer,
-    field_error_timer,
-    SUBMISSION_REQUEST_TIMEOUT = 25000; // 25 seconds
+    field_error_timer;
+
+  let bookmark,
+    existingTags;
+
+  const SUBMISSION_BLOCK_DELAY = 10,
+    API_ENDPOINT = 'https://pinboard-api.herokuapp.com/',
+    TAG_DOWNLOAD_DELAY = 10000, // 10 seconds
+    SUBMISSION_REQUEST_TIMEOUT = 25000, // 25 seconds
+    GPT_TEMPERATURE = 0.4;
 
   $(function() {
     resize_window();
@@ -23,8 +29,8 @@ import OpenAI from 'openai';
 
   /** Ensure window is tall enough to show all form elements. */
   function resize_window() {
-    var min_width = 600;
-    var min_height = 750;
+    const min_width = 600;
+    const min_height = 750;
     if (window.outerHeight < min_height) {
       window.resizeTo(min_width, min_height);
     }
@@ -124,11 +130,18 @@ import OpenAI from 'openai';
       .done(function(response) {
         $('#mainspinner').addClass('hidden');
         $('#submit').data('stateText', 'Add bookmark');
-        if (response['posts'].length !== 1) {
-          return;
-        }
 
-        var bookmark = response['posts'][0];
+        if (response['posts'].length !== 1) {
+          queryGPTForTags()
+            .then(console.log)
+            .catch(console.error);
+          return;
+        } else {
+          bookmark = response['posts'][0];
+          queryGPTForTags()
+            .then(console.log)
+            .catch(console.error);
+        }
 
         $('input#title').val(bookmark['description']);
 
@@ -176,10 +189,6 @@ import OpenAI from 'openai';
         }
       });
 
-
-  queryGPTForTags()
-    .then(console.log)
-    .catch(console.error);
   }
 
   function showBookmarkTimestamp(date) {
@@ -701,9 +710,9 @@ import OpenAI from 'openai';
       download_user_tags();
     } else {
       console.log('Have a record of tags already, setting up delayed download.');
-      setTimeout(function() {
+      setTimeout(function () {
         download_user_tags();
-      }, 10000); // wait 10 seconds, then refresh tags
+      }, TAG_DOWNLOAD_DELAY); // wait 10 seconds, then refresh tags
     }
   }
 
@@ -803,29 +812,35 @@ import OpenAI from 'openai';
       apiKey: url_params['openai_token'],
       dangerouslyAllowBrowser: true,
     });
-    // Step 1: send the conversation to GPT
+
     const system_prompt =
-      "Return a comma-separated string containing suggested tags to use when bookmarking a page on the web. You will be provided an URL, and sometimes a title, description and list of existing tags. The tags should all be in lowercase, with no surrounding whitespace. Use underscores instead of spaces to combine words if necessary. Avoid punctuation marks. Think of related concepts so you're not locked into a single meaning or interpretation. The format should be a comma-separated list: spying, russia, 1980s, kim_peak, history\n" +
-      "Think of concepts, people, subjects, brands, years/decades, publishers, websites, related concepts, etc. that are relevant to the page. Don't include duplicates, or ones that are already present in the list of existing tags. There should be up to 14 tags, but only include ones that you are sure are relevant. Aim for at least 6. If you can't think of any tags, return an empty array. Sort the tags and return them in ascending order of relevance.";
+      'Return a comma-separated list containing suggested tags to use for bookmarking a page on the web. You will be provided an URL, and sometimes a title, a description or snippet from the page, and list of existing tags.  The format of your response should be a comma-separated list, for example: spying, russia, 1980s, nuclear_war, cold_war, history\n' +
+      'The tags you suggest should all be in lowercase, with no surrounding whitespace. Use underscores instead of spaces to combine words if necessary. Avoid punctuation marks.\n' +
+      "Think of the key concepts, people, subjects, brands, years/decades, publishers, websites, related concepts, etc. that are likely to be relevant to the page. Think of related or alternative concepts so you're not locked into a single meaning or interpretation. Don't over-emphasise the content of the description field, as this may just be a single paragraph or user comment from the page. There should be up to 14 tags, but only include ones that you are sure are relevant. Aim for at least 6. If you can't think of any tags, return an empty array. Remove any duplicate tags, or ones that are already present in the list of existing tags (the existingTags field). Finally, sort the tags and return them in ascending order of relevance.";
+
+    existingTags =
+      bookmark['tags'].length > 0 ? bookmark['tags'] : '';
 
     let contextInputs = {
       url: url_params['url'],
       title: url_params['title'],
       description: url_params['description'],
-      existingTags: '', //todo
+      existingTags: existingTags
     };
 
     prompt =
       system_prompt + '\n\n' + JSON.stringify(contextInputs) + '\n\n' + 'Tags:';
 
+    console.log(prompt);
+
     const completion = await openai.completions.create({
       model: 'gpt-3.5-turbo-instruct',
       prompt: prompt,
       max_tokens: 250,
-      temperature: 0.4,
+      temperature: GPT_TEMPERATURE,
     });
     console.log(completion);
-    if (!completion.choices.length > 0) {
+    if (completion.choices.length === 0) {
       return;
     }
     const responseMessage = completion.choices[0].text;
