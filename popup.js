@@ -829,14 +829,17 @@ import OpenAI from 'openai';
     };
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
+      model: 'gpt-4o',
       max_tokens: 250,
       temperature: GPT_TEMPERATURE,
       messages: [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": "Here are my inputs: " + JSON.stringify(contextInputs)},
-        {"role": "assistant", "content": "Here are my tag suggestions:"}
-      ]
+        { role: 'system', content: system_prompt },
+        {
+          role: 'user',
+          content: 'Here are my inputs: ' + JSON.stringify(contextInputs),
+        },
+        { role: 'assistant', content: 'Here are my tag suggestions: ' },
+      ],
     });
 
     if (completion.choices.length === 0) {
