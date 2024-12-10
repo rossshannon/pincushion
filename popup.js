@@ -2,8 +2,22 @@ import * as Ladda from 'ladda';
 import OpenAI from 'openai';
 
 (function() {
-  let url_params,
-    submission_block_timer = false,
+  const originalSearch = window.location.search;
+  let url_params;
+
+  if (originalSearch) {
+    try {
+      const params = new URLSearchParams(originalSearch);
+      url_params = {};
+      for (const [key, value] of params.entries()) {
+        url_params[key] = decodeURIComponent(value.replace(/\+/g, ' '));
+      }
+    } catch (e) {
+      console.error('Error parsing initial parameters:', e);
+    }
+  }
+
+  let submission_block_timer = false,
     submit_error_timer,
     field_error_timer;
 
@@ -17,8 +31,12 @@ import OpenAI from 'openai';
     GPT_TEMPERATURE = 0.4;
 
   $(function() {
+    if (!url_params || Object.keys(url_params).length === 0) {
+      parse_url_parameters();
+    }
+
+    set_form_inputs();
     resize_window();
-    parse_url_parameters();
     authenticate_user();
     set_up_tag_autocomplete();
     set_up_form_submission();
@@ -27,34 +45,25 @@ import OpenAI from 'openai';
     prepare_user_tags();
   });
 
-  /** Ensure window is tall enough to show all form elements. */
-  function resize_window() {
-    const min_width = 600;
-    const min_height = 750;
-    if (window.outerHeight < min_height) {
-      window.resizeTo(min_width, min_height);
-    }
-    $(document).keydown(function(e) {
-      close_window(e);
-    });
-  }
-
   /** Parse URL query parameters into url_params hash. */
   function parse_url_parameters() {
-    (window.onpopstate = function() {
-      var match,
-        pl = /\+/g, // Regex for replacing addition symbol with a space
-        search = /([^&=]+)=?([^&]*)/g,
-        decode = function(s) {
-          return decodeURIComponent(s.replace(pl, ' '));
-        },
-        query = window.location.search.substring(1);
+    console.log('Parsing URL parameters');
+    const searchParams = new URLSearchParams(window.location.search);
+    url_params = url_params || {};
 
-      url_params = {};
-      while ((match = search.exec(query))) {
-        url_params[decode(match[1])] = decode(match[2]);
-      }
-    })();
+    for (const [key, value] of searchParams.entries()) {
+      url_params[key] = decodeURIComponent(value.replace(/\+/g, ' '));
+    }
+  }
+
+  /** Set form input values from url_params */
+  function set_form_inputs() {
+    $('input#url').val(url_params['url']);
+    $('input#title').val(clean_title(url_params['title']));
+    $('textarea#description').val($.trim(url_params['description']));
+    $('input#private').prop('checked', url_params['private'] === 'true');
+    $('input#toread').prop('checked', url_params['private'] === 'true');
+    leave_a_gap();
 
     // detect if a hash character is present in the URL, and if so, set a class on the URL input field
     if (url_params['url'] && url_params['url'].indexOf('#') !== -1) {
@@ -75,30 +84,99 @@ import OpenAI from 'openai';
         });
       }, 300);
     }
-
-    /* Set form inputs to values passed via URL query parameters. */
-    $('input#url').val(url_params['url']);
-    $('input#title').val(clean_title(url_params['title']));
-    $('textarea#description').val($.trim(url_params['description']));
-    $('input#private').prop('checked', url_params['private'] === 'true');
-    $('input#toread').prop('checked', url_params['private'] === 'true');
-    leave_a_gap();
   }
 
   function authenticate_user() {
     if (!(url_params['user'] && url_params['token'])) {
       display_critical_error(
-        'You must provide both ‘user’ and ‘token’ parameters to this page to allow it to use the Pinboard API.'
+        "You must provide both ‘user’ and ‘token’ parameters to this page to allow it to use the Pinboard API."
       );
     }
   }
 
-  function display_critical_error(message) {
-    alert(message);
-    $('.helptext').remove();
-    $('#submit').addClass('fail');
-    $('#submit').prop('disabled', true);
-    $('#mainspinner').addClass('hidden');
+  /** Check for pre-existing bookmark for this URL. */
+  function check_for_existing_bookmark_details() {
+    if (!url_params['url']) {
+      return;
+    }
+    var bookmark_details_api =
+      API_ENDPOINT + 'posts/get?format=json&auth_token=' + auth_token() + '&url=' + clean_url(url_params['url']);
+
+    $.support.cors = true;
+    $.ajax({
+      url: bookmark_details_api,
+      type: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      }
+    })
+    .done(function(response) {
+      $('#mainspinner').addClass('hidden');
+      $('#submit').data('stateText', 'Add bookmark');
+
+      if (response['posts'].length !== 1) {
+        queryGPTForTags()
+          .then(console.log)
+          .catch(console.error);
+        return;
+      } else {
+        bookmark = response['posts'][0];
+        queryGPTForTags()
+          .then(console.log)
+          .catch(console.error);
+      }
+
+      $('input#title').val(bookmark['description']);
+
+      if (bookmark['extended']) {
+        if ($.trim(bookmark['extended']) !== $.trim(url_params['description'])) {
+          $('textarea#description').val($.trim(bookmark['extended']) + '\n\n' + $.trim(url_params['description']));
+        }
+      }
+      leave_a_gap();
+
+      prepopulate_tags(bookmark['tags']);
+
+      if (bookmark['shared'] === 'no') {
+        $('#private').prop('checked', true).change();
+      } else {
+        $('#private').prop('checked', false);
+      }
+
+      if (bookmark['toread'] === 'yes') {
+        $('#toread').prop('checked', true);
+      } else {
+        $('#toread').prop('checked', false);
+      }
+
+      if (bookmark['time']) {
+        var date = new Date(bookmark['time']);
+        showBookmarkTimestamp(date);
+      }
+
+      $('#submit').data('stateText', 'Update bookmark');
+      $('#submit span.text').text('Update bookmark');
+    })
+    .fail(function(response) {
+      if (response.status === 0) {
+        display_critical_error('Unable to connect to the API. Please check your connection and try again.');
+        display_reload_button();
+      } else if (response.status === 401) {
+        display_critical_error('401 Unauthorised. Please check the username and API access token you provided.');
+      }
+    });
+  }
+
+  /** Ensure window is tall enough to show all form elements. */
+  function resize_window() {
+    const min_width = 600;
+    const min_height = 750;
+    if (window.outerHeight < min_height) {
+      window.resizeTo(min_width, min_height);
+    }
+    $(document).keydown(function(e) {
+      close_window(e);
+    });
   }
 
   function auth_token() {
@@ -117,186 +195,33 @@ import OpenAI from 'openai';
     return serialized_form_inputs;
   }
 
-  /** Check for pre-existing bookmark for this URL. */
-  function check_for_existing_bookmark_details() {
-    if (!url_params['url']) {
-      return;
-    }
-    var bookmark_details_api =
-      API_ENDPOINT + 'posts/get?format=json&auth_token=' + auth_token() + '&url=' + clean_url(url_params['url']);
-
-    $.support.cors = true;
-    $.get(bookmark_details_api)
-      .done(function(response) {
-        $('#mainspinner').addClass('hidden');
-        $('#submit').data('stateText', 'Add bookmark');
-
-        if (response['posts'].length !== 1) {
-          queryGPTForTags()
-            .then(console.log)
-            .catch(console.error);
-          return;
-        } else {
-          bookmark = response['posts'][0];
-          queryGPTForTags()
-            .then(console.log)
-            .catch(console.error);
-        }
-
-        $('input#title').val(bookmark['description']);
-
-        if (bookmark['extended']) {
-          // previously-saved bookmark description
-          if ($.trim(bookmark['extended']) !== $.trim(url_params['description'])) {
-            // ignore duplication
-            $('textarea#description').val($.trim(bookmark['extended']) + '\n\n' + $.trim(url_params['description']));
-          }
-        }
-        leave_a_gap();
-
-        prepopulate_tags(bookmark['tags']);
-
-        if (bookmark['shared'] === 'no') {
-          $('#private')
-            .prop('checked', true)
-            .change();
-        } else {
-          $('#private').prop('checked', false);
-        }
-
-        if (bookmark['toread'] === 'yes') {
-          $('#toread').prop('checked', true);
-        } else {
-          $('#toread').prop('checked', false);
-        }
-
-        if (bookmark['time']) {
-          var date = new Date(bookmark['time']);
-          showBookmarkTimestamp(date);
-        }
-
-        $('#submit').data('stateText', 'Update bookmark');
-        $('#submit span.text').text('Update bookmark');
-      })
-
-      .fail(function(response) {
-        if (response.status === 0 && (response.statusText === 'No Transport' || 'Error: Access is denied.')) {
-          display_critical_error('Cross-domain request failed. Your browser is denying this request from being sent.');
-          display_reload_button();
-        }
-        if (response.status === 401) {
-          display_critical_error('401 Unauthorised. Please check the username and API access token you provided.');
-        }
-      });
-
+  function display_critical_error(message) {
+    alert(message);
+    $('.helptext').remove();
+    $('#submit').addClass('fail');
+    $('#submit').prop('disabled', true);
+    $('#mainspinner').addClass('hidden');
   }
 
-  function showBookmarkTimestamp(date) {
-    $('#bookmark-status')
-      .attr('title', moment(date).format('dddd, MMMM Do YYYY, h:mma'))
-      .text('Originally saved ' + moment(date).fromNow());
-  }
-
-  /** Submit the form with Ajax */
-  function set_up_form_submission() {
-    $('#post-to-pinboard').on('submit', function(event) {
+  function display_reload_button() {
+    $('#mainspinner').replaceWith('<button id="reload"><i class="fa fa-repeat"></i></button>');
+    $('#reload').click(function(event) {
       event.preventDefault();
-      $('#submit span.text').html('Saving bookmark&hellip;');
-
-      var post_bookmark_api =
-        API_ENDPOINT + 'posts/add?format=json&auth_token=' + auth_token() + '&' + serialized_inputs();
-
-      $.ajax({
-        type: 'GET',
-        url: post_bookmark_api,
-        timeout: SUBMISSION_REQUEST_TIMEOUT
-      })
-        .done(function(response) {
-          if (response['result_code'] === 'done') {
-            console.log('Bookmark saved correctly.');
-            Ladda.stopAll();
-            $('#submit').addClass('success');
-            $('#submit span.text').text('Bookmark saved!');
-
-            save_updated_user_tags();
-
-            setTimeout(function() {
-              window.close(); // for windows that are popups
-              setTimeout(function() {
-                $('#submit').removeClass('success'); // for windows that aren't popups
-                $('#submit span.text').text($('#submit').data('stateText')); // revert text
-                showBookmarkTimestamp(new Date());
-              }, 300);
-            }, 900);
-          } else {
-            // API errors
-            Ladda.stopAll();
-            $('.helptext').remove();
-            $('#submit').addClass('fail');
-
-            if (response['result_code'] === 'missing url') {
-              $('label[for=url]')
-                .addClass('error')
-                .append('<span class="helptext"> is required</span>');
-              $('#url').focus();
-            }
-            if (response['result_code'] === 'must provide title') {
-              $('label[for=title]')
-                .addClass('error')
-                .append('<span class="helptext"> is required</span>');
-              $('#title').focus();
-            }
-
-            $('.helptext').fadeIn();
-            remove_error_state_after_delay();
-          }
-        })
-
-        .fail(function(response) {
-          // HTTP errors
-          Ladda.stopAll();
-          $('.helptext').remove();
-          $('#submit').addClass('fail');
-
-          if (response.status === 0 && response.statusText === 'error') {
-            alert(
-              'Cross-domain request failed. Your connection may have dropped, or the request may be too long; please try shortening the description text.'
-            );
-            display_reload_button();
-          }
-          if (response.status === 414) {
-            $('label[for=description]')
-              .addClass('error')
-              .append('<span class="helptext"> is too long</span>');
-            $('#description').addClass('expanded');
-            $('#description').focus();
-          }
-          if (response.status === 401) {
-            display_critical_error('401 Unauthorised. Please check the username and API access token you provided.');
-          }
-
-          $('.helptext').fadeIn();
-          remove_error_state_after_delay();
-        });
+      $(this).addClass('active');
+      window.location.reload();
     });
+  }
 
-    $('input, textarea').on('blur', function() {
-      $('body').animate({ scrollTop: 0 }, 200);
-    });
-
-    if (!('ontouchstart' in window)) {
-      $('input#tags')[0].selectize.focus(); // focus tags field for non-touch-based browsers
+  function reflect_private_status() {
+    if ($('#private').prop('checked') === true) {
+      $('body').addClass('private');
+    } else {
+      $('body').removeClass('private');
     }
+  }
 
-    $('textarea#description').on('blur', function() {
-      leave_a_gap();
-    });
-
-    $('#private').on('change', function() {
-      reflect_private_status();
-    });
-
-    Ladda.bind('button[type=submit]');
+  function clean_title(title_string) {
+    return title_string ? title_string.replace(/^▶ /, '') : '';
   }
 
   function leave_a_gap() {
@@ -559,25 +484,200 @@ import OpenAI from 'openai';
     }
   }
 
-  function display_reload_button() {
-    $('#mainspinner').replaceWith('<button id="reload"><i class="fa fa-repeat"></i></button>');
-    $('#reload').click(function(event) {
-      event.preventDefault();
-      $(this).addClass('active');
-      window.location.reload();
-    });
-  }
-
-  function reflect_private_status() {
-    if ($('#private').prop('checked') === true) {
-      $('body').addClass('private');
-    } else {
-      $('body').removeClass('private');
+  function tagweight(count) {
+    switch (true) {
+      case count > 100:
+        return 'tw100';
+      case count > 50:
+        return 'tw50';
+      case count > 10:
+        return 'tw10';
+      case count > 1:
+        return 'tw1';
     }
   }
 
-  function clean_title(title_string) {
-    return title_string ? title_string.replace(/^▶ /, '') : '';
+  function pin_escape(s) {
+    s = s.replace(/\\/g, '\\\\');
+    s = s.replace(/'/g, "\\'"); // "
+    s = s.replace(/"/g, '&quot;'); // "
+    return s;
+  }
+
+  function pin_cook(s) {
+    s = s.replace(/^\s+|\s+$/g, ''); // remove whitespace
+    s = s.replace(/</g, '&lt;');
+    s = s.replace(/>/g, '&gt;');
+    s = s.replace(/"/g, '&quot;'); //"
+    return s;
+  }
+
+  function clean_url(url) {
+    url = url.replace(/#.*$/, ''); // remove URL fragments and hashes
+    return encodeURIComponent(url);
+  }
+
+  RegExp.escape = function(text) {
+    return text.replace(/[-[\]{}()*+?.,\\\\'"^$|#\s]/g, '\\$&'); //"'
+  };
+
+  function close_window(e) {
+    if (e.keyCode === 27) {
+      window.close();
+    }
+  }
+
+  async function queryGPTForTags() {
+    if (!url_params['openai_token']) {
+      return;
+    }
+    const openai = new OpenAI({
+      apiKey: url_params['openai_token'],
+      dangerouslyAllowBrowser: true,
+    });
+
+    const system_prompt =
+      'Return a comma-separated list containing suggested tags to use for bookmarking a page on the web. You will be provided an URL, and sometimes a title, a description or snippet from the page, and list of existing tags.  The format of your response should be a comma-separated list, for example: spying, russia, 1980s, nuclear_war, cold_war, history\n' +
+      'The tags you suggest should all be in lowercase, with no surrounding whitespace. Use underscores instead of spaces to combine words if necessary. Avoid punctuation marks.\n' +
+      "Think of the key concepts, people, subjects, brands, years/decades, publishers, websites, related concepts, etc. that are likely to be relevant to the page. Think of related or alternative concepts so you're not locked into a single meaning or interpretation. Don't over-emphasise the content of the description field, as this may just be a single paragraph or user comment from the page. There should be up to 14 tags, but only include ones that you are sure are relevant. Aim for at least 6. If you can't think of any tags, return an empty array. Remove any duplicate tags, or ones that are already present in the list of existing tags (the existingTags field). Finally, sort the tags and return them in ascending order of relevance.";
+
+    existingTags =
+      bookmark ? bookmark['tags'] : '';
+
+    let contextInputs = {
+      url: url_params['url'],
+      title: url_params['title'],
+      description: url_params['description'],
+      existingTags: existingTags
+    };
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      max_tokens: 250,
+      temperature: GPT_TEMPERATURE,
+      messages: [
+        { role: 'system', content: system_prompt },
+        {
+          role: 'user',
+          content: 'Here are my inputs: ' + JSON.stringify(contextInputs),
+        },
+        { role: 'assistant', content: 'Here are my tag suggestions: ' },
+      ],
+    });
+
+    if (completion.choices.length === 0) {
+      return;
+    }
+    const responseMessage = completion.choices[0].message.content;
+    let responseMessageCleaned = responseMessage.replace(/^\s+|\s+$/g, ''); // remove whitespace;
+    // remove trailing comma
+    if (responseMessageCleaned.endsWith(',')) {
+      responseMessageCleaned = responseMessageCleaned.slice(0, -1);
+    }
+    const chat_suggested_tags = responseMessageCleaned.split(',');
+
+    chat_suggested_tags.forEach((suggested_tag) => {
+      append_suggested_tag(suggested_tag);
+    });
+
+    return responseMessage;
+  }
+
+  function showBookmarkTimestamp(date) {
+    $('#bookmark-status')
+      .attr('title', moment(date).format('dddd, MMMM Do YYYY, h:mma'))
+      .text('Originally saved ' + moment(date).fromNow());
+  }
+
+  /** Submit the form with Ajax */
+  function set_up_form_submission() {
+    $('#post-to-pinboard').on('submit', function(event) {
+      event.preventDefault();
+      $('#submit span.text').html('Saving bookmark&hellip;');
+
+      var post_bookmark_api =
+        API_ENDPOINT + 'posts/add?format=json&auth_token=' + auth_token() + '&' + serialized_inputs();
+
+      $.ajax({
+        url: post_bookmark_api,
+        type: 'GET',
+        timeout: SUBMISSION_REQUEST_TIMEOUT,
+        headers: {
+          'Accept': 'application/json'
+        }
+      })
+      .done(function(response) {
+        if (response['result_code'] === 'done') {
+          console.log('Bookmark saved correctly.');
+          Ladda.stopAll();
+          $('#submit').addClass('success');
+          $('#submit span.text').text('Bookmark saved!');
+
+          save_updated_user_tags();
+
+          setTimeout(function() {
+            window.close();
+            setTimeout(function() {
+              $('#submit').removeClass('success');
+              $('#submit span.text').text($('#submit').data('stateText'));
+              showBookmarkTimestamp(new Date());
+            }, 300);
+          }, 900);
+        } else {
+          handleApiError(response);
+        }
+      })
+      .fail(handleApiError);
+    });
+
+    $('input, textarea').on('blur', function() {
+      $('body').animate({ scrollTop: 0 }, 200);
+    });
+
+    if (!('ontouchstart' in window)) {
+      $('input#tags')[0].selectize.focus(); // focus tags field for non-touch-based browsers
+    }
+
+    $('textarea#description').on('blur', function() {
+      leave_a_gap();
+    });
+
+    $('#private').on('change', function() {
+      reflect_private_status();
+    });
+
+    Ladda.bind('button[type=submit]');
+  }
+
+  function handleApiError(response) {
+    Ladda.stopAll();
+    $('.helptext').remove();
+    $('#submit').addClass('fail');
+
+    if (response['result_code'] === 'missing url') {
+      $('label[for=url]')
+        .addClass('error')
+        .append('<span class="helptext"> is required</span>');
+      $('#url').focus();
+    } else if (response['result_code'] === 'must provide title') {
+      $('label[for=title]')
+        .addClass('error')
+        .append('<span class="helptext"> is required</span>');
+      $('#title').focus();
+    } else if (response.status === 414) {
+      $('label[for=description]')
+        .addClass('error')
+        .append('<span class="helptext"> is too long</span>');
+      $('#description').addClass('expanded');
+      $('#description').focus();
+    } else if (response.status === 401) {
+      display_critical_error('401 Unauthorised. Please check the username and API access token you provided.');
+    } else {
+      display_critical_error('An error occurred while saving the bookmark. Please try again.');
+    }
+
+    $('.helptext').fadeIn();
+    remove_error_state_after_delay();
   }
 
   /** Remove default set of tags that are suggested by the Pinboard API when there are no good suggestions. */
@@ -717,22 +817,27 @@ import OpenAI from 'openai';
   }
 
   function download_user_tags() {
-    console.log('Downloading user’s tags...');
+    console.log("Downloading user's tags...");
     var all_tags_api = API_ENDPOINT + 'tags/get?format=json&auth_token=' + auth_token();
 
-    $.get(all_tags_api)
-      .done(function(response) {
-        localStorage['tags'] = JSON.stringify(response);
-        localStorage['tags-updated'] = new Date();
-        console.log('Downloaded tags.');
-        populate_dropdown();
-      })
-
-      .fail(function(response) {
-        if (response.status === 401) {
-          display_critical_error('401 Unauthorised. Please check the username and API access token you provided.');
-        }
-      });
+    $.ajax({
+      url: all_tags_api,
+      type: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      }
+    })
+    .done(function(response) {
+      localStorage['tags'] = JSON.stringify(response);
+      localStorage['tags-updated'] = new Date();
+      console.log('Downloaded tags.');
+      populate_dropdown();
+    })
+    .fail(function(response) {
+      if (response.status === 401) {
+        display_critical_error('401 Unauthorised. Please check the username and API access token you provided.');
+      }
+    });
   }
 
   function save_updated_user_tags() {
@@ -759,104 +864,5 @@ import OpenAI from 'openai';
     }
     localStorage['tags'] = JSON.stringify(user_tags);
     localStorage['tags-updated'] = new Date();
-  }
-
-  function tagweight(count) {
-    switch (true) {
-      case count > 100:
-        return 'tw100';
-      case count > 50:
-        return 'tw50';
-      case count > 10:
-        return 'tw10';
-      case count > 1:
-        return 'tw1';
-    }
-  }
-
-  function pin_escape(s) {
-    s = s.replace(/\\/g, '\\\\');
-    s = s.replace(/'/g, "\\'"); // "
-    s = s.replace(/"/g, '&quot;'); // "
-    return s;
-  }
-
-  function pin_cook(s) {
-    s = s.replace(/^\s+|\s+$/g, ''); // remove whitespace
-    s = s.replace(/</g, '&lt;');
-    s = s.replace(/>/g, '&gt;');
-    s = s.replace(/"/g, '&quot;'); //"
-    return s;
-  }
-
-  function clean_url(url) {
-    url = url.replace(/#.*$/, ''); // remove URL fragments and hashes
-    return encodeURIComponent(url);
-  }
-
-  RegExp.escape = function(text) {
-    return text.replace(/[-[\]{}()*+?.,\\\\'"^$|#\s]/g, '\\$&'); //"'
-  };
-
-  function close_window(e) {
-    if (e.keyCode === 27) {
-      window.close();
-    }
-  }
-
-  async function queryGPTForTags() {
-    if (!url_params['openai_token']) {
-      return;
-    }
-    const openai = new OpenAI({
-      apiKey: url_params['openai_token'],
-      dangerouslyAllowBrowser: true,
-    });
-
-    const system_prompt =
-      'Return a comma-separated list containing suggested tags to use for bookmarking a page on the web. You will be provided an URL, and sometimes a title, a description or snippet from the page, and list of existing tags.  The format of your response should be a comma-separated list, for example: spying, russia, 1980s, nuclear_war, cold_war, history\n' +
-      'The tags you suggest should all be in lowercase, with no surrounding whitespace. Use underscores instead of spaces to combine words if necessary. Avoid punctuation marks.\n' +
-      "Think of the key concepts, people, subjects, brands, years/decades, publishers, websites, related concepts, etc. that are likely to be relevant to the page. Think of related or alternative concepts so you're not locked into a single meaning or interpretation. Don't over-emphasise the content of the description field, as this may just be a single paragraph or user comment from the page. There should be up to 14 tags, but only include ones that you are sure are relevant. Aim for at least 6. If you can't think of any tags, return an empty array. Remove any duplicate tags, or ones that are already present in the list of existing tags (the existingTags field). Finally, sort the tags and return them in ascending order of relevance.";
-
-    existingTags =
-      bookmark ? bookmark['tags'] : '';
-
-    let contextInputs = {
-      url: url_params['url'],
-      title: url_params['title'],
-      description: url_params['description'],
-      existingTags: existingTags
-    };
-
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      max_tokens: 250,
-      temperature: GPT_TEMPERATURE,
-      messages: [
-        { role: 'system', content: system_prompt },
-        {
-          role: 'user',
-          content: 'Here are my inputs: ' + JSON.stringify(contextInputs),
-        },
-        { role: 'assistant', content: 'Here are my tag suggestions: ' },
-      ],
-    });
-
-    if (completion.choices.length === 0) {
-      return;
-    }
-    const responseMessage = completion.choices[0].message.content;
-    let responseMessageCleaned = responseMessage.replace(/^\s+|\s+$/g, ''); // remove whitespace;
-    // remove trailing comma
-    if (responseMessageCleaned.endsWith(',')) {
-      responseMessageCleaned = responseMessageCleaned.slice(0, -1);
-    }
-    const chat_suggested_tags = responseMessageCleaned.split(',');
-
-    chat_suggested_tags.forEach((suggested_tag) => {
-      append_suggested_tag(suggested_tag);
-    });
-
-    return responseMessage;
   }
 })();
