@@ -48,7 +48,7 @@ GEM
       faraday (>= 0.17.3, < 3)
     thor (1.2.2)
     tomlrb (2.0.3)
-    webrick (1.8.1)
+    webrick (1.8.2)
 
 PLATFORMS
   ruby
