@@ -6,7 +6,7 @@ html {
 body {
   min-height: 1100px;
   margin: 0;
-  padding: 0 0.6em 0 0.6em;
+  padding: 0.2em 0.6em 0 0.6em;
   background: #fdfdfd;
   color: #333;
   transition: background-color 0.6s ease;

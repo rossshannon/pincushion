@@ -31,7 +31,7 @@ describe('App Component', () => {
         existingBookmarkTime: null,
       },
       tags: {
-        allTags: [],
+        tagCounts: {},
         suggested: [],
         tagsLoading: false,
         suggestedLoading: false,

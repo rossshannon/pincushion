@@ -7,11 +7,15 @@ import {
   submitBookmark,
   resetStatus,
 } from '../redux/bookmarkSlice';
+import { addSuggestedTag } from '../redux/tagSlice'; // Import action needed for suggestion removal
+import TagInput from './TagInput.jsx';
+import TagSuggestions from './TagSuggestions.jsx'; // <-- Import TagSuggestions
 
 function BookmarkForm() {
   const dispatch = useDispatch();
   const { formData, status, errors, initialLoading, existingBookmarkTime } =
     useSelector((state) => state.bookmark);
+  const userTags = useSelector((state) => state.tags.tagCounts);
   const btnRef = useRef(null);
   const descRef = useRef(null);
   const laddaRef = useRef(null);
@@ -79,6 +83,27 @@ function BookmarkForm() {
     dispatch(setFormData({ [name]: type === 'checkbox' ? checked : value }));
   };
 
+  // Handler for the TagInput component
+  const handleTagsChange = (newTagsArray) => {
+    // Convert the array back to a space-separated string for Redux state
+    const tagsString = newTagsArray.join(' ');
+    dispatch(setFormData({ tags: tagsString }));
+  };
+
+  // --- Handler for clicking a suggested tag ---
+  const handleAddSuggestion = (tagToAdd) => {
+    const currentTags = formData.tags
+      ? formData.tags.split(' ').filter(Boolean)
+      : [];
+    // Add the tag only if it's not already present
+    if (!currentTags.includes(tagToAdd)) {
+      const updatedTagsString = [...currentTags, tagToAdd].join(' ');
+      dispatch(setFormData({ tags: updatedTagsString }));
+    }
+    // Also dispatch action to remove the tag from the suggested list in UI
+    dispatch(addSuggestedTag(tagToAdd));
+  };
+
   // Auto-resize textarea height
   const resizeTextarea = () => {
     const el = descRef.current;
@@ -100,6 +125,20 @@ function BookmarkForm() {
   const { relative: relativeTimeStr, absolute: absoluteTimeStr } =
     getTimestampFormats(existingBookmarkTime);
 
+  // Convert tags string from formData to array for TagInput component
+  const initialTagsArray = formData.tags
+    ? formData.tags.split(' ').filter(Boolean)
+    : [];
+
+  // Determine button text based on state
+  const buttonText = () => {
+    if (initialLoading) return 'Loading…';
+    if (status === 'saving') return 'Saving…';
+    if (status === 'success') return 'Bookmark saved!';
+    if (status === 'error') return 'Save failed';
+    return existingBookmarkTime ? 'Update bookmark' : 'Add bookmark';
+  };
+
   return (
     <form
       onSubmit={handleSubmit}
@@ -120,17 +159,7 @@ function BookmarkForm() {
           type="submit"
           disabled={initialLoading || status === 'saving'}
         >
-          <span className="ladda-label text">
-            {initialLoading
-              ? 'Loading…'
-              : status === 'saving'
-              ? 'Saving…'
-              : status === 'success'
-              ? 'Bookmark saved!'
-              : status === 'error'
-              ? 'Save failed'
-              : 'Add bookmark'}
-          </span>
+          <span className="ladda-label text">{buttonText()}</span>
         </button>
       </div>
 
@@ -189,6 +218,7 @@ function BookmarkForm() {
           <span className="helptext">{errors.description}</span>
         )}
       </label>
+
       <div id="modifiers">
         <label>
           <input
@@ -209,6 +239,17 @@ function BookmarkForm() {
           read later
         </label>
       </div>
+
+      <label>
+        tags
+        <TagInput
+          initialTags={initialTagsArray}
+          userTags={userTags || {}}
+          onChange={handleTagsChange}
+        />
+      </label>
+
+      <TagSuggestions onSuggestionClick={handleAddSuggestion} />
     </form>
   );
 }

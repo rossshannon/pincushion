@@ -1,6 +1,5 @@
 import BookmarkForm from './components/BookmarkForm';
-import TagAutocomplete from './components/TagAutocomplete';
-import TagSuggestions from './components/TagSuggestions';
+// import TagAutocomplete from './components/TagAutocomplete';
 import './styles/popup.css';
 
 import React, { useEffect } from 'react';
@@ -74,8 +73,6 @@ function App() {
   return (
     <div className="pincushion-popup" data-testid="app-container">
       <BookmarkForm />
-      <TagAutocomplete />
-      <TagSuggestions />
 
       <footer>
         <div id="pinboard-link">
