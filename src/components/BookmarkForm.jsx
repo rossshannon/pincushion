@@ -1,11 +1,35 @@
 import React, { useEffect, useRef } from 'react';
 import Ladda from 'ladda';
 import { useSelector, useDispatch } from 'react-redux';
-import { setFormData, submitBookmark, resetStatus } from '../redux/bookmarkSlice';
+import {
+  setFormData,
+  submitBookmark,
+  resetStatus,
+} from '../redux/bookmarkSlice';
+
+// Helper to format timestamp
+const formatTimestamp = (isoString) => {
+  if (!isoString) return '';
+  try {
+    const date = new Date(isoString);
+    // Use British English locale and common date/time format
+    return date.toLocaleString('en-GB', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch (e) {
+    console.error('Error formatting timestamp:', e);
+    return 'Invalid Date';
+  }
+};
 
 function BookmarkForm() {
   const dispatch = useDispatch();
-  const { formData, status, error, initialLoading } = useSelector(state => state.bookmark);
+  const { formData, status, errors, initialLoading, existingBookmarkTime } =
+    useSelector((state) => state.bookmark);
   const btnRef = useRef(null);
   const descRef = useRef(null);
   const laddaRef = useRef(null);
@@ -45,7 +69,17 @@ function BookmarkForm() {
     }
   }, [status, dispatch]);
 
-  const handleChange = e => {
+  // Add useEffect to handle error shake animation (similar to original)
+  useEffect(() => {
+    const form = btnRef.current?.closest('form'); // Find the parent form
+    if (status === 'error' && form) {
+      form.classList.add('fail'); // Add shake class
+      const timer = setTimeout(() => form.classList.remove('fail'), 820); // Match animation duration
+      return () => clearTimeout(timer);
+    }
+  }, [status]);
+
+  const handleChange = (e) => {
     const { name, type, checked, value } = e.target;
     dispatch(setFormData({ [name]: type === 'checkbox' ? checked : value }));
   };
@@ -62,15 +96,22 @@ function BookmarkForm() {
     resizeTextarea();
   }, [formData.description]);
 
-  const handleSubmit = e => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     dispatch(submitBookmark());
   };
 
+  const formattedTime = formatTimestamp(existingBookmarkTime);
+
   return (
-    <form onSubmit={handleSubmit} className="bookmark-form">
+    <form
+      onSubmit={handleSubmit}
+      className={`bookmark-form ${status === 'error' ? 'fail' : ''}`}
+    >
       <div id="bookmark-save" className="bookmark-save">
-        {initialLoading && <i id="mainspinner" className="fa fa-spinner fa-spin" />}
+        {initialLoading && (
+          <i id="mainspinner" className="fa fa-spinner fa-spin" />
+        )}
         <button
           ref={btnRef}
           id="submit"
@@ -86,29 +127,39 @@ function BookmarkForm() {
             {initialLoading
               ? 'Loading…'
               : status === 'saving'
-                ? 'Saving…'
-                : status === 'success'
-                  ? 'Bookmark saved!'
-                  : 'Add bookmark'}
+              ? 'Saving…'
+              : status === 'success'
+              ? 'Bookmark saved!'
+              : status === 'error'
+              ? 'Save failed'
+              : 'Add bookmark'}
           </span>
         </button>
       </div>
-      <label>
+
+      {formattedTime && (
+        <div className="timestamp-info">Originally saved: {formattedTime}</div>
+      )}
+
+      <label className={errors?.title ? 'error' : ''}>
         Title:
         <input
           type="text"
           name="title"
           value={formData.title}
           onChange={handleChange}
+          aria-invalid={!!errors?.title}
         />
+        {errors?.title && <span className="helptext">{errors.title}</span>}
       </label>
-      <label className="url-field">
+      <label className={`url-field ${errors?.url ? 'error' : ''}`}>
         URL:
         <input
           type="url"
           name="url"
           value={formData.url}
           onChange={handleChange}
+          aria-invalid={!!errors?.url}
         />
         {formData.url && formData.url.includes('#') && (
           <button
@@ -123,17 +174,21 @@ function BookmarkForm() {
             &#35;
           </button>
         )}
+        {errors?.url && <span className="helptext">{errors.url}</span>}
       </label>
-      <label>
+      <label className={errors?.description ? 'error' : ''}>
         Description:
-      <textarea
-        name="description"
-        ref={descRef}
-        value={formData.description}
-        onChange={handleChange}
-        onInput={resizeTextarea}
-        style={{ overflow: 'hidden', resize: 'none' }}
-      />
+        <textarea
+          name="description"
+          ref={descRef}
+          value={formData.description}
+          onChange={handleChange}
+          onInput={resizeTextarea}
+          style={{ overflow: 'hidden', resize: 'none' }}
+        />
+        {errors?.description && (
+          <span className="helptext">{errors.description}</span>
+        )}
       </label>
       <div id="modifiers">
         <label>
@@ -155,7 +210,6 @@ function BookmarkForm() {
           read later
         </label>
       </div>
-      {error && <div className="error">Error: {error}</div>}
     </form>
   );
 }

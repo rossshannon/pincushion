@@ -86,7 +86,7 @@ label, input[type=checkbox] {
   flex: 0 0 auto;
   overflow: hidden;
   /* Animate collapse via max-width, max-height and fade */
-  transition: max-width 300ms ease-in, max-height 300ms ease-in, opacity 300ms ease-in, margin-right 300ms ease-in;
+  transition: max-width 300ms ease-in, max-height 300ms ease-in, opacity 100ms ease-out, margin-right 300ms ease-in;
 }
 /* Allow buttons on hover to extend outside their container */
 .suggestion-item:hover {
@@ -123,7 +123,7 @@ form.bookmark-form {
   padding: 0;
 }
 /* Input field labels styling */
-.bookmark-form label {
+label {
   display: block;
   color: #047BFF;
   padding: 4px 0 0 3px;
@@ -136,6 +136,16 @@ form.bookmark-form {
   text-align: right;
   margin-bottom: 0.8em;
 }
+
+/* Timestamp Info */
+.timestamp-info {
+  text-align: right;
+  font-size: 12px;      /* Match original font-size */
+  color: #aac;          /* Match original color */
+  margin: 0 0 0.5em;    /* Keep top/sides 0, add bottom margin */
+  padding: 3px 4px 0 0; /* Match original padding */
+}
+
 /* Text inputs and textarea with legacy hover/focus styling */
 input[type="text"],
 input[type="url"],

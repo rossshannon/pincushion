@@ -1,4 +1,4 @@
-@import "vendor/lesshat.less";
+@import 'vendor/lesshat.less';
 
 html {
   -ms-touch-action: manipulation;
@@ -22,12 +22,25 @@ body {
   }
 }
 
-body, input, textarea, button {
-  font: 15px/1.5 "Helvetica Neue", Helvetica, "Arial Unicode", Arial, "Nimbus Sans L", "Liberation Sans", FreeSans, sans-serif;
+body,
+input,
+textarea,
+button {
+  font:
+    15px/1.5 'Helvetica Neue',
+    Helvetica,
+    'Arial Unicode',
+    Arial,
+    'Nimbus Sans L',
+    'Liberation Sans',
+    FreeSans,
+    sans-serif;
   text-rendering: optimizeLegibility;
 }
 
-section, footer, header {
+section,
+footer,
+header {
   display: block;
 }
 
@@ -49,7 +62,8 @@ form.main {
   }
 }
 
-label, input[type=checkbox] {
+label,
+input[type='checkbox'] {
   cursor: pointer;
 }
 
@@ -60,7 +74,8 @@ table {
   border-spacing: 0;
 }
 
-th, td {
+th,
+td {
   display: block;
   font-weight: normal;
   text-align: left;
@@ -68,7 +83,7 @@ th, td {
 
 th {
   padding: 4px 0 0 3px;
-  color: #047BFF;
+  color: #047bff;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -76,16 +91,18 @@ th label {
   transition: color 0.3s ease;
 }
 
-input[type=text] {
+input[type='text'] {
   font-size: 120%;
   -webkit-font-smoothing: antialiased;
 }
 
-input[type=url] {
+input[type='url'] {
   font-size: 100%;
 }
 
-input[type=text], input[type=url], textarea {
+input[type='text'],
+input[type='url'],
+textarea {
   box-sizing: border-box;
   width: 100%;
   max-width: 740px;
@@ -98,7 +115,9 @@ input[type=text], input[type=url], textarea {
   background: #fefefe;
   appearance: none;
   -webkit-appearance: none;
-  transition: border-color 0.1s ease, max-width 0.4s ease;
+  transition:
+    border-color 0.1s ease,
+    max-width 0.4s ease;
 
   @media only screen and (max-width: 480px) {
     max-height: 90px;
@@ -150,16 +169,17 @@ button#remove-hash {
   cursor: pointer;
 
   &:hover {
-    border-color: #aaa
+    border-color: #aaa;
   }
 
-  &:after { /* Expand click area. */
+  &:after {
+    /* Expand click area. */
     position: absolute;
     left: -45%;
     top: -14px;
     height: 200%;
     width: 190%;
-    content: "";
+    content: '';
   }
 }
 
@@ -195,12 +215,14 @@ button#remove-hash {
   box-shadow: 0 1px 4px #ddf;
 }
 
-.selectize-input:hover, .selectize-input.focus {
+.selectize-input:hover,
+.selectize-input.focus {
   border-color: #aaa;
   background-color: #fffffc !important;
 }
 
-.selectize-control.multi div { // items and dropdown entries
+.selectize-control.multi div {
+  // items and dropdown entries
   letter-spacing: 1px !important;
   transition: background-color 0.1s ease;
 }
@@ -210,7 +232,8 @@ button#remove-hash {
 }
 
 .selectize-dropdown {
-  .item, .create {
+  .item,
+  .create {
     font-size: 1rem;
     padding-top: 0.8rem;
     padding-bottom: 0.8rem;
@@ -236,7 +259,9 @@ button#remove-hash {
   .remove {
     width: 1px;
     opacity: 0;
-    transition: width 0.1s ease, opacity 0.1s ease;
+    transition:
+      width 0.1s ease,
+      opacity 0.1s ease;
   }
 }
 
@@ -262,7 +287,7 @@ button#remove-hash {
 
 .optioncount {
   margin-left: 65px;
-  font-family: "Open Sans", sans-serif;
+  font-family: 'Open Sans', sans-serif;
   font-weight: 300;
   color: #bbb;
 }
@@ -317,7 +342,10 @@ button#remove-hash {
     text-shadow: 1px 1px 1px #333;
     cursor: pointer;
     opacity: 0.9;
-    transition: background-color 0.1s ease, box-shadow 0.2s ease, transform 0.1s ease-out;
+    transition:
+      background-color 0.1s ease,
+      box-shadow 0.2s ease,
+      transform 0.1s ease-out;
 
     @media only screen and (max-width: 480px) {
       font-size: 13px;
@@ -326,16 +354,18 @@ button#remove-hash {
       margin: 0 0.4em 0 0.3em;
     }
 
-    &:after { /* Expand click area. */
+    &:after {
+      /* Expand click area. */
       position: absolute;
       left: -7%;
       top: -8px;
       height: 40px;
       width: 115%;
-      content: "";
+      content: '';
     }
 
-    &:hover, &:focus {
+    &:hover,
+    &:focus {
       background-color: #20a5e4;
       background-image: linear-gradient(to bottom, #1da7ee, #178ee9);
       border: 1px solid #1073bb;
@@ -386,7 +416,7 @@ button#remove-hash {
   }
 }
 
-input[type=checkbox] {
+input[type='checkbox'] {
   margin: 0 5px 0 13px;
   transform: scale(1.5);
 }
@@ -400,7 +430,10 @@ input[type=checkbox] {
   font-size: 16px;
   border-radius: 4px;
   box-shadow: inset 0 0 13px #48aadf;
-  transition: transform 1s ease, text-shadow 0.1s linear, border-radius 0.1s linear;
+  transition:
+    transform 1s ease,
+    text-shadow 0.1s linear,
+    border-radius 0.1s linear;
 
   &:focus {
     animation: pop 0.3s ease 0.5s;
@@ -441,7 +474,10 @@ input[type=checkbox] {
   animation: ahem 0.8s ease 0;
 
   .helptext {
-    display: none;
+    display: inline;
+    color: #ff6868;
+    text-shadow: none;
+    margin-left: 0.5em;
   }
 }
 
@@ -507,21 +543,50 @@ footer {
 }
 
 @keyframes pop {
-  0% { transform: scale(0.98); } 50% { transform: scale(1.05); } 100% { transform: scale(1.0); }
+  0% {
+    transform: scale(0.98);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 @keyframes non {
-  20% { transform: translateX(0); } 45% { transform: translateX(-5px); } 60% { transform: translateX(6px); } 75% { transform: translateX(-7px); } 90% { transform: translateX(6px); }
+  20% {
+    transform: translateX(0);
+  }
+  45% {
+    transform: translateX(-5px);
+  }
+  60% {
+    transform: translateX(6px);
+  }
+  75% {
+    transform: translateX(-7px);
+  }
+  90% {
+    transform: translateX(6px);
+  }
 }
 
 @keyframes ahem {
-  30% { text-shadow: 0 0 2px #ff7868; }
+  30% {
+    text-shadow: 0 0 2px #ff7868;
+  }
 }
 
 @keyframes squelch {
-  100% { transform: scale(0); opacity: 0; }
+  100% {
+    transform: scale(0);
+    opacity: 0;
+  }
 }
 
 @keyframes rotate {
-  100% { transform: rotate(360deg); }
+  100% {
+    transform: rotate(360deg);
+  }
 }

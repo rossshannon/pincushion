@@ -6,41 +6,48 @@ import { setFormData } from '../redux/bookmarkSlice';
 
 function TagSuggestions() {
   const dispatch = useDispatch();
-  const suggestions = useSelector(state => state.tags.suggested);
-  const suggestedLoading = useSelector(state => state.tags.suggestedLoading);
-  const currentTagsArray = useSelector(state =>
+  const suggestions = useSelector((state) => state.tags.suggested);
+  const suggestedLoading = useSelector((state) => state.tags.suggestedLoading);
+  const currentTagsArray = useSelector((state) =>
     state.bookmark.formData.tags.split(' ').filter(Boolean)
   );
   const currentTags = new Set(currentTagsArray);
-  const handleClick = tag => {
+  const handleClick = (tag) => {
     const updated = Array.from(currentTags).concat(tag);
     dispatch(setFormData({ tags: updated.join(' ') }));
     dispatch(addSuggestedTag(tag));
   };
+  // Filter out suggestions that are already present in currentTags
+  const filteredSuggestions = suggestions.filter(
+    (tag) => !currentTags.has(tag)
+  );
   // While loading, show spinner
   if (suggestedLoading) {
     return (
       <div className="tag-suggestions">
         <h4>Suggested Tags</h4>
-        <i id="tagspinner" className="fa fa-spinner fa-spin" />
+        <div className="loading-indicator">
+          <i id="tagspinner" className="fa fa-spinner fa-spin" /> Finding
+          suggested tags…
+        </div>
       </div>
     );
   }
-  // No suggestions available
-  if (!suggestions || suggestions.length === 0) {
+  // No suggestions available *after filtering*
+  if (!filteredSuggestions || filteredSuggestions.length === 0) {
     return null;
   }
   return (
     <div className="tag-suggestions">
       <h4>Suggested Tags</h4>
       <TransitionGroup component="div" className="suggestions-list">
-        {suggestions.map(tag => (
+        {filteredSuggestions.map((tag) => (
           <CSSTransition
             key={tag}
             timeout={300}
             classNames="suggestion"
             unmountOnExit
-            onExit={node => {
+            onExit={(node) => {
               // Before exit transition, snapshot width, height, and margin to allow numeric collapse
               const style = window.getComputedStyle(node);
               node.style.maxWidth = node.offsetWidth + 'px';
@@ -48,7 +55,7 @@ function TagSuggestions() {
               node.style.marginRight = style.marginRight;
               node.style.opacity = '1';
             }}
-            onExited={node => {
+            onExited={(node) => {
               // Clean up inline styles after transition
               node.style.maxWidth = '';
               node.style.maxHeight = '';
@@ -57,10 +64,7 @@ function TagSuggestions() {
             }}
           >
             <div className="suggestion-item">
-              <button
-                type="button"
-                onClick={() => handleClick(tag)}
-              >
+              <button type="button" onClick={() => handleClick(tag)}>
                 {tag}
               </button>
             </div>

@@ -29,7 +29,7 @@ function App() {
         title: titleParam,
         description: descParam,
         private: privateParam,
-        toread: toreadParam
+        toread: toreadParam,
       })
     );
     // Only load tags/suggestions if we have auth credentials
@@ -52,11 +52,26 @@ function App() {
       // Refresh tags via API after delay
       const TAG_CACHE_DELAY = 10000; // ms
       const timer = setTimeout(() => dispatch(fetchTags()), TAG_CACHE_DELAY);
-      return () => clearTimeout(timer);
+
+      // Add ESC key listener
+      const handleKeyDown = (event) => {
+        if (event.key === 'Escape') {
+          window.close();
+        }
+      };
+
+      document.addEventListener('keydown', handleKeyDown);
+
+      // Cleanup listener on unmount
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown);
+        // Also clear existing timeout
+        clearTimeout(timer);
+      };
     }
   }, [dispatch]);
   return (
-    <div className="pincushion-popup">
+    <div className="pincushion-popup" data-testid="app-container">
       <h1>Pinboard — Save a Bookmark</h1>
       <BookmarkForm />
       <TagAutocomplete />

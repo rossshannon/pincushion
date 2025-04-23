@@ -75,20 +75,19 @@ between them.
 
         1. GPT Tag Suggestions
              • Original used OpenAI chat completions as a fallback/add‑on. React version omits any AI integration.
-        2. Inline field‐error helpers
-             • Original injected per‑field helptext (`<span class="helptext">`) on missing URL/title or 414-length failure. React only shows a single generic error banner.
-        3. Timestamp display
-             • Original showed “Originally saved …” beneath the form. React does not display any existing‐bookmark timestamp.
-        4. ESC to close & window resizing
-             • Original closed on ESC and auto‐resized popup window. React only closes on success and leaves window sizing to the host.
         5. Scroll‑to‑top on blur & input focus
              • Original scrolled body to top on blur and auto‑focused Selectize. React does not scroll or explicitly focus the tag field.
         6. “Finding suggested tags…” header
              • Original showed a header cell text alongside spinner. React only shows the spinner icon with no label.
-        7. Initial API fetch timing
-             • Original fetched user tags immediately then refreshed after 10 s. React waits 10 s before any `/tags/get` call (after loading from cache).
-        8. Code modularity & testability
-             • React version is fully split into slices/components, easier to maintain. The UI is more reactive and type‑safe.
 
 Overall the React port covers all core bookmarking/tagging flows, plus improves structure, caching, and animations—but omits AI fallbacks, detailed field errors, timestamp UI, ESC/resize behaviors, and
 initial immediate tag API fetch. If any of those are critical, we can layer them back in.
+
+# Testing
+
+With this basic setup in place, you can start adding more meaningful tests. Good next steps would be:
+Component-Specific Tests: Create .test.js files for individual components like BookmarkForm.jsx, TagAutocomplete.jsx, etc.
+Interaction Testing: Use @testing-library/user-event to simulate user actions like typing into inputs, clicking buttons, and verify the application state updates correctly.
+Async Thunk Testing: Write tests for your Redux thunks (submitBookmark, fetchTags, etc.), likely involving mocking axios or the API responses to test the different success/error states.
+Snapshot Testing: Optionally use Jest snapshots to track changes in component rendering over time.
+What area would you like to focus on next for testing? Perhaps testing the BookmarkForm rendering or some basic interactions within it?
