@@ -20,6 +20,7 @@
   "dependencies": {
     "@reduxjs/toolkit": "^1.9.5",
     "axios": "^1.4.0",
+    "dayjs": "^1.11.13",
     "ladda": "^1.0.6",
     "openai": "^4.11.1",
     "react": "^18.2.0",

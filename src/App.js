@@ -72,10 +72,15 @@ function App() {
   }, [dispatch]);
   return (
     <div className="pincushion-popup" data-testid="app-container">
-      <h1>Pinboard — Save a Bookmark</h1>
       <BookmarkForm />
       <TagAutocomplete />
       <TagSuggestions />
+
+      <footer>
+        <div id="pinboard-link">
+          Powered by <a href="https://pinboard.in/">Pinboard</a>
+        </div>
+      </footer>
     </div>
   );
 }

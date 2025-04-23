@@ -1,14 +1,51 @@
-/* Basic styles for Pincushion popup */
+html {
+  -ms-touch-action: manipulation;
+  touch-action: manipulation;
+}
+
+body {
+  min-height: 1100px;
+  margin: 0;
+  padding: 0 0.6em 0 0.6em;
+  background: #fdfdfd;
+  color: #333;
+  transition: background-color 0.6s ease;
+
+  @media only screen and (min-width: 480px) {
+    min-height: 1400px;
+  }
+
+  &.private {
+    background-color: #f2f2f4;
+  }
+}
+
+body,
+input,
+textarea,
+button {
+  font:
+    15px/1.5 'Helvetica Neue',
+    Helvetica,
+    'Arial Unicode',
+    Arial,
+    'Nimbus Sans L',
+    'Liberation Sans',
+    FreeSans,
+    sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
 /* Container */
 .pincushion-popup {
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
   max-width: 740px;
-  margin: 16px auto;
-  padding: 16px;
+  margin: 0 auto;
+  padding: 2px;
   background-color: #fdfdfd;
   color: #333;
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  background: url(../assets/images/padlock.png) 50% 8px no-repeat;
+  background-size: 55px 55px;
 }
 /* Ensure pointer cursor on labels and checkboxes */
 label, input[type=checkbox] {
@@ -140,13 +177,13 @@ label {
 /* Timestamp Info */
 .timestamp-info {
   text-align: right;
-  font-size: 12px;      /* Match original font-size */
-  color: #aac;          /* Match original color */
-  margin: 0 0 0.5em;    /* Keep top/sides 0, add bottom margin */
-  padding: 3px 4px 0 0; /* Match original padding */
+  font-size: 12px;
+  color: #aac;
+  margin: 0 0 0.5em;
+  padding: 3px 4px 0 0;
 }
 
-/* Text inputs and textarea with legacy hover/focus styling */
+
 input[type="text"],
 input[type="url"],
 textarea {
@@ -166,7 +203,7 @@ textarea {
   overflow: hidden;
   resize: none;
 }
-/* Font sizes matching original */
+
 input[type="text"] {
   font-size: 120%;
   -webkit-font-smoothing: antialiased;
@@ -180,6 +217,9 @@ textarea {
   padding: 6px;
   text-indent: 1.8em;
   transition: height 0.4s ease;
+  form-sizing: content;
+  min-height: 2lh;
+  max-height: 10lh;
 }
 input[type="text"]:hover,
 input[type="url"]:hover,
@@ -204,7 +244,7 @@ button {
   transition: background-color 0.2s ease;
 }
 button:hover { background-color: #0056b3; }
-/* Remove duplicate: hover handled above */
+
 /* URL field with hash remove */
 .url-field {
   position: relative;
@@ -230,17 +270,27 @@ button:hover { background-color: #0056b3; }
 }
 .tag-suggestions {
   margin-top: 24px;
+  margin: 0.5em 0 0.8em;
+  line-height: 1.9;
 }
- .tag-suggestions h4 {
+.tag-suggestions h4 {
   margin: 0 0 8px;
-  font-size: 1.1em;
+  font-size: 1em;
+  font-weight: 400;
   color: #047BFF;
+}
+
+.none {
+  color: #99a;
+  font-size: 80%;
 }
 /* Allow suggestion buttons to reflow during exit */
 .suggestions-list {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
+  margin: 0.5em 0 0.8em;
+  line-height: 1.9;
 }
 .suggestions-list button {
   position: relative;
@@ -282,12 +332,14 @@ button:hover { background-color: #0056b3; }
 
 /* Checkbox button modifiers */
 #modifiers {
-  margin: 0.4em 0 0.2em;
+  margin: 0.4em 0 0.6em;
+  padding: 0.2em;
 }
 #modifiers label {
   display: inline-block;
   min-width: 105px;
   font-size: 110%;
+  color: #333;
   margin: 0 15px 0 0;
   padding: 10px 14px 10px 0;
   border: 1px solid #c8c8cc;
@@ -307,4 +359,54 @@ button:hover { background-color: #0056b3; }
 #modifiers input[type=checkbox] {
   margin: 0 5px 0 13px;
   transform: scale(1.5);
+}
+
+footer {
+  margin: 3em 0 1em;
+  padding: 1em 0.6em 0;
+  border-top: 2px dotted #ddd;
+}
+
+#pinboard-link {
+  opacity: 0.8;
+}
+
+/* Spinner styles ported from original popup.less */
+.spinner {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  margin: -4px 6px 0 0;
+  vertical-align: middle;
+  /* Adjust path relative to CSS file location */
+  background: url(../assets/images/spinner_2x.gif) 0 0 no-repeat;
+  background-size: 24px 24px;
+  opacity: 0.6;
+}
+
+.spinner.hidden {
+  /* Animation to hide spinner */
+  animation: squelch 0.4s linear forwards;
+}
+
+#tagspinner {
+  /* Specific styles for the smaller tag spinner */
+  width: 16px;
+  height: 16px;
+  background-size: 16px 16px;
+  opacity: 0.8;
+}
+
+/* Keyframes for hiding animation */
+@keyframes squelch {
+  100% {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+
+a {
+  text-decoration: none;
+  font-weight: bold;
+  color: #00d;
 }

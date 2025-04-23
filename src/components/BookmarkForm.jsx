@@ -1,30 +1,12 @@
 import React, { useEffect, useRef } from 'react';
 import Ladda from 'ladda';
 import { useSelector, useDispatch } from 'react-redux';
+import { getTimestampFormats } from '../utils/date'; // Import the utility function
 import {
   setFormData,
   submitBookmark,
   resetStatus,
 } from '../redux/bookmarkSlice';
-
-// Helper to format timestamp
-const formatTimestamp = (isoString) => {
-  if (!isoString) return '';
-  try {
-    const date = new Date(isoString);
-    // Use British English locale and common date/time format
-    return date.toLocaleString('en-GB', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch (e) {
-    console.error('Error formatting timestamp:', e);
-    return 'Invalid Date';
-  }
-};
 
 function BookmarkForm() {
   const dispatch = useDispatch();
@@ -79,6 +61,19 @@ function BookmarkForm() {
     }
   }, [status]);
 
+  // Add useEffect to toggle body class based on 'private' state
+  useEffect(() => {
+    if (formData.private) {
+      document.body.classList.add('private');
+    } else {
+      document.body.classList.remove('private');
+    }
+    // Cleanup function to remove the class when the component unmounts
+    return () => {
+      document.body.classList.remove('private');
+    };
+  }, [formData.private]); // Dependency array ensures this runs only when 'private' changes
+
   const handleChange = (e) => {
     const { name, type, checked, value } = e.target;
     dispatch(setFormData({ [name]: type === 'checkbox' ? checked : value }));
@@ -101,7 +96,9 @@ function BookmarkForm() {
     dispatch(submitBookmark());
   };
 
-  const formattedTime = formatTimestamp(existingBookmarkTime);
+  // Get formatted timestamp strings
+  const { relative: relativeTimeStr, absolute: absoluteTimeStr } =
+    getTimestampFormats(existingBookmarkTime);
 
   return (
     <form
@@ -137,12 +134,14 @@ function BookmarkForm() {
         </button>
       </div>
 
-      {formattedTime && (
-        <div className="timestamp-info">Originally saved: {formattedTime}</div>
+      {existingBookmarkTime && ( // Only render if timestamp exists
+        <div className="timestamp-info" title={absoluteTimeStr}>
+          Originally saved {relativeTimeStr}
+        </div>
       )}
 
       <label className={errors?.title ? 'error' : ''}>
-        Title:
+        title
         <input
           type="text"
           name="title"
@@ -153,7 +152,7 @@ function BookmarkForm() {
         {errors?.title && <span className="helptext">{errors.title}</span>}
       </label>
       <label className={`url-field ${errors?.url ? 'error' : ''}`}>
-        URL:
+        URL
         <input
           type="url"
           name="url"
@@ -177,7 +176,7 @@ function BookmarkForm() {
         {errors?.url && <span className="helptext">{errors.url}</span>}
       </label>
       <label className={errors?.description ? 'error' : ''}>
-        Description:
+        description
         <textarea
           name="description"
           ref={descRef}

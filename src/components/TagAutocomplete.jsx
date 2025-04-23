@@ -5,20 +5,21 @@ import { setFormData } from '../redux/bookmarkSlice';
 
 function TagAutocomplete() {
   const dispatch = useDispatch();
-  const allTags = useSelector(state => state.tags.allTags);
-  const selected = useSelector(state =>
+  const allTags = useSelector((state) => state.tags.allTags);
+  const selected = useSelector((state) =>
     state.bookmark.formData.tags
       .split(' ')
       .filter(Boolean)
-      .map(tag => ({ value: tag, label: tag }))
+      .map((tag) => ({ value: tag, label: tag }))
   );
-  const options = allTags.map(tag => ({ value: tag, label: tag }));
-  const handleChange = selectedOptions => {
-    const tags = selectedOptions ? selectedOptions.map(o => o.value) : [];
+  const options = allTags.map((tag) => ({ value: tag, label: tag }));
+  const handleChange = (selectedOptions) => {
+    const tags = selectedOptions ? selectedOptions.map((o) => o.value) : [];
     dispatch(setFormData({ tags: tags.join(' ') }));
   };
   return (
     <div className="tag-autocomplete">
+      <label>tags</label>
       <Select
         isMulti
         options={options}
