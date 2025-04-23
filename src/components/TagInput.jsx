@@ -1,14 +1,35 @@
-import React from 'react';
-import CreatableSelect from 'react-select/creatable';
+import React, { useMemo } from 'react';
+import AsyncCreatableSelect from 'react-select/async-creatable';
 import PropTypes from 'prop-types';
+import VirtualizedMenuList from './VirtualizedMenuList.jsx';
+import './TagInput.css'; // Import the CSS file
 
 /**
- * TagInput component using react-select/creatable for tag selection and creation.
+ * TagInput component using react-select/async-creatable for tag selection and creation.
  *
  * @param {object} userTags - Object mapping tag names to usage counts. e.g., { 'react': 50, 'javascript': 100 }
  * @param {string[]} initialTags - Array of initial tag strings. e.g., ['react', 'typescript']
  * @param {function} onChange - Callback function when tags change. Receives an array of tag strings.
  */
+
+// Helper function to determine CSS class based on tag count
+const tagweight = (count) => {
+  if (count > 100) return 'tw100';
+  if (count > 50) return 'tw50';
+  if (count > 10) return 'tw10';
+  if (count > 1) return 'tw1';
+  return ''; // Return empty string for count <= 1 or undefined
+};
+
+// Custom component to render only the label for selected tags (MultiValue)
+const MultiValueLabel = ({ children }) => {
+  // Return only the children (the label text) directly, wrapped in a fragment
+  // This avoids adding any extra DOM element that might interfere.
+  // We don't need to worry about other props like selectProps here
+  // because we are not rendering a DOM element that would receive them.
+  return <>{children}</>;
+};
+
 const TagInput = ({ userTags = {}, initialTags = [], onChange }) => {
   // Convert initialTags array to the format react-select expects: { label: string, value: string }
   const currentSelectedOptions = initialTags.map((tag) => ({
@@ -16,61 +37,99 @@ const TagInput = ({ userTags = {}, initialTags = [], onChange }) => {
     value: tag,
   }));
 
-  // Convert userTags object to the format react-select expects for dropdown options
-  // No initial sorting needed as per user request
-  const availableOptions = Object.entries(userTags).map(([label, count]) => ({
-    label,
-    value: label,
-    count, // Keep count for potential future use (e.g., display)
-  }));
+  // Memoize the full list of available options
+  const availableOptions = useMemo(() => {
+    console.log('Recalculating available Options...');
+    return Object.entries(userTags).map(([label, count]) => ({
+      label,
+      value: label,
+      count,
+    }));
+  }, [userTags]);
+
+  // Memoize the initial list of options to show before user types
+  const defaultOptionsList = useMemo(() => {
+    const sortedOptions = [...availableOptions].sort(
+      (a, b) => (b.count || 0) - (a.count || 0)
+    );
+    return sortedOptions.slice(0, 50);
+  }, [availableOptions]);
 
   const handleChange = (selectedOptions) => {
-    const newSelectedTags = selectedOptions || []; // Handle clear action
-    // Notify parent component with an array of tag strings
+    const newSelectedTags = selectedOptions || [];
     onChange(newSelectedTags.map((option) => option.value));
   };
 
   // Handle the creation of a new tag
-  // Let CreatableSelect handle adding the new option to the selectedOptions array passed to handleChange.
   const handleCreate = (inputValue) => {
     const newTagValue = inputValue.trim();
-    if (!newTagValue) return; // Don't create empty tags
-
-    // IMPORTANT: As per react-select docs, onCreateOption should typically
-    // call the main onChange handler with the updated value array.
-
-    // Construct the new option object
+    if (!newTagValue) return;
     const newOption = { label: newTagValue, value: newTagValue };
-
-    // Get the values of the currently selected options
     const currentValues = currentSelectedOptions.map((opt) => opt.value);
-
-    // Combine the current values with the new tag value (ensuring no duplicates)
     if (!currentValues.includes(newTagValue)) {
       const newSelectedTagValues = [...currentValues, newTagValue];
-      // Call the parent's onChange handler with the full updated list of tag strings
       onChange(newSelectedTagValues);
     } else {
-      // Optional: handle case where tag already exists (maybe focus it?)
       console.log(`Tag "${newTagValue}" already selected.`);
     }
   };
 
-  // Basic option label format - just shows the tag name
-  const formatOptionLabel = ({ label }) => <span>{label}</span>;
+  // Define the function to load options asynchronously based on input
+  const loadOptions = (inputValue, callback) => {
+    if (!inputValue) {
+      // If input is empty, show top N tags sorted by count
+      const sortedOptions = [...availableOptions].sort(
+        (a, b) => (b.count || 0) - (a.count || 0)
+      );
+      callback(sortedOptions.slice(0, 50));
+    } else {
+      // If input is not empty, filter and show top N matching tags
+      const filteredOptions = availableOptions.filter((option) =>
+        option.label.toLowerCase().includes(inputValue.toLowerCase())
+      );
+      // Optional: Sort filtered results by count as well
+      const sortedFilteredOptions = filteredOptions.sort(
+        (a, b) => (b.count || 0) - (a.count || 0)
+      );
+      callback(sortedFilteredOptions.slice(0, 50));
+    }
+  };
+
+  // Custom format for dropdown options to include count and styling
+  const formatOptionLabel = ({ label, count }, { context }) => {
+    // Only show the count and apply styling when rendering in the menu (dropdown)
+    if (context === 'menu') {
+      const numericCount = count !== undefined ? parseInt(count, 10) : 0;
+      const weightClass = tagweight(numericCount);
+      return (
+        <div className="item">
+          {' '}
+          {/* Optional: Keep .item class if used by react-select styles */}
+          {label}
+          <span className={`optioncount ${weightClass}`}>{numericCount}</span>
+        </div>
+      );
+    }
+    // When rendering as a selected value, just return the label text
+    return label;
+  };
 
   return (
-    <CreatableSelect
+    <AsyncCreatableSelect
       isMulti
-      options={availableOptions}
-      value={currentSelectedOptions} // Use the recalculated value based on current props
+      value={currentSelectedOptions}
       onChange={handleChange}
-      onCreateOption={handleCreate} // Still needed to trigger the creation process in react-select
+      onCreateOption={handleCreate}
       formatOptionLabel={formatOptionLabel}
       placeholder="Add or create tags..."
-      // Ensure selectize behaviours are mapped:
-      hideSelectedOptions={true} // Default is usually true, but explicit is good
-      // We might need onKeyDown handler later for fine-tuning Enter/Tab/etc.
+      hideSelectedOptions={true}
+      captureMenuScroll={false}
+      components={{
+        MenuList: VirtualizedMenuList,
+      }}
+      loadOptions={loadOptions}
+      defaultOptions={defaultOptionsList}
+      classNamePrefix="pincushion-tag-select"
     />
   );
 };

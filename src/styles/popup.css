@@ -10,6 +10,7 @@ body {
   background: #fdfdfd;
   color: #333;
   transition: background-color 0.6s ease;
+  font-family: "Helvetica Neue", Helvetica, "Arial Unicode", Arial, "Nimbus Sans L", "Liberation Sans", FreeSans, sans-serif;
 
   @media only screen and (min-width: 480px) {
     min-height: 1400px;
@@ -268,11 +269,7 @@ button:hover { background-color: #0056b3; }
 .remove-hash:hover {
   background-color: #f3f3f3;
 }
-.tag-suggestions {
-  margin-top: 24px;
-  margin: 0.5em 0 0.8em;
-  line-height: 1.9;
-}
+
 .tag-suggestions h4 {
   margin: 0 0 8px;
   font-size: 1em;
@@ -286,16 +283,16 @@ button:hover { background-color: #0056b3; }
 }
 /* Allow suggestion buttons to reflow during exit */
 .suggestions-list {
+  margin-top: 24px;
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
   margin: 0.5em 0 0.8em;
-  line-height: 1.9;
+  line-height: 5;
 }
 .suggestions-list button {
   position: relative;
   font-size: 12px;
-  line-height: 1.2;
   margin: 0 0.3em 0 0.2em;
   padding: 3px 10px 4px;
   border: 1px solid #445;
@@ -357,7 +354,7 @@ button:hover { background-color: #0056b3; }
   transform: translate(2px,2px);
 }
 #modifiers input[type=checkbox] {
-  margin: 0 5px 0 13px;
+  margin: 0 10px 0 13px;
   transform: scale(1.5);
 }
 
@@ -409,4 +406,36 @@ a {
   text-decoration: none;
   font-weight: bold;
   color: #00d;
+}
+
+/* Selectize dropdown option count styling */
+.optioncount {
+  margin-left: 65px;
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 300;
+  color: #bbb;
+  float: right; /* Align count to the right */
+  margin-right: 10px; /* Add some space from the edge */
+}
+
+/* Tag weight classes */
+.tw1 {
+  font-weight: 400;
+}
+
+.tw10 {
+  font-weight: 400;
+  color: #99b;
+}
+
+.tw50 {
+  font-size: 110%;
+  font-weight: 600;
+  color: #aaf;
+}
+
+.tw100 {
+  font-size: 120%;
+  font-weight: 700;
+  color: #89f;
 }

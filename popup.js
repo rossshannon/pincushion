@@ -1,7 +1,7 @@
 import * as Ladda from 'ladda';
 import OpenAI from 'openai';
 
-(function() {
+(function () {
   const originalSearch = window.location.search;
   let url_params;
 
@@ -21,8 +21,7 @@ import OpenAI from 'openai';
     submit_error_timer,
     field_error_timer;
 
-  let bookmark,
-    existingTags;
+  let bookmark, existingTags;
 
   const SUBMISSION_BLOCK_DELAY = 10,
     API_ENDPOINT = 'https://pinboard-api.herokuapp.com/',
@@ -30,7 +29,7 @@ import OpenAI from 'openai';
     SUBMISSION_REQUEST_TIMEOUT = 25000, // 25 seconds
     GPT_TEMPERATURE = 0.4;
 
-  $(function() {
+  $(function () {
     if (!url_params || Object.keys(url_params).length === 0) {
       parse_url_parameters();
     }
@@ -89,7 +88,7 @@ import OpenAI from 'openai';
   function authenticate_user() {
     if (!(url_params['user'] && url_params['token'])) {
       display_critical_error(
-        "You must provide both ‘user’ and ‘token’ parameters to this page to allow it to use the Pinboard API."
+        "You must provide both 'user' and 'token' parameters to this page to allow it to use the Pinboard API."
       );
     }
   }
@@ -100,71 +99,81 @@ import OpenAI from 'openai';
       return;
     }
     var bookmark_details_api =
-      API_ENDPOINT + 'posts/get?format=json&auth_token=' + auth_token() + '&url=' + clean_url(url_params['url']);
+      API_ENDPOINT +
+      'posts/get?format=json&auth_token=' +
+      auth_token() +
+      '&url=' +
+      clean_url(url_params['url']);
 
     $.support.cors = true;
     $.ajax({
       url: bookmark_details_api,
       type: 'GET',
       headers: {
-        'Accept': 'application/json'
-      }
+        Accept: 'application/json',
+      },
     })
-    .done(function(response) {
-      $('#mainspinner').addClass('hidden');
-      $('#submit').data('stateText', 'Add bookmark');
+      .done(function (response) {
+        $('#mainspinner').addClass('hidden');
+        $('#submit').data('stateText', 'Add bookmark');
 
-      if (response['posts'].length !== 1) {
-        queryGPTForTags()
-          .then(console.log)
-          .catch(console.error);
-        return;
-      } else {
-        bookmark = response['posts'][0];
-        queryGPTForTags()
-          .then(console.log)
-          .catch(console.error);
-      }
-
-      $('input#title').val(bookmark['description']);
-
-      if (bookmark['extended']) {
-        if ($.trim(bookmark['extended']) !== $.trim(url_params['description'])) {
-          $('textarea#description').val($.trim(bookmark['extended']) + '\n\n' + $.trim(url_params['description']));
+        if (response['posts'].length !== 1) {
+          queryGPTForTags().then(console.log).catch(console.error);
+          return;
+        } else {
+          bookmark = response['posts'][0];
+          queryGPTForTags().then(console.log).catch(console.error);
         }
-      }
-      leave_a_gap();
 
-      prepopulate_tags(bookmark['tags']);
+        $('input#title').val(bookmark['description']);
 
-      if (bookmark['shared'] === 'no') {
-        $('#private').prop('checked', true).change();
-      } else {
-        $('#private').prop('checked', false);
-      }
+        if (bookmark['extended']) {
+          if (
+            $.trim(bookmark['extended']) !== $.trim(url_params['description'])
+          ) {
+            $('textarea#description').val(
+              $.trim(bookmark['extended']) +
+                '\n\n' +
+                $.trim(url_params['description'])
+            );
+          }
+        }
+        leave_a_gap();
 
-      if (bookmark['toread'] === 'yes') {
-        $('#toread').prop('checked', true);
-      } else {
-        $('#toread').prop('checked', false);
-      }
+        prepopulate_tags(bookmark['tags']);
 
-      if (bookmark['time']) {
-        var date = new Date(bookmark['time']);
-        showBookmarkTimestamp(date);
-      }
+        if (bookmark['shared'] === 'no') {
+          $('#private').prop('checked', true).change();
+        } else {
+          $('#private').prop('checked', false);
+        }
 
-      $('#submit').data('stateText', 'Update bookmark');
-      $('#submit span.text').text('Update bookmark');
-    })
-    .fail(function(response) {
-      if (response.status === 0) {
-        display_critical_error('Unable to connect to the API. Please check your connection and try again.');
-        display_reload_button();
-      } else if (response.status === 401) {
-        display_critical_error('401 Unauthorised. Please check the username and API access token you provided.');
-      }
-    });
+        if (bookmark['toread'] === 'yes') {
+          $('#toread').prop('checked', true);
+        } else {
+          $('#toread').prop('checked', false);
+        }
+
+        if (bookmark['time']) {
+          var date = new Date(bookmark['time']);
+          showBookmarkTimestamp(date);
+        }
+
+        $('#submit').data('stateText', 'Update bookmark');
+        $('#submit span.text').text('Update bookmark');
+      })
+      .fail(function (response) {
+        if (response.status === 0) {
+          display_critical_error(
+            'Unable to connect to the API. Please check your connection and try again.'
+          );
+          display_reload_button();
+        } else if (response.status === 401) {
+          display_critical_error(
+            '401 Unauthorised. Please check the username and API access token you provided.'
+          );
+        }
+      });
   }
 
   /** Ensure window is tall enough to show all form elements. */
@@ -174,7 +183,7 @@ import OpenAI from 'openai';
     if (window.outerHeight < min_height) {
       window.resizeTo(min_width, min_height);
     }
-    $(document).keydown(function(e) {
+    $(document).keydown(function (e) {
       close_window(e);
     });
   }
@@ -185,7 +194,9 @@ import OpenAI from 'openai';
 
   function serialized_inputs() {
     $('#description').val($.trim($('#description').val()));
-    var serialized_form_inputs = $('#url, #title, #description, #tags').serialize();
+    var serialized_form_inputs = $(
+      '#url, #title, #description, #tags'
+    ).serialize();
     if ($('#private').prop('checked')) {
       serialized_form_inputs += '&shared=no';
     }
@@ -204,8 +215,10 @@ import OpenAI from 'openai';
   }
 
   function display_reload_button() {
-    $('#mainspinner').replaceWith('<button id="reload"><i class="fa fa-repeat"></i></button>');
-    $('#reload').click(function(event) {
+    $('#mainspinner').replaceWith(
+      '<button id="reload"><i class="fa fa-repeat"></i></button>'
+    );
+    $('#reload').click(function (event) {
       event.preventDefault();
       $(this).addClass('active');
       window.location.reload();
@@ -236,12 +249,12 @@ import OpenAI from 'openai';
     clearTimeout(submit_error_timer);
     clearTimeout(field_error_timer);
 
-    submit_error_timer = setTimeout(function() {
+    submit_error_timer = setTimeout(function () {
       $('#submit').removeClass('fail');
       $('#submit span.text').text($('#submit').data('stateText'));
     }, 1500);
-    field_error_timer = setTimeout(function() {
-      $('label span.helptext').fadeOut(300, function() {
+    field_error_timer = setTimeout(function () {
+      $('label span.helptext').fadeOut(300, function () {
         $(this).remove();
         $('label').removeClass('error');
       });
@@ -257,20 +270,16 @@ import OpenAI from 'openai';
     var tags = tag_string.split(' ');
     for (var i = 0; i < tags.length; i++) {
       $('input#tags')[0].selectize.addOption({
-        label: tags[i]
+        label: tags[i],
       });
       $('input#tags')[0].selectize.addItem(tags[i]);
       $('input#tags')[0].selectize.close(); // stop it from opening after these programmatic additions
     }
 
     $('#suggested button')
-      .filter(function() {
-        // don’t suggest tags that the bookmark already has
-        return (
-          $(this)
-            .text()
-            .toLowerCase() === tags[i]
-        );
+      .filter(function () {
+        // don't suggest tags that the bookmark already has
+        return $(this).text().toLowerCase() === tags[i];
       })
       .remove();
   }
@@ -289,36 +298,36 @@ import OpenAI from 'openai';
       valueField: 'label',
       labelField: 'label',
       searchField: ['label', 'normalised_label'],
-      score: function(search) {
+      score: function (search) {
         var score = this.getScoreFunction(search);
 
-        return function(item) {
+        return function (item) {
           return score(item) * (1 + item.count / 100);
         };
       },
       plugins: {
         remove_button: {
-          title: 'Remove this tag'
-        }
+          title: 'Remove this tag',
+        },
       },
-      onEnterKeypress: function() {
+      onEnterKeypress: function () {
         if (submission_block_timer === false) {
           // only if user is not entering tags
           $('#submit').click();
         }
       },
-      onChange: function() {
+      onChange: function () {
         $('input#tags')[0].selectize.close();
 
         submission_block_timer = true;
-        setTimeout(function() {
+        setTimeout(function () {
           submission_block_timer = false; // allow submission
         }, SUBMISSION_BLOCK_DELAY);
       },
-      onItemAdd: function(value, $item) {
-        $('.suggested_tag').each(function() {
+      onItemAdd: function (value, $item) {
+        $('.suggested_tag').each(function () {
           if ($(this).text() === value) {
-            $(this).hide(400, function() {
+            $(this).hide(400, function () {
               $(this).remove();
               remove_suggested_tag_separator();
             });
@@ -326,21 +335,24 @@ import OpenAI from 'openai';
         });
         $('input#tags')[0].selectize.close();
       },
-      onItemRemove: function(value, $item) {
+      onItemRemove: function (value, $item) {
         append_suggested_tag(value);
       },
       render: {
-        option: function(data, escape) {
+        option: function (data, escape) {
           const count = data.count !== undefined ? escape(data.count) : '0';
+          const numericCount =
+            data.count !== undefined ? parseInt(escape(data.count), 10) : 0;
+          const weightClass = tagweight(numericCount);
           return `
             <div class="item">
               ${escape(data.label)}
-              <span class="optioncount ${tagweight(escape(data.count))}">
+              <span class="optioncount ${weightClass}">
                 ${count}
               </span>
             </div>`;
-        }
-      }
+        },
+      },
     });
 
     populate_dropdown();
@@ -349,12 +361,11 @@ import OpenAI from 'openai';
   function populate_dropdown() {
     if (localStorage && localStorage['tags']) {
       var user_tags = JSON.parse(localStorage['tags']);
-      console.log('Populating dropdown with ' + Object.keys(user_tags).length.toLocaleString() + ' tags.');
-      $.each(user_tags, function(key, value) {
+      $.each(user_tags, function (key, value) {
         $('input#tags')[0].selectize.addOption({
           label: key,
           normalised_label: key.replace(/[&-_\[\]#,+()$~%.'":*?<>{}]/g, ''),
-          count: value
+          count: value,
         });
       });
     }
@@ -365,16 +376,20 @@ import OpenAI from 'openai';
       return;
     }
     var suggested_tags_api =
-      API_ENDPOINT + 'posts/suggest?format=json&auth_token=' + auth_token() + '&url=' + clean_url(url_params['url']);
+      API_ENDPOINT +
+      'posts/suggest?format=json&auth_token=' +
+      auth_token() +
+      '&url=' +
+      clean_url(url_params['url']);
 
     $('#tagspinner').removeClass('hidden');
     $.get(suggested_tags_api)
-      .done(function(response) {
+      .done(function (response) {
         show_suggested_tags(response);
         $('#tagspinner').addClass('hidden');
       })
 
-      .fail(function(response) {
+      .fail(function (response) {
         $('#suggestion_row th').hide(800);
         $('#tagspinner').hide(300);
       });
@@ -384,11 +399,14 @@ import OpenAI from 'openai';
     if (!tag_suggestions) {
       return;
     }
-    tag_suggestions = $.merge(tag_suggestions[1]['recommended'], tag_suggestions[0]['popular']); // flatten JSON
-    tag_suggestions = tag_suggestions.map(function(tag) {
+    tag_suggestions = $.merge(
+      tag_suggestions[1]['recommended'],
+      tag_suggestions[0]['popular']
+    ); // flatten JSON
+    tag_suggestions = tag_suggestions.map(function (tag) {
       return tag.toLowerCase(); // lowercase all tags
     });
-    tag_suggestions = $.grep(tag_suggestions, function(v, k) {
+    tag_suggestions = $.grep(tag_suggestions, function (v, k) {
       return $.inArray(v, tag_suggestions) === k; // filter out duplicates
     });
     tag_suggestions = remove_spurious_results(tag_suggestions); // empty the array if they are the default/broken suggestions
@@ -402,12 +420,16 @@ import OpenAI from 'openai';
         suggested_tags.push('<hr>');
         continue;
       }
-      /* Don’t show a suggested tag if it is already present in the tag field. */
+      /* Don't show a suggested tag if it is already present in the tag field. */
       if (
-        (' ' + $('#tags').val().toLowerCase() + ' ').indexOf(' ' + tag_suggestions[i] + ' ') === -1
+        (' ' + $('#tags').val().toLowerCase() + ' ').indexOf(
+          ' ' + tag_suggestions[i] + ' '
+        ) === -1
       ) {
         suggested_tags.push(
-          '<button type="button" class="suggested_tag">' + pin_cook(tag_suggestions[i]) + '</button>'
+          '<button type="button" class="suggested_tag">' +
+            pin_cook(tag_suggestions[i]) +
+            '</button>'
         );
       }
     }
@@ -423,11 +445,11 @@ import OpenAI from 'openai';
   }
 
   function add_tag_remove_button_handlers(selector) {
-    (selector).on('click', function(event) {
+    selector.on('click', function (event) {
       event.preventDefault();
       add_tag(pin_escape($(this).text()));
 
-      $(this).hide(100, function() {
+      $(this).hide(100, function () {
         $(this).remove();
         remove_suggested_tag_separator();
         check_if_suggested_tags_are_empty();
@@ -439,25 +461,25 @@ import OpenAI from 'openai';
     remove_suggested_tag_separator();
     if ($('#suggestion_row th').length === 0) {
       $('#suggestion_row th').hide(300);
-      $('#suggested')
-        .addClass('none')
-        .text('No suggested tags for this page.');
+      $('#suggested').addClass('none').text('No suggested tags for this page.');
     }
   }
 
   function activate_suggested_tags() {
     remove_suggested_tag_separator();
     if ($('#suggested button').length === 0) {
-      $('#suggested')
-      .removeClass('none')
-      .text('');
+      $('#suggested').removeClass('none').text('');
     }
     $('#suggestion_row th').text('suggested tags');
   }
 
   function append_suggested_tag(tag) {
     activate_suggested_tags();
-    $('#suggested').prepend('<button type="button" class="suggested_tag">' + pin_cook(tag) + '</button>');
+    $('#suggested').prepend(
+      '<button type="button" class="suggested_tag">' +
+        pin_cook(tag) +
+        '</button>'
+    );
     add_tag_remove_button_handlers($('#suggested button:first'));
   }
 
@@ -465,14 +487,10 @@ import OpenAI from 'openai';
   function remove_suggested_tag_separator() {
     if (
       $('#suggested').children().length > 0 &&
-      ($('#suggested')
-        .children(':visible')
-        .first()[0].tagName === 'HR' ||
-        $('#suggested')
-          .children(':visible')
-          .last()[0].tagName === 'HR')
+      ($('#suggested').children(':visible').first()[0].tagName === 'HR' ||
+        $('#suggested').children(':visible').last()[0].tagName === 'HR')
     ) {
-      $('#suggested hr').hide(200, function() {
+      $('#suggested hr').hide(200, function () {
         $(this).remove();
       });
     }
@@ -517,7 +535,7 @@ import OpenAI from 'openai';
     return encodeURIComponent(url);
   }
 
-  RegExp.escape = function(text) {
+  RegExp.escape = function (text) {
     return text.replace(/[-[\]{}()*+?.,\\\\'"^$|#\s]/g, '\\$&'); //"'
   };
 
@@ -541,14 +559,13 @@ import OpenAI from 'openai';
       'The tags you suggest should all be in lowercase, with no surrounding whitespace. Use underscores instead of spaces to combine words if necessary. Avoid punctuation marks.\n' +
       "Think of the key concepts, people, subjects, brands, years/decades, publishers, websites, related concepts, etc. that are likely to be relevant to the page. Think of related or alternative concepts so you're not locked into a single meaning or interpretation. Don't over-emphasise the content of the description field, as this may just be a single paragraph or user comment from the page. There should be up to 14 tags, but only include ones that you are sure are relevant. Aim for at least 6. If you can't think of any tags, return an empty array. Remove any duplicate tags, or ones that are already present in the list of existing tags (the existingTags field). Finally, sort the tags and return them in ascending order of relevance.";
 
-    existingTags =
-      bookmark ? bookmark['tags'] : '';
+    existingTags = bookmark ? bookmark['tags'] : '';
 
     let contextInputs = {
       url: url_params['url'],
       title: url_params['title'],
       description: url_params['description'],
-      existingTags: existingTags
+      existingTags: existingTags,
     };
 
     const completion = await openai.chat.completions.create({
@@ -591,46 +608,50 @@ import OpenAI from 'openai';
 
   /** Submit the form with Ajax */
   function set_up_form_submission() {
-    $('#post-to-pinboard').on('submit', function(event) {
+    $('#post-to-pinboard').on('submit', function (event) {
       event.preventDefault();
       $('#submit span.text').html('Saving bookmark&hellip;');
 
       var post_bookmark_api =
-        API_ENDPOINT + 'posts/add?format=json&auth_token=' + auth_token() + '&' + serialized_inputs();
+        API_ENDPOINT +
+        'posts/add?format=json&auth_token=' +
+        auth_token() +
+        '&' +
+        serialized_inputs();
 
       $.ajax({
         url: post_bookmark_api,
         type: 'GET',
         timeout: SUBMISSION_REQUEST_TIMEOUT,
         headers: {
-          'Accept': 'application/json'
-        }
+          Accept: 'application/json',
+        },
       })
-      .done(function(response) {
-        if (response['result_code'] === 'done') {
-          console.log('Bookmark saved correctly.');
-          Ladda.stopAll();
-          $('#submit').addClass('success');
-          $('#submit span.text').text('Bookmark saved!');
+        .done(function (response) {
+          if (response['result_code'] === 'done') {
+            console.log('Bookmark saved correctly.');
+            Ladda.stopAll();
+            $('#submit').addClass('success');
+            $('#submit span.text').text('Bookmark saved!');
 
-          save_updated_user_tags();
+            save_updated_user_tags();
 
-          setTimeout(function() {
-            window.close();
-            setTimeout(function() {
-              $('#submit').removeClass('success');
-              $('#submit span.text').text($('#submit').data('stateText'));
-              showBookmarkTimestamp(new Date());
-            }, 300);
-          }, 900);
-        } else {
-          handleApiError(response);
-        }
-      })
-      .fail(handleApiError);
+            setTimeout(function () {
+              window.close();
+              setTimeout(function () {
+                $('#submit').removeClass('success');
+                $('#submit span.text').text($('#submit').data('stateText'));
+                showBookmarkTimestamp(new Date());
+              }, 300);
+            }, 900);
+          } else {
+            handleApiError(response);
+          }
+        })
+        .fail(handleApiError);
     });
 
-    $('input, textarea').on('blur', function() {
+    $('input, textarea').on('blur', function () {
       $('body').animate({ scrollTop: 0 }, 200);
     });
 
@@ -638,11 +659,11 @@ import OpenAI from 'openai';
       $('input#tags')[0].selectize.focus(); // focus tags field for non-touch-based browsers
     }
 
-    $('textarea#description').on('blur', function() {
+    $('textarea#description').on('blur', function () {
       leave_a_gap();
     });
 
-    $('#private').on('change', function() {
+    $('#private').on('change', function () {
       reflect_private_status();
     });
 
@@ -671,9 +692,13 @@ import OpenAI from 'openai';
       $('#description').addClass('expanded');
       $('#description').focus();
     } else if (response.status === 401) {
-      display_critical_error('401 Unauthorised. Please check the username and API access token you provided.');
+      display_critical_error(
+        '401 Unauthorised. Please check the username and API access token you provided.'
+      );
     } else {
-      display_critical_error('An error occurred while saving the bookmark. Please try again.');
+      display_critical_error(
+        'An error occurred while saving the bookmark. Please try again.'
+      );
     }
 
     $('.helptext').fadeIn();
@@ -694,7 +719,9 @@ import OpenAI from 'openai';
       '@codepo8',
       '1960s',
     ];
-    const areAllSpuriousTagsPresent = spuriousTags.every(tag => tag_suggestions.includes(tag));
+    const areAllSpuriousTagsPresent = spuriousTags.every((tag) =>
+      tag_suggestions.includes(tag)
+    );
     return areAllSpuriousTagsPresent ? [] : tag_suggestions;
   }
 
@@ -760,12 +787,12 @@ import OpenAI from 'openai';
       'instapaper:import',
       'googlereader',
       'no_tag',
-      'evernote-web-clipper'
+      'evernote-web-clipper',
     ];
-    tag_suggestions = $.grep(tag_suggestions, function(tag) {
+    tag_suggestions = $.grep(tag_suggestions, function (tag) {
       return $.inArray(tag.toLowerCase(), ignored_tags) === -1; // filter out matches
     });
-    tag_suggestions = $.grep(tag_suggestions, function(tag) {
+    tag_suggestions = $.grep(tag_suggestions, function (tag) {
       return tag.toLowerCase().match(/^via:/) === null; // filter out all 'via:' tags
     });
     return tag_suggestions;
@@ -780,7 +807,7 @@ import OpenAI from 'openai';
     var user_tags = JSON.parse(localStorage['tags']);
     var separator = true;
 
-    $.each(tag_suggestions, function(index, tag) {
+    $.each(tag_suggestions, function (index, tag) {
       if (user_tags.hasOwnProperty(tag)) {
         // user has used this tag before
         if (separator) {
@@ -797,7 +824,7 @@ import OpenAI from 'openai';
 
   function add_tag(tag) {
     $('input#tags')[0].selectize.addOption({
-      label: tag
+      label: tag,
     });
     $('input#tags')[0].selectize.addItem(tag);
   }
@@ -809,7 +836,9 @@ import OpenAI from 'openai';
     if (!localStorage.tags) {
       download_user_tags();
     } else {
-      console.log('Have a record of tags already, setting up delayed download.');
+      console.log(
+        'Have a record of tags already, setting up delayed download.'
+      );
       setTimeout(function () {
         download_user_tags();
       }, TAG_DOWNLOAD_DELAY); // wait 10 seconds, then refresh tags
@@ -818,33 +847,34 @@ import OpenAI from 'openai';
 
   function download_user_tags() {
     console.log("Downloading user's tags...");
-    var all_tags_api = API_ENDPOINT + 'tags/get?format=json&auth_token=' + auth_token();
+    var all_tags_api =
+      API_ENDPOINT + 'tags/get?format=json&auth_token=' + auth_token();
 
     $.ajax({
       url: all_tags_api,
       type: 'GET',
       headers: {
-        'Accept': 'application/json'
-      }
+        Accept: 'application/json',
+      },
     })
-    .done(function(response) {
-      localStorage['tags'] = JSON.stringify(response);
-      localStorage['tags-updated'] = new Date();
-      console.log('Downloaded tags.');
-      populate_dropdown();
-    })
-    .fail(function(response) {
-      if (response.status === 401) {
-        display_critical_error('401 Unauthorised. Please check the username and API access token you provided.');
-      }
-    });
+      .done(function (response) {
+        localStorage['tags'] = JSON.stringify(response);
+        localStorage['tags-updated'] = new Date();
+        console.log('Downloaded tags.');
+        populate_dropdown();
+      })
+      .fail(function (response) {
+        if (response.status === 401) {
+          display_critical_error(
+            '401 Unauthorised. Please check the username and API access token you provided.'
+          );
+        }
+      });
   }
 
   function save_updated_user_tags() {
     var user_tags = JSON.parse(localStorage['tags']);
-    var potentially_new_tags = $('input#tags')
-      .val()
-      .split(' ');
+    var potentially_new_tags = $('input#tags').val().split(' ');
 
     for (var i = 0; i < potentially_new_tags.length; i++) {
       if (user_tags[potentially_new_tags[i]]) {
@@ -856,7 +886,8 @@ import OpenAI from 'openai';
         ) {
           continue; // this tag was already present when the bookmark was saved previously
         } else {
-          user_tags[potentially_new_tags[i]] = parseInt(user_tags[potentially_new_tags[i]]) + 1; // new tag, increment count
+          user_tags[potentially_new_tags[i]] =
+            parseInt(user_tags[potentially_new_tags[i]]) + 1; // new tag, increment count
         }
       } else {
         user_tags[potentially_new_tags[i]] = 1; // completely new tag, instantiate it in local tag set
