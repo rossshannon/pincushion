@@ -5,14 +5,17 @@ import { setFormData } from '../redux/bookmarkSlice';
 
 function TagAutocomplete() {
   const dispatch = useDispatch();
-  const allTags = useSelector((state) => state.tags.allTags);
+  const tagCounts = useSelector((state) => state.tags.tagCounts);
   const selected = useSelector((state) =>
     state.bookmark.formData.tags
       .split(' ')
       .filter(Boolean)
       .map((tag) => ({ value: tag, label: tag }))
   );
-  const options = allTags.map((tag) => ({ value: tag, label: tag }));
+  const options = Object.keys(tagCounts).map((tag) => ({
+    value: tag,
+    label: tag,
+  }));
   const handleChange = (selectedOptions) => {
     const tags = selectedOptions ? selectedOptions.map((o) => o.value) : [];
     dispatch(setFormData({ tags: tags.join(' ') }));

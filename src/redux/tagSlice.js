@@ -14,7 +14,8 @@ export const fetchTags = createAsyncThunk(
         `https://pinboard-api.herokuapp.com/tags/get?format=json&auth_token=${user}:${token}`
       );
       // response.data is object mapping tag->count
-      return Object.keys(response.data || {});
+      // Return the full object instead of just keys
+      return response.data || {};
     } catch (err) {
       return rejectWithValue(err.message);
     }
@@ -53,7 +54,7 @@ export const fetchSuggestedTags = createAsyncThunk(
 const tagSlice = createSlice({
   name: 'tags',
   initialState: {
-    allTags: [],
+    tagCounts: {}, // Renamed from allTags, initialized as object
     suggested: [],
     suggestedLoading: false,
     error: null,
@@ -63,18 +64,22 @@ const tagSlice = createSlice({
       state.suggested = state.suggested.filter((tag) => tag !== action.payload);
     },
     /**
-     * Initialize allTags from cached storage
+     * Initialize tagCounts from cached storage
      */
-    setAllTags(state, action) {
-      state.allTags = Array.isArray(action.payload) ? action.payload : [];
+    setTagCounts(state, action) {
+      // Renamed from setAllTags
+      state.tagCounts =
+        typeof action.payload === 'object' && action.payload !== null
+          ? action.payload
+          : {};
     },
   },
   extraReducers: (builder) => {
     builder
       .addCase(fetchTags.fulfilled, (state, action) => {
-        state.allTags = action.payload;
+        state.tagCounts = action.payload; // Store the tag->count object
         try {
-          // Cache tags and timestamp in localStorage
+          // Cache tag->count object and timestamp in localStorage
           localStorage.setItem('tags', JSON.stringify(action.payload));
           localStorage.setItem('tagTimestamp', Date.now().toString());
         } catch (_) {}
@@ -98,5 +103,5 @@ const tagSlice = createSlice({
   },
 });
 
-export const { addSuggestedTag, setAllTags } = tagSlice.actions;
+export const { addSuggestedTag, setTagCounts } = tagSlice.actions; // Updated export
 export default tagSlice.reducer;

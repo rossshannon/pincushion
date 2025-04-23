@@ -7,7 +7,7 @@ import React, { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { setAuth } from './redux/authSlice';
 import { setFormData, fetchBookmarkDetails } from './redux/bookmarkSlice';
-import { fetchTags, fetchSuggestedTags, setAllTags } from './redux/tagSlice';
+import { fetchTags, fetchSuggestedTags, setTagCounts } from './redux/tagSlice';
 
 function App() {
   const dispatch = useDispatch();
@@ -44,8 +44,9 @@ function App() {
         const cached = localStorage.getItem('tags');
         if (cached) {
           const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed)) {
-            dispatch(setAllTags(parsed));
+          // Check if parsed is an object (for tag counts)
+          if (typeof parsed === 'object' && parsed !== null) {
+            dispatch(setTagCounts(parsed));
           }
         }
       } catch (_e) {}
