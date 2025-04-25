@@ -8,7 +8,7 @@ import './TagInput.css'; // Import the CSS file
  * TagInput component using react-select/async-creatable for tag selection and creation.
  *
  * @param {object} userTags - Object mapping tag names to usage counts. e.g., { 'react': 50, 'javascript': 100 }
- * @param {string[]} initialTags - Array of initial tag strings. e.g., ['react', 'typescript']
+ * @param {string[]} value - Array of current tag strings (controlled). e.g., ['react', 'typescript']
  * @param {function} onChange - Callback function when tags change. Receives an array of tag strings.
  */
 
@@ -30,9 +30,9 @@ const MultiValueLabel = ({ children }) => {
   return <>{children}</>;
 };
 
-const TagInput = ({ userTags = {}, initialTags = [], onChange }) => {
-  // Convert initialTags array to the format react-select expects: { label: string, value: string }
-  const currentSelectedOptions = initialTags.map((tag) => ({
+const TagInput = ({ userTags = {}, value = [], onChange }) => {
+  // Convert value array to the format react-select expects: { label: string, value: string }
+  const currentSelectedOptions = value.map((tag) => ({
     label: tag,
     value: tag,
   }));
@@ -63,13 +63,13 @@ const TagInput = ({ userTags = {}, initialTags = [], onChange }) => {
   const handleCreate = (inputValue) => {
     const newTagValue = inputValue.trim();
     if (!newTagValue) return;
-    const newOption = { label: newTagValue, value: newTagValue };
-    const currentValues = currentSelectedOptions.map((opt) => opt.value);
-    if (!currentValues.includes(newTagValue)) {
-      const newSelectedTagValues = [...currentValues, newTagValue];
+    // Check against the current value prop
+    if (!value.includes(newTagValue)) {
+      const newSelectedTagValues = [...value, newTagValue];
       onChange(newSelectedTagValues);
     } else {
-      console.log(`Tag "${newTagValue}" already selected.`);
+      // Duplicate - react-select likely handles this, maybe log differently or remove
+      // console.log(`Tag "${newTagValue}" already selected.`);
     }
   };
 
@@ -128,6 +128,7 @@ const TagInput = ({ userTags = {}, initialTags = [], onChange }) => {
       }}
       loadOptions={loadOptions}
       defaultOptions={defaultOptionsList}
+      createOptionPosition="first"
       classNamePrefix="pincushion-tag-select"
     />
   );
@@ -135,7 +136,7 @@ const TagInput = ({ userTags = {}, initialTags = [], onChange }) => {
 
 TagInput.propTypes = {
   userTags: PropTypes.objectOf(PropTypes.number),
-  initialTags: PropTypes.arrayOf(PropTypes.string),
+  value: PropTypes.arrayOf(PropTypes.string),
   onChange: PropTypes.func.isRequired,
 };
 
