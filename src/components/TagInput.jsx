@@ -39,7 +39,6 @@ const TagInput = ({ userTags = {}, initialTags = [], onChange }) => {
 
   // Memoize the full list of available options
   const availableOptions = useMemo(() => {
-    console.log('Recalculating available Options...');
     return Object.entries(userTags).map(([label, count]) => ({
       label,
       value: label,

@@ -143,6 +143,7 @@ function BookmarkForm() {
     <form
       onSubmit={handleSubmit}
       className={`bookmark-form ${status === 'error' ? 'fail' : ''}`}
+      role="form"
     >
       <div id="bookmark-save" className="bookmark-save">
         {initialLoading && (
@@ -162,6 +163,12 @@ function BookmarkForm() {
           <span className="ladda-label text">{buttonText()}</span>
         </button>
       </div>
+
+      {errors?.generic && (
+        <div className="error-message" role="alert">
+          {errors.generic}
+        </div>
+      )}
 
       {existingBookmarkTime && ( // Only render if timestamp exists
         <div className="timestamp-info" title={absoluteTimeStr}>

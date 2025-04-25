@@ -113,6 +113,18 @@ label, input[type=checkbox] {
   animation: ahem 0.8s ease 0;
 }
 
+.error-message {
+  display: block;
+  color: #ff6868;
+  text-shadow: 1px 1px 1px #fff;
+  padding: 0.5em;
+  margin: 0.5em 0;
+  text-align: center;
+  font-weight: 500;
+  background: rgba(255, 104, 104, 0.1);
+  border-radius: 4px;
+}
+
 /* Animations for tag suggestion enter/exit */
 /* Container for suggestion, handles layout shrink */
 .suggestion-item {
