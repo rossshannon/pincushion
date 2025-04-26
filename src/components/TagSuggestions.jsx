@@ -22,7 +22,12 @@ const TagSuggestions = () => {
   };
 
   if (isLoading) {
-    return <div className="tag-suggestions">Loading suggestions...</div>;
+    return (
+      <div className="tag-suggestions">
+        <span className="spinner" id="tagspinner"></span>
+        finding suggested tags&hellip;
+      </div>
+    );
   }
 
   if (isEmpty) {
@@ -30,18 +35,14 @@ const TagSuggestions = () => {
   }
 
   return (
-    <div className="tag-suggestions">
+    <div className="suggestions-list">
       {suggestions.map((tag, index) =>
         tag === '$separator' ? (
           <span key={`separator-${index}`} className="separator">
             •
           </span>
         ) : (
-          <button
-            key={tag}
-            onClick={() => handleClick(tag)}
-            className="tag-suggestion"
-          >
+          <button key={tag} onClick={() => handleClick(tag)}>
             {tag}
           </button>
         )

@@ -44,6 +44,7 @@
     "babel-jest": "^29.7.0",
     "browserify": "^17.0.0",
     "browserslist": "^4.22.1",
+    "eslint-plugin-react-hooks": "^5.2.0",
     "grunt": "^1.5.3",
     "grunt-babel": "^8.0.0",
     "grunt-browserify": "^6.0.0",

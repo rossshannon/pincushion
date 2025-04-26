@@ -48,7 +48,9 @@ function App() {
             dispatch(setTagCounts(parsed));
           }
         }
-      } catch (_e) {}
+      } catch (_e) {
+        // Intentionally empty: Failed to load tags from cache, will fetch later.
+      }
       // Refresh tags via API after delay
       const TAG_CACHE_DELAY = 10000; // ms
       const timer = setTimeout(() => dispatch(fetchTags()), TAG_CACHE_DELAY);

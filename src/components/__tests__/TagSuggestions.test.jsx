@@ -57,7 +57,7 @@ describe('TagSuggestions Component', () => {
       </Provider>
     );
 
-    expect(screen.getByText('Loading suggestions...')).toBeInTheDocument();
+    expect(screen.getByText('finding suggested tags…')).toBeInTheDocument();
   });
 
   test('renders nothing when suggestions are empty', () => {

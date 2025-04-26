@@ -22,6 +22,7 @@ const tagweight = (count) => {
 };
 
 // Custom component to render only the label for selected tags (MultiValue)
+// eslint-disable-next-line no-unused-vars
 const MultiValueLabel = ({ children }) => {
   // Return only the children (the label text) directly, wrapped in a fragment
   // This avoids adding any extra DOM element that might interfere.
@@ -32,10 +33,12 @@ const MultiValueLabel = ({ children }) => {
 
 const TagInput = ({ userTags = {}, value = [], onChange }) => {
   // Convert value array to the format react-select expects: { label: string, value: string }
-  const currentSelectedOptions = value.map((tag) => ({
-    label: tag,
-    value: tag,
-  }));
+  const currentSelectedOptions = useMemo(() => {
+    return value.map((tag) => ({
+      label: tag,
+      value: tag,
+    }));
+  }, [value]); // Memoize based on the input 'value' prop
 
   // Memoize the full list of available options
   const availableOptions = useMemo(() => {

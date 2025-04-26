@@ -76,25 +76,32 @@ const tagSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      .addCase(fetchTags.pending, (state) => {
+        // Add error reset on pending if desired, though fulfilled/rejected handle it here
+        state.error = null; // Explicitly reset error on new fetch attempt
+      })
       .addCase(fetchTags.fulfilled, (state, action) => {
-        state.tagCounts = action.payload; // Store the tag->count object
+        state.tagCounts = action.payload || {};
+        state.error = null;
         try {
-          // Cache tag->count object and timestamp in localStorage
-          localStorage.setItem('tags', JSON.stringify(action.payload));
+          localStorage.setItem('tags', JSON.stringify(state.tagCounts));
           localStorage.setItem('tagTimestamp', Date.now().toString());
-        } catch (_) {}
+        } catch (_) {
+          // Intentionally empty: Failure to cache tags in localStorage is not critical.
+        }
       })
       .addCase(fetchTags.rejected, (state, action) => {
         state.error = action.payload;
       })
       // Suggested tags
       .addCase(fetchSuggestedTags.pending, (state) => {
-        state.suggestedLoading = true;
+        state.suggestedLoading = true; // Ensure this is set
         state.error = null;
       })
       .addCase(fetchSuggestedTags.fulfilled, (state, action) => {
         state.suggestedLoading = false;
         state.suggested = action.payload;
+        state.error = null; // Reset error on success
       })
       .addCase(fetchSuggestedTags.rejected, (state, action) => {
         state.suggestedLoading = false;

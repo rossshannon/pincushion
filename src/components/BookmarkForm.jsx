@@ -250,7 +250,7 @@ function BookmarkForm() {
       <label>
         tags
         <TagInput
-          initialTags={initialTagsArray}
+          value={initialTagsArray}
           userTags={userTags || {}}
           onChange={handleTagsChange}
         />

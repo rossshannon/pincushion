@@ -109,11 +109,12 @@ const initialState = {
     private: false,
     toread: false,
   },
-  status: '',
+  status: 'idle',
   data: null,
   errors: {
     url: null,
     title: null,
+    description: null,
     generic: null,
   },
   initialLoading: false,
@@ -127,30 +128,35 @@ const bookmarkSlice = createSlice({
     setFormData(state, action) {
       const fieldName = Object.keys(action.payload)[0];
       state.formData = { ...state.formData, ...action.payload };
-      // Clear specific field error when user types in that field
-      if (fieldName === 'url' && state.errors.url) {
-        state.errors.url = null;
+      // Ensure state.errors exists before trying to access properties
+      if (state.errors) {
+        if (fieldName === 'url' && state.errors.url) {
+          state.errors.url = null;
+        }
+        if (fieldName === 'title' && state.errors.title) {
+          state.errors.title = null;
+        }
+        // Add similar checks for description if needed
       }
-      if (fieldName === 'title' && state.errors.title) {
-        state.errors.title = null;
-      }
-      // Clear generic error on any field change? Maybe too aggressive.
-      // Let's clear generic only on submit attempt or success/reset.
     },
     resetStatus(state) {
-      state.status = 'idle'; // Use 'idle' for consistency
-      state.errors = { url: null, title: null, generic: null }; // Clear all errors
+      state.status = 'idle';
+      // Reset errors to the full initial structure
+      state.errors = { ...initialState.errors };
     },
   },
   extraReducers: (builder) => {
     builder
       .addCase(fetchBookmarkDetails.pending, (state) => {
         state.initialLoading = true;
-        state.existingBookmarkTime = null; // Clear timestamp on new fetch
-        state.errors = { url: null, title: null, generic: null }; // Clear errors
+        state.existingBookmarkTime = null;
+        // Reset errors to the full initial structure
+        state.errors = { ...initialState.errors };
       })
       .addCase(fetchBookmarkDetails.fulfilled, (state, action) => {
         state.initialLoading = false;
+        // Reset errors on success
+        state.errors = { ...initialState.errors };
         const post = action.payload;
         if (post) {
           // Populate formData from existing bookmark
@@ -164,55 +170,50 @@ const bookmarkSlice = createSlice({
           state.existingBookmarkTime = post.time || null;
         }
       })
-      .addCase(fetchBookmarkDetails.rejected, (state) => {
+      .addCase(fetchBookmarkDetails.rejected, (state, action) => {
         state.initialLoading = false;
-        // Potentially set a generic error here?
-        // state.errors.generic = "Failed to load existing bookmark details.";
+        // Set generic error, ensure full errors object exists
+        state.errors = {
+          ...initialState.errors,
+          generic:
+            action.payload || 'Failed to load existing bookmark details.',
+        };
       })
       .addCase(submitBookmark.pending, (state) => {
         state.status = 'saving';
-        // Clear previous errors on new attempt
-        state.errors = { url: null, title: null, generic: null };
+        // Reset errors to the full initial structure
+        state.errors = { ...initialState.errors };
       })
       .addCase(submitBookmark.fulfilled, (state, action) => {
         state.status = 'success';
         state.data = action.payload;
-        state.errors = { url: null, title: null, generic: null }; // Clear errors on success
+        // Reset errors to the full initial structure
+        state.errors = { ...initialState.errors };
       })
       .addCase(submitBookmark.rejected, (state, action) => {
         state.status = 'error';
-        state.errors = {
-          url: null,
-          title: null,
-          description: null,
-          generic: null,
-        }; // Reset errors initially
+        // Start with a clean error structure before applying specific errors
+        const newErrors = { ...initialState.errors };
 
-        // Distinguish between validation, API, description length, and generic errors
         if (action.payload?.validationErrors) {
-          state.errors = {
-            ...state.errors,
-            ...action.payload.validationErrors,
-          };
+          Object.assign(newErrors, action.payload.validationErrors);
         } else if (action.payload?.apiError) {
-          // Map known API errors like 'missing url' or 'must provide title'
           const apiErrorCode = action.payload.apiError;
           if (apiErrorCode === 'missing url') {
-            state.errors.url = ERROR_MESSAGES.MISSING_URL;
+            newErrors.url = ERROR_MESSAGES.MISSING_URL;
           } else if (apiErrorCode === 'must provide title') {
-            state.errors.title = ERROR_MESSAGES.MISSING_TITLE;
+            newErrors.title = ERROR_MESSAGES.MISSING_TITLE;
           } else {
-            // Use the code directly or map to a generic message if unknown
-            state.errors.generic = ERROR_MESSAGES[apiErrorCode] || apiErrorCode;
+            newErrors.generic = ERROR_MESSAGES[apiErrorCode] || apiErrorCode;
           }
         } else if (action.payload?.descriptionTooLongError) {
-          state.errors.description = ERROR_MESSAGES.DESCRIPTION_TOO_LONG;
+          newErrors.description = ERROR_MESSAGES.DESCRIPTION_TOO_LONG;
         } else if (action.payload?.genericError) {
-          state.errors.generic = action.payload.genericError;
+          newErrors.generic = action.payload.genericError;
         } else {
-          // Fallback generic error
-          state.errors.generic = ERROR_MESSAGES.GENERIC_ERROR;
+          newErrors.generic = ERROR_MESSAGES.GENERIC_ERROR;
         }
+        state.errors = newErrors; // Assign the fully constructed errors object
       });
   },
 });

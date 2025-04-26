@@ -293,19 +293,19 @@ button:hover { background-color: #0056b3; }
   color: #99a;
   font-size: 80%;
 }
-/* Allow suggestion buttons to reflow during exit */
+
 .suggestions-list {
   margin-top: 24px;
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
-  margin: 0.5em 0 0.8em;
-  line-height: 5;
+  margin: 0.8em 0 0.8em;
+  line-height: 1.5;
 }
 .suggestions-list button {
   position: relative;
   font-size: 12px;
-  margin: 0 0.3em 0 0.2em;
+  margin: 0.4em 0.3em 0 0.2em;
   padding: 3px 10px 4px;
   border: 1px solid #445;
   border-bottom-color: #335;

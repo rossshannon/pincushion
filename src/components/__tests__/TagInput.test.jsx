@@ -73,6 +73,22 @@ describe('TagInput Component', () => {
     expect(mockOnChange).toHaveBeenCalledWith(['newtag']);
   });
 
+  test('allows selecting an existing tag from dropdown', async () => {
+    render(
+      <TagInput userTags={mockUserTags} value={[]} onChange={mockOnChange} />
+    );
+
+    const input = screen.getByRole('combobox');
+    await userEvent.click(input); // Open dropdown
+
+    // Find and click the 'javascript' option
+    const javascriptOption = await screen.findByText('javascript');
+    await userEvent.click(javascriptOption.closest('.item')); // Click the option container
+
+    // Check if onChange was called with the correct tag
+    expect(mockOnChange).toHaveBeenCalledWith(['javascript']);
+  });
+
   test('filters options based on input', async () => {
     render(
       <TagInput userTags={mockUserTags} value={[]} onChange={mockOnChange} />

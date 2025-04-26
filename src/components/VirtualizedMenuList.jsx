@@ -28,7 +28,14 @@ Row.propTypes = {
 };
 
 // The VirtualizedMenuList component
-const VirtualizedMenuList = ({ options, children, maxHeight, getValue }) => {
+const VirtualizedMenuList = ({
+  options,
+  children,
+  maxHeight,
+  // eslint-disable-next-line no-unused-vars -- Required by react-select
+  getValue,
+}) => {
+  // eslint-disable-line no-unused-vars -- getValue is required by react-select but unused here
   // Removed direct style definitions, rely on the OptionComponent's styles
 
   // Determine approximate height. Let's try 40px again.
@@ -67,10 +74,10 @@ const VirtualizedMenuList = ({ options, children, maxHeight, getValue }) => {
 };
 
 VirtualizedMenuList.propTypes = {
-  options: PropTypes.array.isRequired, // Still needed to calculate height/count
-  children: PropTypes.node.isRequired, // Array of Option components or "No options" message
+  options: PropTypes.array.isRequired,
+  children: PropTypes.node.isRequired,
   maxHeight: PropTypes.number.isRequired,
-  getValue: PropTypes.func.isRequired, // Needed by react-select, even if not used directly here
+  getValue: PropTypes.func.isRequired, // Needed by react-select
 };
 
 export default VirtualizedMenuList;
