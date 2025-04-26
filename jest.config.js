@@ -1,10 +1,10 @@
 /** @type {import('jest').Config} */
 const config = {
   testEnvironment: 'jsdom',
-  setupFilesAfterEnv: ['<rootDir>/src/setupTests.js'],
+  setupFilesAfterEnv: ['<rootDir>/src/__testing__/setupTests.js'],
   moduleNameMapper: {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
-    '\\.(gif|ttf|eot|svg)$': '<rootDir>/__mocks__/fileMock.js',
+    '\\.(gif|ttf|eot|svg)$': '<rootDir>/src/__testing__/fileMock.js',
   },
   transform: {
     '^.+\\.(js|jsx)$': 'babel-jest',
@@ -13,6 +13,7 @@ const config = {
   testMatch: [
     '<rootDir>/src/**/__tests__/**/*.{js,jsx}',
     '<rootDir>/src/**/*.{spec,test}.{js,jsx}',
+    '<rootDir>/src/__testing__/**/*.{spec,test}.{js,jsx}',
   ],
 };
 

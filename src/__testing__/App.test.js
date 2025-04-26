@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store'; // Or your actual store configuration if needed for basic render
-import App from './App';
+import App from '../App';
 
 // Mock the Redux store
 const mockStore = configureStore([]);

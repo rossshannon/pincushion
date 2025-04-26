@@ -5,8 +5,14 @@ import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import BookmarkForm from '../BookmarkForm';
 
-// Mock Ladda
-jest.mock('ladda');
+// Mock Ladda - Replaced with inline mock
+jest.mock('ladda', () => ({
+  // The factory function returns the mock implementation
+  create: jest.fn(() => ({
+    start: jest.fn(),
+    stop: jest.fn(),
+  })),
+}));
 
 const mockStore = configureStore([thunk]);
 

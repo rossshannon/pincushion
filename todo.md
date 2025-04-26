@@ -91,3 +91,5 @@ Interaction Testing: Use @testing-library/user-event to simulate user actions li
 Async Thunk Testing: Write tests for your Redux thunks (submitBookmark, fetchTags, etc.), likely involving mocking axios or the API responses to test the different success/error states.
 Snapshot Testing: Optionally use Jest snapshots to track changes in component rendering over time.
 What area would you like to focus on next for testing? Perhaps testing the BookmarkForm rendering or some basic interactions within it?
+
+- Slice tests
