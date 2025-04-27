@@ -4,6 +4,8 @@ import PropTypes from 'prop-types';
 import VirtualizedMenuList from './VirtualizedMenuList.jsx';
 import './TagInput.css'; // Import the CSS file
 
+const MAX_OPTIONS_TO_SHOW = 50;
+
 /**
  * TagInput component using react-select/async-creatable for tag selection and creation.
  *
@@ -54,7 +56,7 @@ const TagInput = ({ userTags = {}, value = [], onChange }) => {
     const sortedOptions = [...availableOptions].sort(
       (a, b) => (b.count || 0) - (a.count || 0)
     );
-    return sortedOptions.slice(0, 50);
+    return sortedOptions.slice(0, MAX_OPTIONS_TO_SHOW);
   }, [availableOptions]);
 
   const handleChange = (selectedOptions) => {
@@ -78,36 +80,81 @@ const TagInput = ({ userTags = {}, value = [], onChange }) => {
 
   // Define the function to load options asynchronously based on input
   const loadOptions = (inputValue, callback) => {
-    if (!inputValue) {
-      // If input is empty, show top N tags sorted by count
-      const sortedOptions = [...availableOptions].sort(
-        (a, b) => (b.count || 0) - (a.count || 0)
-      );
-      callback(sortedOptions.slice(0, 50));
+    const lowerInputValue = inputValue.toLowerCase();
+
+    if (!lowerInputValue) {
+      // If input is empty, show top N tags sorted by count (already memoized)
+      callback(defaultOptionsList); // Use the pre-sorted default list
     } else {
-      // If input is not empty, filter and show top N matching tags
+      // Filter options based on input value
       const filteredOptions = availableOptions.filter((option) =>
-        option.label.toLowerCase().includes(inputValue.toLowerCase())
+        option.label.toLowerCase().includes(lowerInputValue)
       );
-      // Optional: Sort filtered results by count as well
-      const sortedFilteredOptions = filteredOptions.sort(
-        (a, b) => (b.count || 0) - (a.count || 0)
-      );
-      callback(sortedFilteredOptions.slice(0, 50));
+
+      // Partition and sort: exact, prefix, substring
+      const exactMatch = [];
+      const prefixMatches = [];
+      const substringMatches = [];
+
+      filteredOptions.forEach((option) => {
+        const lowerLabel = option.label.toLowerCase();
+        if (lowerLabel === lowerInputValue) {
+          exactMatch.push(option);
+        } else if (lowerLabel.startsWith(lowerInputValue)) {
+          prefixMatches.push(option);
+        } else {
+          substringMatches.push(option);
+        }
+      });
+
+      // Sort prefix and substring matches by count (descending)
+      const sortFn = (a, b) => (b.count || 0) - (a.count || 0);
+      prefixMatches.sort(sortFn);
+      substringMatches.sort(sortFn);
+
+      // Combine partitions
+      const finalSortedOptions = [
+        ...exactMatch,
+        ...prefixMatches,
+        ...substringMatches,
+      ];
+
+      // Slice and return
+      callback(finalSortedOptions.slice(0, MAX_OPTIONS_TO_SHOW)); // Use constant
     }
   };
 
   // Custom format for dropdown options to include count and styling
-  const formatOptionLabel = ({ label, count }, { context }) => {
+  const formatOptionLabel = ({ label, count }, { context, inputValue }) => {
     // Only show the count and apply styling when rendering in the menu (dropdown)
     if (context === 'menu') {
       const numericCount = count !== undefined ? parseInt(count, 10) : 0;
       const weightClass = tagweight(numericCount);
+      let labelElement = label; // Default to plain label
+
+      // Add highlighting if inputValue is present and the label contains it
+      if (
+        inputValue &&
+        label.toLowerCase().includes(inputValue.toLowerCase())
+      ) {
+        const startIndex = label
+          .toLowerCase()
+          .indexOf(inputValue.toLowerCase());
+        const endIndex = startIndex + inputValue.length;
+        labelElement = (
+          <>
+            {label.substring(0, startIndex)}
+            <strong>{label.substring(startIndex, endIndex)}</strong>
+            {label.substring(endIndex)}
+          </>
+        );
+      }
+
       return (
         <div className="item">
           {' '}
           {/* Optional: Keep .item class if used by react-select styles */}
-          {label}
+          {labelElement}
           <span className={`optioncount ${weightClass}`}>{numericCount}</span>
         </div>
       );

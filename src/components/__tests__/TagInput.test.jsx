@@ -97,9 +97,20 @@ describe('TagInput Component', () => {
     const input = screen.getByRole('combobox');
     await userEvent.type(input, 'test');
 
-    await waitFor(() => {
-      expect(screen.getByText('testing')).toBeInTheDocument();
-      expect(screen.queryByText('react')).not.toBeInTheDocument();
+    await waitFor(async () => {
+      // Find options by role and check their text content
+      const options = await screen.findAllByRole('option');
+      screen.debug(options); // Debug the found options
+
+      // Check if any option's text content starts with 'testing'
+      const hasTestingOption = options.some((option) =>
+        option.textContent.trim().startsWith('testing')
+      );
+      expect(hasTestingOption).toBe(true);
+
+      // Check that react is not present (find by role and check text)
+      const allOptionsText = options.map((o) => o.textContent).join(' ');
+      expect(allOptionsText).not.toContain('react');
     });
   });
 

@@ -45,3 +45,32 @@
   background-color: rgba(0, 0, 0, 0.1) !important;
   color: #fff !important;
 }
+
+/* Dropdown Menu List Styling */
+.pincushion-tag-select__menu-list {
+  /* Add some padding or other base styles if needed */
+}
+
+/* Individual Option Styling */
+.pincushion-tag-select__option {
+  /* Alternating row background */
+  &:nth-child(even) {
+    background-color: #f5fafd;
+  }
+
+  /* Focused/Active Option Styling */
+  /* Note: react-select manages hover and focus states */
+  &--is-focused {
+    background-color: #edf2f9;
+    /* Ensure text color remains readable, override potential defaults */
+    color: inherit;
+  }
+}
+
+/* Highlighted substring style */
+.pincushion-tag-select__option strong {
+  /* Make the highlight distinct but not jarring */
+  font-weight: bold;
+  /* You could add color or background-color here if desired */
+  /* color: #0056b3; */
+}
