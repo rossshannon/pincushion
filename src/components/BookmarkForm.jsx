@@ -177,58 +177,72 @@ function BookmarkForm() {
         </div>
       )}
 
-      <label className={errors?.title ? 'error' : ''}>
+      {/* Title Field */}
+      <label htmlFor="title" className={errors?.title ? 'error' : ''}>
         title
-        <input
-          type="text"
-          name="title"
-          value={formData.title}
-          onChange={handleChange}
-          aria-invalid={!!errors?.title}
-          tabIndex="1"
-        />
-        {errors?.title && <span className="helptext">{errors.title}</span>}
       </label>
-      <label className={`url-field ${errors?.url ? 'error' : ''}`}>
-        URL
+      <input
+        type="text"
+        id="title"
+        name="title"
+        value={formData.title}
+        onChange={handleChange}
+        aria-invalid={!!errors?.title}
+        tabIndex="1"
+      />
+      {errors?.title && <span className="helptext">{errors.title}</span>}
+
+      {/* URL Field - Keep wrapper for positioning button */}
+      <div className={`url-field ${errors?.url ? 'error' : ''}`}>
+        <label htmlFor="url">URL</label>
         <input
           type="url"
+          id="url"
           name="url"
           value={formData.url}
           onChange={handleChange}
+          className={formData.url?.includes('#') ? 'hash-detected' : ''}
           aria-invalid={!!errors?.url}
           tabIndex="2"
         />
-        {formData.url && formData.url.includes('#') && (
+        {/* Remove hash button remains sibling to input inside the wrapper */}
+        {formData.url?.includes('#') && (
           <button
             type="button"
             className="remove-hash"
             onClick={() => {
-              const clean = formData.url.replace(/#.*$/, '');
-              dispatch(setFormData({ url: clean }));
+              const cleanUrl = formData.url.replace(/#.*$/, '');
+              dispatch(setFormData({ url: cleanUrl }));
             }}
             title="Remove hash from URL"
+            tabIndex="-1"
           >
             &#35;
           </button>
         )}
         {errors?.url && <span className="helptext">{errors.url}</span>}
-      </label>
-      <label className={errors?.description ? 'error' : ''}>
+      </div>
+
+      {/* Description Field */}
+      <label
+        htmlFor="description"
+        className={errors?.description ? 'error' : ''}
+      >
         description
-        <textarea
-          name="description"
-          ref={descRef}
-          value={formData.description}
-          onChange={handleChange}
-          onInput={resizeTextarea}
-          style={{ overflow: 'hidden', resize: 'none' }}
-          tabIndex="3"
-        />
-        {errors?.description && (
-          <span className="helptext">{errors.description}</span>
-        )}
       </label>
+      <textarea
+        id="description"
+        name="description"
+        ref={descRef}
+        value={formData.description}
+        onChange={handleChange}
+        onInput={resizeTextarea}
+        style={{ overflow: 'hidden', resize: 'none' }}
+        tabIndex="3"
+      />
+      {errors?.description && (
+        <span className="helptext">{errors.description}</span>
+      )}
 
       <div id="modifiers">
         <label>
@@ -255,16 +269,16 @@ function BookmarkForm() {
         </label>
       </div>
 
-      <label>
-        tags
-        <TagInput
-          userTags={userTags}
-          value={initialTagsArray}
-          onChange={handleTagsChange}
-          tabIndex="6"
-        />
-        {errors?.tags && <span className="helptext">{errors.tags}</span>}
-      </label>
+      {/* Tags Field */}
+      <label htmlFor="tags">tags</label>
+      <TagInput
+        id="tags"
+        userTags={userTags}
+        value={initialTagsArray}
+        onChange={handleTagsChange}
+        tabIndex="6"
+      />
+      {errors?.tags && <span className="helptext">{errors.tags}</span>}
 
       <TagSuggestions onSuggestionClick={handleAddSuggestion} />
     </form>
