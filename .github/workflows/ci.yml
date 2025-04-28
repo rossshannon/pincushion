@@ -20,4 +20,4 @@ jobs:
         run: npm ci # Use ci for faster, deterministic installs
 
       - name: Run tests
-        run: npm test
+        run: npm run test:ci

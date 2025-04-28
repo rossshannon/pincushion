@@ -73,6 +73,7 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "jest --config jest.config.js --watch",
+    "test:ci": "jest --config jest.config.js",
     "eject": "react-scripts eject"
   },
   "browserslist": {
