@@ -333,8 +333,10 @@ describe('BookmarkForm Component', () => {
       expect(screen.getByText('URL is required.')).toBeInTheDocument();
 
       // Check that URL field has error styling
-      const urlField = screen.getByLabelText(/url/i).closest('label');
-      expect(urlField).toHaveClass('error');
+      const urlFieldWrapper = screen
+        .getByLabelText(/url/i)
+        .closest('.url-field');
+      expect(urlFieldWrapper).toHaveClass('error');
     });
 
     test('displays validation errors for missing title', async () => {
@@ -378,8 +380,8 @@ describe('BookmarkForm Component', () => {
       expect(screen.getByText('Title is required.')).toBeInTheDocument();
 
       // Check that title field has error styling
-      const titleField = screen.getByLabelText(/title/i).closest('label');
-      expect(titleField).toHaveClass('error');
+      const titleLabel = screen.getByText(/^title$/i);
+      expect(titleLabel).toHaveClass('error');
     });
 
     test('displays error for description too long', async () => {
@@ -424,10 +426,8 @@ describe('BookmarkForm Component', () => {
       expect(screen.getByText('Description is too long.')).toBeInTheDocument();
 
       // Check that description field has error styling
-      const descriptionField = screen
-        .getByLabelText(/description/i)
-        .closest('label');
-      expect(descriptionField).toHaveClass('error');
+      const descriptionLabel = screen.getByText(/^description$/i);
+      expect(descriptionLabel).toHaveClass('error');
     });
 
     test('displays generic API error', async () => {
