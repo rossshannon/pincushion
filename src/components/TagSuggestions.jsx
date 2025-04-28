@@ -36,6 +36,7 @@ const TagSuggestions = () => {
 
   return (
     <div className="suggestions-list">
+      <label>suggested tags</label>
       {suggestions.map((tag, index) =>
         tag === '$separator' ? (
           <span key={`separator-${index}`} className="separator">

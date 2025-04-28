@@ -159,6 +159,7 @@ function BookmarkForm() {
           data-color="blue"
           type="submit"
           disabled={initialLoading || status === 'saving'}
+          tabIndex="7"
         >
           <span className="ladda-label text">{buttonText()}</span>
         </button>
@@ -184,6 +185,7 @@ function BookmarkForm() {
           value={formData.title}
           onChange={handleChange}
           aria-invalid={!!errors?.title}
+          tabIndex="1"
         />
         {errors?.title && <span className="helptext">{errors.title}</span>}
       </label>
@@ -195,6 +197,7 @@ function BookmarkForm() {
           value={formData.url}
           onChange={handleChange}
           aria-invalid={!!errors?.url}
+          tabIndex="2"
         />
         {formData.url && formData.url.includes('#') && (
           <button
@@ -220,6 +223,7 @@ function BookmarkForm() {
           onChange={handleChange}
           onInput={resizeTextarea}
           style={{ overflow: 'hidden', resize: 'none' }}
+          tabIndex="3"
         />
         {errors?.description && (
           <span className="helptext">{errors.description}</span>
@@ -233,6 +237,8 @@ function BookmarkForm() {
             name="private"
             checked={formData.private}
             onChange={handleChange}
+            tabIndex="4"
+            accessKey="p"
           />
           private
         </label>
@@ -242,6 +248,8 @@ function BookmarkForm() {
             name="toread"
             checked={formData.toread}
             onChange={handleChange}
+            tabIndex="5"
+            accessKey="l"
           />
           read later
         </label>
@@ -250,10 +258,12 @@ function BookmarkForm() {
       <label>
         tags
         <TagInput
+          userTags={userTags}
           value={initialTagsArray}
-          userTags={userTags || {}}
           onChange={handleTagsChange}
+          tabIndex="6"
         />
+        {errors?.tags && <span className="helptext">{errors.tags}</span>}
       </label>
 
       <TagSuggestions onSuggestionClick={handleAddSuggestion} />

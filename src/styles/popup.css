@@ -245,7 +245,6 @@ input[type="url"]:focus,
 textarea:focus {
   border-color: #ccc;
   background-color: #fffffc !important;
-  outline: none;
 }
 button {
   padding: 8px 16px;
@@ -282,7 +281,49 @@ button:hover { background-color: #0056b3; }
   background-color: #f3f3f3;
 }
 
-.tag-suggestions h4 {
+
+/* Checkbox button modifiers */
+#modifiers {
+  margin: 0.4em 0 0.6em;
+  padding: 0.2em;
+}
+#modifiers label {
+  display: inline-block;
+  min-width: 105px;
+  font-size: 110%;
+  color: #333;
+  margin: 0 15px 0 0;
+  padding: 10px 14px 10px 0;
+  border: 1px solid #c8c8cc;
+  border-radius: 10px;
+  background-color: #fff;
+  text-transform: capitalize;
+  box-shadow: 0 1px 4px #ddd;
+  transition: transform 0.1s ease;
+  user-select: none;
+}
+#modifiers label:hover {
+  border-color: #aaa;
+}
+#modifiers label:active {
+  transform: translate(2px,2px);
+}
+#modifiers input[type=checkbox] {
+  margin: 0 10px 0 13px;
+  transform: scale(1.5);
+}
+
+/* Tag suggestions */
+
+.suggestions-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  margin: 0.8em 0 0.8em;
+  line-height: 1.5;
+}
+
+.suggestions-list label {
   margin: 0 0 8px;
   font-size: 1em;
   font-weight: 400;
@@ -294,14 +335,6 @@ button:hover { background-color: #0056b3; }
   font-size: 80%;
 }
 
-.suggestions-list {
-  margin-top: 24px;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  margin: 0.8em 0 0.8em;
-  line-height: 1.5;
-}
 .suggestions-list button {
   position: relative;
   font-size: 12px;
@@ -339,36 +372,6 @@ button:hover { background-color: #0056b3; }
   width: 115%;
 }
 
-/* Checkbox button modifiers */
-#modifiers {
-  margin: 0.4em 0 0.6em;
-  padding: 0.2em;
-}
-#modifiers label {
-  display: inline-block;
-  min-width: 105px;
-  font-size: 110%;
-  color: #333;
-  margin: 0 15px 0 0;
-  padding: 10px 14px 10px 0;
-  border: 1px solid #c8c8cc;
-  border-radius: 10px;
-  background-color: #fff;
-  text-transform: capitalize;
-  box-shadow: 0 1px 4px #ddd;
-  transition: transform 0.1s ease;
-  user-select: none;
-}
-#modifiers label:hover {
-  border-color: #aaa;
-}
-#modifiers label:active {
-  transform: translate(2px,2px);
-}
-#modifiers input[type=checkbox] {
-  margin: 0 10px 0 13px;
-  transform: scale(1.5);
-}
 
 footer {
   margin: 3em 0 1em;

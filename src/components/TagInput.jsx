@@ -37,7 +37,7 @@ const MultiValueLabel = ({ children }) => {
   return <>{children}</>;
 };
 
-const TagInput = ({ userTags = {}, value = [], onChange }) => {
+const TagInput = ({ userTags = {}, value = [], onChange, tabIndex }) => {
   // Convert value array to the format react-select expects: { label: string, value: string }
   const currentSelectedOptions = useMemo(() => {
     return value.map((tag) => ({
@@ -189,6 +189,7 @@ const TagInput = ({ userTags = {}, value = [], onChange }) => {
       defaultOptions={defaultOptionsList}
       createOptionPosition="first"
       classNamePrefix="pincushion-tag-select"
+      tabIndex={tabIndex}
     />
   );
 };
@@ -197,6 +198,7 @@ TagInput.propTypes = {
   userTags: PropTypes.objectOf(PropTypes.number),
   value: PropTypes.arrayOf(PropTypes.string),
   onChange: PropTypes.func.isRequired,
+  tabIndex: PropTypes.string,
 };
 
 export default TagInput;
