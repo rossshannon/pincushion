@@ -5,6 +5,10 @@ import VirtualizedMenuList from './VirtualizedMenuList.jsx';
 import './TagInput.css'; // Import the CSS file
 
 const MAX_OPTIONS_TO_SHOW = 50;
+const NORMALIZE_REGEX = /[&-_[\]#,+()$~%.'":*?<>{}]/g; // Regex to remove special chars
+
+// Helper function to normalize strings for matching
+const normalizeString = (str) => str.toLowerCase().replace(NORMALIZE_REGEX, '');
 
 /**
  * TagInput component using react-select/async-creatable for tag selection and creation.
@@ -80,34 +84,35 @@ const TagInput = ({ userTags = {}, value = [], onChange }) => {
 
   // Define the function to load options asynchronously based on input
   const loadOptions = (inputValue, callback) => {
-    const lowerInputValue = inputValue.toLowerCase();
+    const normalizedInputValue = normalizeString(inputValue); // Normalized version for matching
 
-    if (!lowerInputValue) {
+    if (!normalizedInputValue) {
+      // Check normalized input for emptiness
       // If input is empty, show top N tags sorted by count (already memoized)
       callback(defaultOptionsList); // Use the pre-sorted default list
     } else {
-      // Filter options based on input value
+      // Filter options based on normalized input value matching normalized label
       const filteredOptions = availableOptions.filter((option) =>
-        option.label.toLowerCase().includes(lowerInputValue)
+        normalizeString(option.label).includes(normalizedInputValue)
       );
 
-      // Partition and sort: exact, prefix, substring
+      // Partition and sort: exact, prefix, substring (using normalized values)
       const exactMatch = [];
       const prefixMatches = [];
       const substringMatches = [];
 
       filteredOptions.forEach((option) => {
-        const lowerLabel = option.label.toLowerCase();
-        if (lowerLabel === lowerInputValue) {
+        const normalizedLabel = normalizeString(option.label);
+        if (normalizedLabel === normalizedInputValue) {
           exactMatch.push(option);
-        } else if (lowerLabel.startsWith(lowerInputValue)) {
+        } else if (normalizedLabel.startsWith(normalizedInputValue)) {
           prefixMatches.push(option);
         } else {
           substringMatches.push(option);
         }
       });
 
-      // Sort prefix and substring matches by count (descending)
+      // Sort prefix and substring matches by count (descending) - using original count
       const sortFn = (a, b) => (b.count || 0) - (a.count || 0);
       prefixMatches.sort(sortFn);
       substringMatches.sort(sortFn);
@@ -132,7 +137,8 @@ const TagInput = ({ userTags = {}, value = [], onChange }) => {
       const weightClass = tagweight(numericCount);
       let labelElement = label; // Default to plain label
 
-      // Add highlighting if inputValue is present and the label contains it
+      // Add highlighting if inputValue is present and the original label contains it
+      // Highlight based on original inputValue for visual accuracy
       if (
         inputValue &&
         label.toLowerCase().includes(inputValue.toLowerCase())
@@ -155,7 +161,9 @@ const TagInput = ({ userTags = {}, value = [], onChange }) => {
           {' '}
           {/* Optional: Keep .item class if used by react-select styles */}
           {labelElement}
-          <span className={`optioncount ${weightClass}`}>{numericCount}</span>
+          <span className={`optioncount ${weightClass}`}>
+            <span className="tag-count">{numericCount}</span>
+          </span>
         </div>
       );
     }
@@ -166,6 +174,7 @@ const TagInput = ({ userTags = {}, value = [], onChange }) => {
   return (
     <AsyncCreatableSelect
       isMulti
+      autoFocus
       value={currentSelectedOptions}
       onChange={handleChange}
       onCreateOption={handleCreate}
