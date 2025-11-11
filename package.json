@@ -20,6 +20,9 @@
   "dependencies": {
     "openai": "^4.11.1"
   },
+  "overrides": {
+    "ws": "^5.2.4"
+  },
   "devDependencies": {
     "@babel/cli": "^7.23.0",
     "@babel/core": "^7.23.0",
@@ -43,10 +46,12 @@
     "load-grunt-tasks": "^5.1.0",
     "npm-check": "^5.9.2",
     "prettier": "^3.0.3",
+    "puppeteer": "^24.29.1",
     "time-grunt": "^2.0.0",
     "trim-newlines": "^5.0.0"
   },
   "scripts": {
+    "test": "node test-page-load.js",
     "upgrade-interactive": "npm-check --update"
   }
 }
