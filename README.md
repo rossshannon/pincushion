@@ -17,19 +17,25 @@ The autocomplete can use each tag’s score to be smarter about which tags to su
 - **AI-based tag suggestions**
 When bookmarking a new page, the form will suggest tags based on your previous usage, other Pinboard members tags for that same page, as well as optionally using AI to propose relevant tags.
 
+![Pincushion bookmarking interface](https://github.com/rossshannon/pincushion/raw/main/public/images/pincushion-bookmarking-interface.png)
+
 ## Installing the Bookmarklet
 
-To use the bookmarklet, you will need to have an account on http://pinboard.in. When logged in, visit your [password settings page](https://pinboard.in/settings/password) to locate your API token — it will be in the form
+To use the bookmarklet, you will need to have an account on http://pinboard.in and an API token. Your API token is a way to grant applications or websites the ability to send bookmarks to your Pinboard account, without having to give them your password.
+
+When logged in, visit your [password settings page](https://pinboard.in/settings/password) to locate your API token — it will be in the form
 
     username:462E2B102D4CCDE36662
 
-Your API token is a way to grant applications or websites the ability to send bookmarks to your Pinboard account, without having to give them your password.
+The part after the colon is the API token (`462E2B102D4CCDE36662` in this example).
 
 To add the bookmarklet to your browser, simply add a new bookmark, give it any name you want, and use the following text as the URL:
 
     javascript:q=location.href;d=(window.getSelection?window.getSelection():document.getSelection?document.getSelection():document.selection.createRange().text);p=document.title;void(open('https://rossshannon.github.io/pincushion/?user=USERNAME&token=API_TOKEN&url='+encodeURIComponent(q)+'&description='+encodeURIComponent(d)+'&title='+encodeURIComponent(p),'Pinboard','toolbar=yes,width=600,height=700,left=50,top=50'));
 
-Often the easiest way to do this is to bookmark the page you’re currently reading, and then edit this bookmark and replace the URL with the above code. Replace `USERNAME` with your Pinboard username, and `API_TOKEN` with your 20-character API token and you’re all set. Click the bookmarklet and it will open the Pincushion interface.
+Often the easiest way to do this is to bookmark the page you’re currently reading, and then edit this bookmark and replace the URL with the above code. Replace `USERNAME` with your Pinboard username, and `API_TOKEN` with your 20-character alphanumeric API token and you’re all set. Click the bookmarklet in your browser’s bookmarks bar and it will open the Pincushion interface.
+
+![Pincushion bookmarklet in browser bookmarks bar](https://github.com/rossshannon/pincushion/raw/main/public/images/pincushion-icon-bookmarks-bar.png)
 
 You can also pre-check the “private” and “to read” checkboxes by passing these properties with the value `true`:
 
