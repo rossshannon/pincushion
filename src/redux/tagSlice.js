@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 import { cleanUrl } from '../utils/url';
+import { fetchGptTagSuggestions } from '../services/gptSuggestions';
 
 // Fetch user's tags from Pinboard
 export const fetchTags = createAsyncThunk(
@@ -58,17 +59,68 @@ export const fetchSuggestedTags = createAsyncThunk(
   }
 );
 
+export const fetchGptSuggestions = createAsyncThunk(
+  'tags/fetchGptSuggestions',
+  async (payload, { getState, rejectWithValue }) => {
+    const {
+      auth: { openAiToken },
+      tags: { suggested },
+      bookmark: { formData },
+    } = getState();
+
+    if (!openAiToken) {
+      return { suggestions: [], contextKey: payload?.contextKey || null };
+    }
+
+    const context = payload?.context || {
+      url: formData.url,
+      title: formData.title,
+      description: formData.description,
+      existingTags: formData.tags.join(' '),
+    };
+
+    if (!context.url) {
+      return { suggestions: [], contextKey: payload?.contextKey || null };
+    }
+
+    try {
+      const aiSuggestions = await fetchGptTagSuggestions({
+        token: openAiToken,
+        context,
+      });
+
+      const existingSet = new Set([
+        ...(formData.tags || []).map((tag) => tag.toLowerCase()),
+        ...suggested.map((tag) => tag.toLowerCase()),
+      ]);
+
+      const suggestions = aiSuggestions.filter((tag) => !existingSet.has(tag));
+
+      return { suggestions, contextKey: payload?.contextKey || null };
+    } catch (err) {
+      return rejectWithValue(err.message);
+    }
+  }
+);
+
 const tagSlice = createSlice({
   name: 'tags',
   initialState: {
     tagCounts: {}, // Renamed from allTags, initialized as object
     suggested: [],
     suggestedLoading: false,
+    gptSuggestions: [],
+    gptStatus: 'idle',
+    gptError: null,
+    gptContextKey: null,
     error: null,
   },
   reducers: {
     addSuggestedTag(state, action) {
       state.suggested = state.suggested.filter((tag) => tag !== action.payload);
+      state.gptSuggestions = state.gptSuggestions.filter(
+        (tag) => tag !== action.payload
+      );
     },
     /**
      * Initialize tagCounts from cached storage
@@ -107,6 +159,19 @@ const tagSlice = createSlice({
       .addCase(fetchSuggestedTags.rejected, (state, action) => {
         state.suggestedLoading = false;
         state.error = action.payload;
+      })
+      .addCase(fetchGptSuggestions.pending, (state) => {
+        state.gptStatus = 'loading';
+        state.gptError = null;
+      })
+      .addCase(fetchGptSuggestions.fulfilled, (state, action) => {
+        state.gptStatus = 'succeeded';
+        state.gptSuggestions = action.payload.suggestions || [];
+        state.gptContextKey = action.payload.contextKey;
+      })
+      .addCase(fetchGptSuggestions.rejected, (state, action) => {
+        state.gptStatus = 'failed';
+        state.gptError = action.payload || action.error.message;
       });
   },
 });

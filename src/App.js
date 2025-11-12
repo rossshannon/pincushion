@@ -1,23 +1,34 @@
 import BookmarkForm from './components/BookmarkForm';
 import './styles/popup.css';
 
-import React, { useEffect } from 'react';
-import { useDispatch } from 'react-redux';
+import React, { useEffect, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { setAuth } from './redux/authSlice';
 import { setFormData, fetchBookmarkDetails } from './redux/bookmarkSlice';
-import { fetchTags, fetchSuggestedTags, setTagCounts } from './redux/tagSlice';
+import {
+  fetchTags,
+  fetchSuggestedTags,
+  fetchGptSuggestions,
+  setTagCounts,
+} from './redux/tagSlice';
 
 const TAG_CACHE_TTL_MS = 10000;
 const TAG_REFRESH_DELAY_MS = 10000;
 
 function App() {
   const dispatch = useDispatch();
+  const { formData, initialLoading } = useSelector((state) => state.bookmark);
+  const openAiToken = useSelector((state) => state.auth.openAiToken);
+  const { gptStatus, gptContextKey } = useSelector((state) => state.tags);
+  const { url, title, description, tags } = formData;
+  const normalizedTagString = Array.isArray(tags) ? tags.join(' ') : '';
   useEffect(() => {
     // Parse URL parameters for auth and initial form data
     const params = new URLSearchParams(window.location.search);
     const user = params.get('user') || '';
     const token = params.get('token') || '';
-    dispatch(setAuth({ user, token }));
+    const openAi = params.get('openai_token') || '';
+    dispatch(setAuth({ user, token, openAiToken: openAi }));
     // Initial bookmark form values
     const urlParam = params.get('url') || '';
     const titleParam = params.get('title') || '';
@@ -34,7 +45,7 @@ function App() {
       })
     );
     // Only load tags/suggestions if we have auth credentials
-    if (user && token) {
+      if (user && token) {
       let tagRefreshTimer;
       // Check if bookmark exists
       if (urlParam) {
@@ -87,6 +98,59 @@ function App() {
       };
     }
   }, [dispatch]);
+
+  const initialTagSignatureRef = useRef(null);
+
+  useEffect(() => {
+    initialTagSignatureRef.current = null;
+  }, [url]);
+
+  useEffect(() => {
+    if (initialTagSignatureRef.current === null && normalizedTagString) {
+      initialTagSignatureRef.current = normalizedTagString;
+    }
+  }, [normalizedTagString]);
+
+  useEffect(() => {
+    if (!openAiToken) return;
+    if (!url) return;
+    if (initialLoading) return;
+
+    const existingTagsSnapshot =
+      initialTagSignatureRef.current ?? normalizedTagString;
+
+    const contextKey = JSON.stringify({
+      url,
+      title,
+      description,
+      existingTags: existingTagsSnapshot,
+    });
+
+    if (gptContextKey === contextKey) return;
+    if (gptStatus === 'loading') return;
+
+    dispatch(
+      fetchGptSuggestions({
+        contextKey,
+        context: {
+          url,
+          title,
+          description,
+          existingTags: existingTagsSnapshot,
+        },
+      })
+    );
+  }, [
+    dispatch,
+    url,
+    title,
+    description,
+    normalizedTagString,
+    openAiToken,
+    initialLoading,
+    gptStatus,
+    gptContextKey,
+  ]);
   return (
     <div className="pincushion-popup" data-testid="app-container">
       <BookmarkForm />

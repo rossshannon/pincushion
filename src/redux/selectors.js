@@ -2,6 +2,7 @@ import { createSelector } from '@reduxjs/toolkit';
 
 // Select the suggested tags from the state
 const selectSuggestedTags = (state) => state.tags.suggested;
+const selectGptSuggestions = (state) => state.tags.gptSuggestions;
 
 // Select the current tags array from the bookmark form data
 const selectCurrentTags = (state) => {
@@ -9,9 +10,26 @@ const selectCurrentTags = (state) => {
   return Array.isArray(tags) ? tags : [];
 };
 
+const selectAllSuggestions = createSelector(
+  [selectSuggestedTags, selectGptSuggestions],
+  (pinboard, gpt) => {
+    if (!gpt.length) {
+      return pinboard;
+    }
+    if (!pinboard.length) {
+      return gpt;
+    }
+    const combined = [...pinboard];
+    if (combined[combined.length - 1] !== '$separator') {
+      combined.push('$separator');
+    }
+    return [...combined, ...gpt];
+  }
+);
+
 // Memoized selector for displayable suggestions
 export const selectDisplayableSuggestions = createSelector(
-  [selectSuggestedTags, selectCurrentTags],
+  [selectAllSuggestions, selectCurrentTags],
   (suggestions, currentTags) => {
     const currentTagsSet = new Set(currentTags);
     return suggestions.filter(
@@ -21,7 +39,8 @@ export const selectDisplayableSuggestions = createSelector(
 );
 
 // Selector for loading state
-export const selectSuggestedLoading = (state) => state.tags.suggestedLoading;
+export const selectSuggestedLoading = (state) =>
+  state.tags.suggestedLoading || state.tags.gptStatus === 'loading';
 
 // Selector to check if suggestions are empty
 export const selectIsSuggestionsEmpty = createSelector(

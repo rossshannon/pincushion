@@ -4,21 +4,36 @@ import {
   selectIsSuggestionsEmpty,
 } from '../../redux/selectors';
 
+const baseTagsState = {
+  suggested: [],
+  suggestedLoading: false,
+  gptSuggestions: [],
+  gptStatus: 'idle',
+  gptError: null,
+  gptContextKey: null,
+};
+
 describe('Redux Selectors', () => {
   // Re-adding describe block for selectSuggestedLoading
   describe('selectSuggestedLoading', () => {
     it('should return the suggestedLoading boolean', () => {
       const mockState1 = {
-        tags: { suggestedLoading: true },
+        tags: { ...baseTagsState, suggestedLoading: true },
         bookmark: { formData: { tags: [] } },
       };
       expect(selectSuggestedLoading(mockState1)).toBe(true);
 
       const mockState2 = {
-        tags: { suggestedLoading: false },
+        tags: { ...baseTagsState, suggestedLoading: false },
         bookmark: { formData: { tags: [] } },
       };
       expect(selectSuggestedLoading(mockState2)).toBe(false);
+
+      const mockState3 = {
+        tags: { ...baseTagsState, suggestedLoading: false, gptStatus: 'loading' },
+        bookmark: { formData: { tags: [] } },
+      };
+      expect(selectSuggestedLoading(mockState3)).toBe(true);
     });
   });
 
@@ -27,6 +42,7 @@ describe('Redux Selectors', () => {
     it('should filter suggested tags based on current tags, ignoring $separator', () => {
       const mockState = {
         tags: {
+          ...baseTagsState,
           suggested: [
             'suggest1',
             'common',
@@ -34,6 +50,7 @@ describe('Redux Selectors', () => {
             'suggest2',
             'another',
           ],
+          gptSuggestions: ['ai_tag'],
         },
         bookmark: { formData: { tags: ['current', 'common'] } },
       };
@@ -43,12 +60,17 @@ describe('Redux Selectors', () => {
         '$separator',
         'suggest2',
         'another',
+        '$separator',
+        'ai_tag',
       ]);
     });
 
     it('should return all suggestions (except $separator if current tags are empty)', () => {
       const mockState = {
-        tags: { suggested: ['suggest1', 'common', '$separator', 'suggest2'] },
+        tags: {
+          ...baseTagsState,
+          suggested: ['suggest1', 'common', '$separator', 'suggest2'],
+        },
         bookmark: { formData: { tags: [] } }, // Empty current tags
       };
       // $separator might still be filtered depending on use case, selector keeps it
@@ -62,7 +84,10 @@ describe('Redux Selectors', () => {
 
     it('should return only $separator if all other suggestions are present in current tags', () => {
       const mockState = {
-        tags: { suggested: ['suggest1', 'common', '$separator'] },
+        tags: {
+          ...baseTagsState,
+          suggested: ['suggest1', 'common', '$separator'],
+        },
         bookmark: { formData: { tags: ['common', 'suggest1'] } },
       };
       expect(selectDisplayableSuggestions(mockState)).toEqual(['$separator']);
@@ -70,7 +95,7 @@ describe('Redux Selectors', () => {
 
     it('should return an empty array if suggestions are empty', () => {
       const mockState = {
-        tags: { suggested: [] },
+        tags: { ...baseTagsState, suggested: [] },
         bookmark: { formData: { tags: ['current'] } },
       };
       expect(selectDisplayableSuggestions(mockState)).toEqual([]);
@@ -80,7 +105,7 @@ describe('Redux Selectors', () => {
   describe('selectIsSuggestionsEmpty', () => {
     it('should return true if displayable suggestions are empty', () => {
       const mockState = {
-        tags: { suggested: [] }, // No suggestions
+        tags: { ...baseTagsState, suggested: [] }, // No suggestions
         bookmark: { formData: { tags: ['current'] } },
       };
       expect(selectIsSuggestionsEmpty(mockState)).toBe(true);
@@ -88,7 +113,10 @@ describe('Redux Selectors', () => {
 
     it('should return true if displayable suggestions only contain $separator', () => {
       const mockState = {
-        tags: { suggested: ['current', '$separator'] }, // 'current' will be filtered
+        tags: {
+          ...baseTagsState,
+          suggested: ['current', '$separator'],
+        }, // 'current' will be filtered
         bookmark: { formData: { tags: ['current'] } },
       };
       expect(selectIsSuggestionsEmpty(mockState)).toBe(true);
@@ -96,8 +124,11 @@ describe('Redux Selectors', () => {
 
     it('should return false if there are displayable suggestions other than $separator', () => {
       const mockState = {
-        tags: { suggested: ['suggest1', '$separator', 'current'] },
-        bookmark: { formData: { tags: 'current' } },
+        tags: {
+          ...baseTagsState,
+          suggested: ['suggest1', '$separator', 'current'],
+        },
+        bookmark: { formData: { tags: ['current'] } },
       };
       expect(selectIsSuggestionsEmpty(mockState)).toBe(false); // 'suggest1' remains
     });

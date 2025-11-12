@@ -4,13 +4,19 @@ import tagReducer, {
   setTagCounts,
   fetchTags,
   fetchSuggestedTags,
+  fetchGptSuggestions,
 } from '../../redux/tagSlice';
 import { configureStore } from '@reduxjs/toolkit';
 import { cleanUrl } from '../../utils/url';
+import { fetchGptTagSuggestions } from '../../services/gptSuggestions';
 
 // Mock axios
 jest.mock('axios');
 const mockedAxios = axios;
+
+jest.mock('../../services/gptSuggestions', () => ({
+  fetchGptTagSuggestions: jest.fn(),
+}));
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -43,18 +49,19 @@ jest.mock('../../utils/url', () => ({
 // Helper to create a mock store
 const createMockStore = (
   tagState = {},
-  bookmarkUrl = 'http://example.com/suggest'
+  bookmarkFormData = { url: 'http://example.com/suggest' },
+  authState = { user: 'testUser', token: 'testToken', openAiToken: 'ai-token' }
 ) => {
   return configureStore({
     reducer: {
-      auth: (state = { user: 'testUser', token: 'testToken' }) => state,
+      auth: (state = authState) => state,
       tags: tagReducer,
-      bookmark: (state = { formData: { url: bookmarkUrl } }) => state, // Mock bookmark state for fetchSuggestedTags
+      bookmark: (state = { formData: bookmarkFormData }) => state, // Mock bookmark state for fetchSuggestedTags
     },
     preloadedState: {
       tags: tagState,
-      auth: { user: 'testUser', token: 'testToken' },
-      bookmark: { formData: { url: bookmarkUrl } },
+      auth: authState,
+      bookmark: { formData: bookmarkFormData },
     },
   });
 };
@@ -64,6 +71,10 @@ describe('tag slice', () => {
     tagCounts: {},
     suggested: [],
     suggestedLoading: false,
+    gptSuggestions: [],
+    gptStatus: 'idle',
+    gptError: null,
+    gptContextKey: null,
     error: null,
   };
 
@@ -72,6 +83,7 @@ describe('tag slice', () => {
     localStorageMock.clear();
     mockedAxios.get.mockClear();
     jest.clearAllMocks(); // Clears all mocks including cleanUrl
+    fetchGptTagSuggestions.mockReset();
   });
 
   it('should handle initial state', () => {
@@ -84,9 +96,14 @@ describe('tag slice', () => {
       const stateWithSuggestions = {
         ...initialState,
         suggested: ['a', 'b', 'c'],
+        gptSuggestions: ['ai_a', 'ai_b'],
       };
       const state = tagReducer(stateWithSuggestions, addSuggestedTag('b'));
       expect(state.suggested).toEqual(['a', 'c']);
+      expect(state.gptSuggestions).toEqual(['ai_a', 'ai_b']);
+
+      const stateAfterAi = tagReducer(state, addSuggestedTag('ai_a'));
+      expect(stateAfterAi.gptSuggestions).toEqual(['ai_b']);
     });
 
     it('should handle setTagCounts', () => {
@@ -156,7 +173,7 @@ describe('tag slice', () => {
     // --- fetchSuggestedTags ---\
     describe('fetchSuggestedTags', () => {
       const bookmarkUrl = 'http://suggest.me';
-      const store = createMockStore(initialState, bookmarkUrl);
+      const store = createMockStore(initialState, { url: bookmarkUrl });
       const expectedApiUrl = `https://pinboard-api.herokuapp.com/posts/suggest?format=json&auth_token=testUser:testToken&url=${bookmarkUrl}`;
 
       it('should handle pending state', () => {
@@ -224,6 +241,46 @@ describe('tag slice', () => {
         expect(state.suggestedLoading).toBe(false);
         expect(state.suggested).toEqual([]); // Should reset or keep previous suggestions?\ Slice resets.
         expect(state.error).toEqual(errorMessage);
+      });
+    });
+
+    describe('fetchGptSuggestions', () => {
+      it('stores GPT tags and context key while skipping duplicates', async () => {
+        fetchGptTagSuggestions.mockResolvedValueOnce(['foo', 'bar', 'baz']);
+
+        const bookmarkFormData = {
+          url: 'https://example.com',
+          title: 'Example',
+          description: 'A description',
+          tags: ['foo'],
+        };
+
+        const store = createMockStore(
+          { ...initialState, suggested: ['baz'] },
+          bookmarkFormData
+        );
+
+        await store.dispatch(fetchGptSuggestions({ contextKey: 'ctx-1' }));
+        const state = store.getState().tags;
+
+        expect(state.gptStatus).toEqual('succeeded');
+        expect(state.gptSuggestions).toEqual(['bar']);
+        expect(state.gptContextKey).toEqual('ctx-1');
+        expect(fetchGptTagSuggestions).toHaveBeenCalledTimes(1);
+      });
+
+      it('skips calling OpenAI when no token available', async () => {
+        const store = createMockStore(
+          initialState,
+          { url: 'https://example.com' },
+          { user: 'testUser', token: 'testToken', openAiToken: '' }
+        );
+
+        await store.dispatch(fetchGptSuggestions({ contextKey: 'ctx-2' }));
+        const state = store.getState().tags;
+        expect(state.gptSuggestions).toEqual([]);
+        expect(state.gptContextKey).toEqual('ctx-2');
+        expect(fetchGptTagSuggestions).not.toHaveBeenCalled();
       });
     });
   });

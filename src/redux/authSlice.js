@@ -2,7 +2,8 @@ import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
   user: '',
-  token: ''
+  token: '',
+  openAiToken: '',
 };
 
 const authSlice = createSlice({
@@ -10,9 +11,16 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     setAuth(state, action) {
-      const { user, token } = action.payload;
-      state.user = user;
-      state.token = token;
+      const { user, token, openAiToken } = action.payload;
+      if (typeof user !== 'undefined') {
+        state.user = user;
+      }
+      if (typeof token !== 'undefined') {
+        state.token = token;
+      }
+      if (typeof openAiToken !== 'undefined') {
+        state.openAiToken = openAiToken;
+      }
     }
   }
 });
