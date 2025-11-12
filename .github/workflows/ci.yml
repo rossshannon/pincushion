@@ -1,23 +1,25 @@
-name: Node.js CI
+name: CI
 
-on: [push]
+on:
+  push:
+    branches: [ master, main, vibe-react-refactor ]
+  pull_request:
+    branches: [ master, main, vibe-react-refactor ]
 
 jobs:
-  build-and-test:
+  build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set up Node.js
+      - name: Use Node.js 18
         uses: actions/setup-node@v4
         with:
-          node-version: '18.20.4' # Use the version from .nvmrc
-          cache: 'npm' # Enable caching for npm dependencies
-
+          node-version: 18
+          cache: npm
       - name: Install dependencies
-        run: npm ci # Use ci for faster, deterministic installs
-
-      - name: Run tests
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Test
         run: npm run test:ci

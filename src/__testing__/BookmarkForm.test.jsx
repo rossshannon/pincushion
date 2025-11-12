@@ -3,6 +3,10 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
+jest.mock('openai', () => jest.fn(() => ({
+  chat: { completions: { create: jest.fn() } },
+})));
+
 import BookmarkForm from '../components/BookmarkForm.jsx';
 import { setFormData } from '../redux/bookmarkSlice';
 
@@ -31,7 +35,11 @@ describe('BookmarkForm Component', () => {
       tags: {
         tagCounts: {},
         suggested: [],
-        status: 'idle',
+        suggestedLoading: false,
+        gptSuggestions: [],
+        gptStatus: 'idle',
+        gptError: null,
+        gptContextKey: null,
       },
     };
     store = mockStore(initialState);

@@ -180,7 +180,7 @@ describe('tag slice', () => {
         mockedAxios.get.mockResolvedValueOnce({ data: [] }); // Mock response needed
 
         // Dispatch the thunk but DON'T await it yet
-        const thunkPromise = store.dispatch(fetchSuggestedTags());
+        store.dispatch(fetchSuggestedTags());
 
         // Check the state immediately after dispatch for pending status
         const pendingState = store.getState().tags;

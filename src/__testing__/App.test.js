@@ -2,6 +2,10 @@ import React from 'react';
 import { render, screen, act } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
+jest.mock('openai', () => jest.fn(() => ({
+  chat: { completions: { create: jest.fn() } },
+})));
+
 import App from '../App';
 
 jest.mock('../redux/bookmarkSlice', () => {
@@ -32,7 +36,7 @@ describe('App Component', () => {
     // Initialize a fresh store for each test to avoid state leakage
     store = mockStore({
       // Provide initial mock state that App might depend on
-      auth: { user: null, token: null },
+      auth: { user: null, token: null, openAiToken: '' },
       bookmark: {
         formData: {
           title: '',
@@ -53,6 +57,10 @@ describe('App Component', () => {
         tagsLoading: false,
         suggestedLoading: false,
         tagTimestamp: null,
+        gptSuggestions: [],
+        gptStatus: 'idle',
+        gptError: null,
+        gptContextKey: null,
       },
       // Add other slices and their initial states if App depends on them
     });
@@ -72,7 +80,7 @@ describe('App Component', () => {
 
   describe('tag cache hydration', () => {
     const baseState = {
-      auth: { user: null, token: null },
+      auth: { user: null, token: null, openAiToken: '' },
       bookmark: {
         formData: {
           title: '',
@@ -93,6 +101,10 @@ describe('App Component', () => {
         tagsLoading: false,
         suggestedLoading: false,
         tagTimestamp: null,
+        gptSuggestions: [],
+        gptStatus: 'idle',
+        gptError: null,
+        gptContextKey: null,
       },
     };
 
