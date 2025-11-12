@@ -74,6 +74,23 @@ describe('bookmark slice', () => {
       expect(clearedState.errors.title).toBeNull();
     });
 
+    it('clears multiple field errors when payload updates several fields', () => {
+      const errorState = {
+        ...initialState,
+        errors: {
+          ...initialState.errors,
+          title: 'Title missing',
+          url: 'URL missing',
+        },
+      };
+      const clearedState = bookmarkReducer(
+        errorState,
+        setFormData({ title: 'Provided', url: 'https://example.com' })
+      );
+      expect(clearedState.errors.title).toBeNull();
+      expect(clearedState.errors.url).toBeNull();
+    });
+
     it('should handle resetStatus', () => {
       const errorState = {
         ...initialState,

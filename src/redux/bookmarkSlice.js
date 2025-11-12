@@ -126,17 +126,14 @@ const bookmarkSlice = createSlice({
   initialState,
   reducers: {
     setFormData(state, action) {
-      const fieldName = Object.keys(action.payload)[0];
-      state.formData = { ...state.formData, ...action.payload };
-      // Ensure state.errors exists before trying to access properties
+      const updates = { ...action.payload };
+      state.formData = { ...state.formData, ...updates };
       if (state.errors) {
-        if (fieldName === 'url' && state.errors.url) {
-          state.errors.url = null;
-        }
-        if (fieldName === 'title' && state.errors.title) {
-          state.errors.title = null;
-        }
-        // Add similar checks for description if needed
+        Object.keys(updates).forEach((fieldName) => {
+          if (Object.prototype.hasOwnProperty.call(state.errors, fieldName)) {
+            state.errors[fieldName] = null;
+          }
+        });
       }
     },
     resetStatus(state) {
