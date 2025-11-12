@@ -1,5 +1,4 @@
 import BookmarkForm from './components/BookmarkForm';
-// import TagAutocomplete from './components/TagAutocomplete';
 import './styles/popup.css';
 
 import React, { useEffect } from 'react';
@@ -7,6 +6,9 @@ import { useDispatch } from 'react-redux';
 import { setAuth } from './redux/authSlice';
 import { setFormData, fetchBookmarkDetails } from './redux/bookmarkSlice';
 import { fetchTags, fetchSuggestedTags, setTagCounts } from './redux/tagSlice';
+
+const TAG_CACHE_TTL_MS = 10000;
+const TAG_REFRESH_DELAY_MS = 10000;
 
 function App() {
   const dispatch = useDispatch();
@@ -33,27 +35,39 @@ function App() {
     );
     // Only load tags/suggestions if we have auth credentials
     if (user && token) {
+      let tagRefreshTimer;
       // Check if bookmark exists
       if (urlParam) {
         dispatch(fetchBookmarkDetails());
         dispatch(fetchSuggestedTags());
       }
       // Load cached user tags from localStorage
+      let shouldFetchTagsImmediately = true;
+      let nextFetchDelay = TAG_REFRESH_DELAY_MS;
       try {
         const cached = localStorage.getItem('tags');
         if (cached) {
           const parsed = JSON.parse(cached);
-          // Check if parsed is an object (for tag counts)
           if (typeof parsed === 'object' && parsed !== null) {
             dispatch(setTagCounts(parsed));
+            const timestampRaw = localStorage.getItem('tagTimestamp');
+            const timestamp = timestampRaw ? parseInt(timestampRaw, 10) : 0;
+            const age = timestamp ? Date.now() - timestamp : Number.POSITIVE_INFINITY;
+            if (age < TAG_CACHE_TTL_MS) {
+              shouldFetchTagsImmediately = false;
+              nextFetchDelay = Math.max(TAG_CACHE_TTL_MS - age, 0);
+            }
           }
         }
       } catch (_e) {
         // Intentionally empty: Failed to load tags from cache, will fetch later.
       }
-      // Refresh tags via API after delay
-      const TAG_CACHE_DELAY = 10000; // ms
-      const timer = setTimeout(() => dispatch(fetchTags()), TAG_CACHE_DELAY);
+
+      if (shouldFetchTagsImmediately) {
+        dispatch(fetchTags());
+      }
+
+      tagRefreshTimer = setTimeout(() => dispatch(fetchTags()), nextFetchDelay);
 
       // Add ESC key listener
       const handleKeyDown = (event) => {
@@ -67,8 +81,9 @@ function App() {
       // Cleanup listener on unmount
       return () => {
         document.removeEventListener('keydown', handleKeyDown);
-        // Also clear existing timeout
-        clearTimeout(timer);
+        if (tagRefreshTimer) {
+          clearTimeout(tagRefreshTimer);
+        }
       };
     }
   }, [dispatch]);

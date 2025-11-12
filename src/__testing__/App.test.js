@@ -1,8 +1,25 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import { Provider } from 'react-redux';
-import configureStore from 'redux-mock-store'; // Or your actual store configuration if needed for basic render
+import configureStore from 'redux-mock-store';
 import App from '../App';
+
+jest.mock('../redux/bookmarkSlice', () => {
+  const actual = jest.requireActual('../redux/bookmarkSlice');
+  return {
+    ...actual,
+    fetchBookmarkDetails: jest.fn(() => ({ type: 'bookmark/fetchDetails' })),
+  };
+});
+
+jest.mock('../redux/tagSlice', () => {
+  const actual = jest.requireActual('../redux/tagSlice');
+  return {
+    ...actual,
+    fetchTags: jest.fn(() => ({ type: 'tags/fetchTags' })),
+    fetchSuggestedTags: jest.fn(() => ({ type: 'tags/fetchSuggestedTags' })),
+  };
+});
 
 // Mock the Redux store
 const mockStore = configureStore([]);
@@ -42,6 +59,7 @@ describe('App Component', () => {
   });
 
   test('renders main application container without crashing', () => {
+    window.history.replaceState({}, '', '/');
     render(
       <Provider store={store}>
         <App />
@@ -52,9 +70,115 @@ describe('App Component', () => {
     expect(appElement).toBeInTheDocument();
   });
 
-  // Add more tests here later:
-  // - Test initial state rendering
-  // - Test form interactions
-  // - Test API call mocking
-  // - etc.
+  describe('tag cache hydration', () => {
+    const baseState = {
+      auth: { user: null, token: null },
+      bookmark: {
+        formData: {
+          title: '',
+          url: '',
+          description: '',
+          tags: [],
+          private: false,
+          toread: false,
+        },
+        status: 'idle',
+        errors: { url: null, title: null, generic: null },
+        initialLoading: false,
+        existingBookmarkTime: null,
+      },
+      tags: {
+        tagCounts: {},
+        suggested: [],
+        tagsLoading: false,
+        suggestedLoading: false,
+        tagTimestamp: null,
+      },
+    };
+
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    const renderWithSearch = () => {
+      const hydratedStore = mockStore(baseState);
+      render(
+        <Provider store={hydratedStore}>
+          <App />
+        </Provider>
+      );
+      return hydratedStore;
+    };
+
+    afterEach(() => {
+      jest.runOnlyPendingTimers();
+      jest.useRealTimers();
+      window.localStorage.clear();
+      window.history.replaceState({}, '', '/');
+    });
+
+    test('rehydrates cached tags immediately when cache is fresh', () => {
+      window.history.replaceState(
+        {},
+        '',
+        '/?user=testUser&token=testToken&url=https%3A%2F%2Fexample.com'
+      );
+      window.localStorage.setItem('tags', JSON.stringify({ react: 5 }));
+      window.localStorage.setItem('tagTimestamp', `${Date.now()}`);
+
+      const hydratedStore = renderWithSearch();
+
+      const actions = hydratedStore.getActions();
+      expect(actions).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: 'tags/setTagCounts',
+            payload: { react: 5 },
+          }),
+        ])
+      );
+      expect(
+        actions.filter((action) => action.type === 'tags/fetchTags')
+      ).toHaveLength(0);
+
+      act(() => {
+        jest.advanceTimersByTime(10000);
+      });
+
+      expect(
+        hydratedStore
+          .getActions()
+          .filter((action) => action.type === 'tags/fetchTags')
+      ).toHaveLength(1);
+    });
+
+    test('fetches tags immediately when cache is stale or missing', () => {
+      window.history.replaceState(
+        {},
+        '',
+        '/?user=testUser&token=testToken&url=https%3A%2F%2Fexample.com'
+      );
+      window.localStorage.setItem('tags', JSON.stringify({ react: 2 }));
+      window.localStorage.setItem(
+        'tagTimestamp',
+        `${Date.now() - 30000}`
+      );
+
+      const hydratedStore = renderWithSearch();
+      const immediateFetches = hydratedStore
+        .getActions()
+        .filter((action) => action.type === 'tags/fetchTags');
+      expect(immediateFetches).toHaveLength(1);
+
+      act(() => {
+        jest.advanceTimersByTime(10000);
+      });
+
+      expect(
+        hydratedStore
+          .getActions()
+          .filter((action) => action.type === 'tags/fetchTags')
+      ).toHaveLength(2);
+    });
+  });
 });
