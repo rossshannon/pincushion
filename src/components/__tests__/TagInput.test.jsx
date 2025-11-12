@@ -12,6 +12,7 @@ const mockUserTags = {
   game_design: 60,
   'team:17': 25,
   'weird&chars': 5,
+  the_onion: 383,
 };
 
 describe('TagInput Component', () => {
@@ -184,6 +185,20 @@ describe('TagInput Component', () => {
         'Create "nothingshouldmatchthis"'
       );
     });
+  });
+
+  test('places new-tag creator after best existing match', async () => {
+    render(
+      <TagInput userTags={mockUserTags} value={[]} onChange={mockOnChange} />
+    );
+
+    const input = screen.getByRole('combobox');
+    await userEvent.clear(input);
+    await userEvent.type(input, 'the_on');
+
+    const options = await screen.findAllByRole('option');
+    expect(options[0].textContent).toContain('the_onion');
+    expect(options[options.length - 1].textContent).toContain('Create "the_on"');
   });
 
   test('sorts options by count in dropdown', async () => {

@@ -187,7 +187,9 @@ const TagInput = ({ userTags = {}, value = [], onChange, tabIndex }) => {
       }}
       loadOptions={loadOptions}
       defaultOptions={defaultOptionsList}
-      createOptionPosition="first"
+      // Keep newly-created tag affordance, but place it after the best matches so
+      // Enter selects an existing tag by default (matching legacy selectize UX).
+      createOptionPosition="last"
       classNamePrefix="pincushion-tag-select"
       tabIndex={tabIndex}
     />
