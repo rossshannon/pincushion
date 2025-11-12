@@ -282,6 +282,39 @@ describe('tag slice', () => {
         expect(state.gptContextKey).toEqual('ctx-2');
         expect(fetchGptTagSuggestions).not.toHaveBeenCalled();
       });
+
+      it('sets error state when GPT request fails', async () => {
+        fetchGptTagSuggestions.mockRejectedValueOnce(new Error('boom'));
+        const store = createMockStore(initialState, {
+          url: 'https://example.com',
+          title: 'Title',
+          description: 'Desc',
+          tags: [],
+        });
+
+        await store.dispatch(fetchGptSuggestions({ contextKey: 'ctx-err' }));
+        const state = store.getState().tags;
+        expect(state.gptStatus).toEqual('failed');
+        expect(state.gptError).toEqual('boom');
+        expect(state.gptSuggestions).toEqual([]);
+        expect(state.gptContextKey).toBeNull();
+      });
+
+      it('handles empty GPT responses gracefully', async () => {
+        fetchGptTagSuggestions.mockResolvedValueOnce([]);
+        const store = createMockStore(initialState, {
+          url: 'https://example.com',
+          title: 'Title',
+          description: 'Desc',
+          tags: ['foo'],
+        });
+
+        await store.dispatch(fetchGptSuggestions({ contextKey: 'ctx-empty' }));
+        const state = store.getState().tags;
+        expect(state.gptStatus).toEqual('succeeded');
+        expect(state.gptSuggestions).toEqual([]);
+        expect(state.gptContextKey).toEqual('ctx-empty');
+      });
     });
   });
 });

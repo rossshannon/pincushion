@@ -3,7 +3,19 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
+jest.mock('openai', () => jest.fn(() => ({
+  chat: { completions: { create: jest.fn() } },
+})));
+
 import BookmarkForm from '../BookmarkForm';
+
+jest.mock('react-transition-group', () => {
+  const Noop = ({ children }) => (typeof children === 'function' ? children(null) : children);
+  return {
+    CSSTransition: Noop,
+    TransitionGroup: ({ children }) => <div>{children}</div>,
+  };
+});
 
 // Mock Ladda - Replaced with inline mock
 jest.mock('ladda', () => ({
@@ -15,6 +27,15 @@ jest.mock('ladda', () => ({
 }));
 
 const mockStore = configureStore([thunk]);
+const baseTagsState = {
+  tagCounts: {},
+  suggested: [],
+  suggestedLoading: false,
+  gptSuggestions: [],
+  gptStatus: 'idle',
+  gptError: null,
+  gptContextKey: null,
+};
 
 describe('BookmarkForm Component', () => {
   let store;
@@ -36,13 +57,13 @@ describe('BookmarkForm Component', () => {
         existingBookmarkTime: null,
       },
       tags: {
+        ...baseTagsState,
         tagCounts: {
           test: 5,
           tag1: 3,
           suggestion1: 1,
         },
         suggested: ['suggestion1', 'suggestion2'],
-        suggestedLoading: false,
       },
     });
   });
@@ -179,11 +200,7 @@ describe('BookmarkForm Component', () => {
         initialLoading: false,
         existingBookmarkTime: null,
       },
-      tags: {
-        tagCounts: {},
-        suggested: [],
-        suggestedLoading: false,
-      },
+      tags: { ...baseTagsState },
     });
 
     render(
@@ -211,6 +228,59 @@ describe('BookmarkForm Component', () => {
     );
   });
 
+  test('clicking a suggested tag updates tags and removes chip', async () => {
+    store = mockStore({
+      bookmark: {
+        formData: {
+          title: 'Test Title',
+          url: 'https://example.com',
+          description: '',
+          tags: ['base'],
+          private: false,
+          toread: false,
+        },
+        status: 'idle',
+        errors: {},
+        initialLoading: false,
+        existingBookmarkTime: null,
+      },
+      tags: {
+        ...baseTagsState,
+        suggested: ['foo'],
+        gptSuggestions: ['ai_tag'],
+      },
+    });
+
+    render(
+      <Provider store={store}>
+        <BookmarkForm />
+      </Provider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('form')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText(/finding suggested tags/i)).not.toBeInTheDocument();
+
+    const suggestionButton = screen.getByText('foo');
+    fireEvent.click(suggestionButton);
+
+    const actions = store.getActions();
+    expect(actions).toContainEqual(
+      expect.objectContaining({
+        type: 'bookmark/setFormData',
+        payload: { tags: ['base', 'foo'] },
+      })
+    );
+    expect(actions).toContainEqual(
+      expect.objectContaining({
+        type: 'tags/addSuggestedTag',
+        payload: 'foo',
+      })
+    );
+  });
+
   test('displays loading state correctly', async () => {
     store = mockStore({
       bookmark: {
@@ -227,11 +297,7 @@ describe('BookmarkForm Component', () => {
         initialLoading: false,
         existingBookmarkTime: null,
       },
-      tags: {
-        tagCounts: {},
-        suggested: [],
-        suggestedLoading: false,
-      },
+      tags: { ...baseTagsState },
     });
 
     render(
@@ -268,11 +334,7 @@ describe('BookmarkForm Component', () => {
         initialLoading: false,
         existingBookmarkTime: existingTime,
       },
-      tags: {
-        tagCounts: {},
-        suggested: [],
-        suggestedLoading: false,
-      },
+      tags: { ...baseTagsState },
     });
 
     render(
@@ -312,11 +374,7 @@ describe('BookmarkForm Component', () => {
           initialLoading: false,
           existingBookmarkTime: null,
         },
-        tags: {
-          tagCounts: {},
-          suggested: [],
-          suggestedLoading: false,
-        },
+      tags: { ...baseTagsState },
       });
 
       render(
@@ -359,11 +417,7 @@ describe('BookmarkForm Component', () => {
           initialLoading: false,
           existingBookmarkTime: null,
         },
-        tags: {
-          tagCounts: {},
-          suggested: [],
-          suggestedLoading: false,
-        },
+        tags: { ...baseTagsState },
       });
 
       render(
@@ -405,11 +459,7 @@ describe('BookmarkForm Component', () => {
           initialLoading: false,
           existingBookmarkTime: null,
         },
-        tags: {
-          tagCounts: {},
-          suggested: [],
-          suggestedLoading: false,
-        },
+        tags: { ...baseTagsState },
       });
 
       render(
@@ -450,11 +500,7 @@ describe('BookmarkForm Component', () => {
           initialLoading: false,
           existingBookmarkTime: null,
         },
-        tags: {
-          tagCounts: {},
-          suggested: [],
-          suggestedLoading: false,
-        },
+        tags: { ...baseTagsState },
       });
 
       render(
@@ -496,11 +542,7 @@ describe('BookmarkForm Component', () => {
           initialLoading: false,
           existingBookmarkTime: null,
         },
-        tags: {
-          tagCounts: {},
-          suggested: [],
-          suggestedLoading: false,
-        },
+        tags: { ...baseTagsState },
       });
 
       render(
