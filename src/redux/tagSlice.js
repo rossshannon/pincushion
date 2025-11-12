@@ -13,9 +13,16 @@ export const fetchTags = createAsyncThunk(
       const response = await axios.get(
         `https://pinboard-api.herokuapp.com/tags/get?format=json&auth_token=${user}:${token}`
       );
-      // response.data is object mapping tag->count
-      // Return the full object instead of just keys
-      return response.data || {};
+      const data = response.data || {};
+      if (typeof localStorage !== 'undefined') {
+        try {
+          localStorage.setItem('tags', JSON.stringify(data));
+          localStorage.setItem('tagTimestamp', Date.now().toString());
+        } catch (_) {
+          // If localStorage is unavailable (SSR/tests), ignore persistence errors.
+        }
+      }
+      return data;
     } catch (err) {
       return rejectWithValue(err.message);
     }
@@ -83,12 +90,6 @@ const tagSlice = createSlice({
       .addCase(fetchTags.fulfilled, (state, action) => {
         state.tagCounts = action.payload || {};
         state.error = null;
-        try {
-          localStorage.setItem('tags', JSON.stringify(state.tagCounts));
-          localStorage.setItem('tagTimestamp', Date.now().toString());
-        } catch (_) {
-          // Intentionally empty: Failure to cache tags in localStorage is not critical.
-        }
       })
       .addCase(fetchTags.rejected, (state, action) => {
         state.error = action.payload;
