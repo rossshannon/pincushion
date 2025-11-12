@@ -106,21 +106,16 @@ function App() {
   }, [url]);
 
   useEffect(() => {
-    if (
-      initialTagSignatureRef.current === null &&
-      typeof normalizedTagString === 'string'
-    ) {
-      initialTagSignatureRef.current = normalizedTagString;
-    }
-  }, [normalizedTagString]);
-
-  useEffect(() => {
     if (!openAiToken) return;
     if (!url) return;
     if (initialLoading) return;
 
-    const existingTagsSnapshot =
-      initialTagSignatureRef.current ?? normalizedTagString;
+    let existingTagsSnapshot = initialTagSignatureRef.current;
+    if (existingTagsSnapshot === null) {
+      existingTagsSnapshot =
+        typeof normalizedTagString === 'string' ? normalizedTagString : '';
+      initialTagSignatureRef.current = existingTagsSnapshot;
+    }
 
     const contextKey = JSON.stringify({
       url,
