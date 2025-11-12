@@ -3,8 +3,8 @@ import PropTypes from 'prop-types';
 
 const TagSuggestions = ({
   suggestions,
-  isLoading,
-  isEmpty,
+  isLoading = false,
+  isEmpty = false,
   onSuggestionClick,
 }) => {
   const handleClick = (tag) => {
@@ -48,12 +48,6 @@ TagSuggestions.propTypes = {
   isLoading: PropTypes.bool,
   isEmpty: PropTypes.bool,
   onSuggestionClick: PropTypes.func,
-};
-
-TagSuggestions.defaultProps = {
-  isLoading: false,
-  isEmpty: false,
-  onSuggestionClick: undefined,
 };
 
 export default TagSuggestions;
