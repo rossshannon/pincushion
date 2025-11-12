@@ -37,10 +37,16 @@
     "@babel/core": "^7.23.0",
     "@babel/preset-env": "^7.22.20",
     "@babel/preset-react": "^7.26.3",
+    "@babel/preset-typescript": "^7.28.5",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
+    "@types/jest": "^30.0.0",
+    "@types/react": "^18.3.26",
+    "@types/react-dom": "^18.3.7",
+    "@typescript-eslint/eslint-plugin": "^5.62.0",
+    "@typescript-eslint/parser": "^5.62.0",
     "babel-jest": "^29.7.0",
     "browserify": "^17.0.0",
     "browserslist": "^4.22.1",
@@ -70,21 +76,23 @@
     "redux-mock-store": "^1.5.5",
     "redux-thunk": "^2.4.2",
     "time-grunt": "^2.0.0",
-    "trim-newlines": "^5.0.0"
+    "trim-newlines": "^5.0.0",
+    "typescript": "^4.9.5"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "jest --config jest.config.js --watch",
     "test:ci": "jest --config jest.config.js",
-    "lint": "eslint \"src/**/*.{js,jsx}\" \"**/*.test.{js,jsx}\"",
+    "lint": "eslint \"src/**/*.{js,jsx,ts,tsx}\" \"**/*.test.{js,jsx,ts,tsx}\"",
     "lint:fix": "npm run lint -- --fix",
     "prepare": "husky",
+    "typecheck": "tsc --noEmit",
     "eject": "react-scripts eject"
   },
   "lint-staged": {
-    "src/**/*.{js,jsx}": "eslint --fix",
-    "**/*.test.{js,jsx}": "eslint --fix"
+    "src/**/*.{js,jsx,ts,tsx}": "eslint --fix",
+    "**/*.test.{js,jsx,ts,tsx}": "eslint --fix"
   },
   "browserslist": {
     "production": [

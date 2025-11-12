@@ -10,7 +10,7 @@ jest.mock('openai', () => {
 const mockConstructor = jest.requireMock('openai');
 const mockCreate = mockConstructor.__mockCreate;
 
-import { fetchGptTagSuggestions } from '../gptSuggestions';
+import { fetchGptTagSuggestions } from '../gptSuggestions.ts';
 
 beforeEach(() => {
   mockConstructor.mockClear();

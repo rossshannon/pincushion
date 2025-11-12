@@ -8,7 +8,7 @@ import tagReducer, {
 } from '../../redux/tagSlice';
 import { configureStore } from '@reduxjs/toolkit';
 import { cleanUrl } from '../../utils/url';
-import { fetchGptTagSuggestions } from '../../services/gptSuggestions';
+import { fetchGptTagSuggestions } from '../../services/gptSuggestions.ts';
 
 // Mock axios
 jest.mock('axios');

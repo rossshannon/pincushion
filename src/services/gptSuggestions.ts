@@ -1,5 +1,19 @@
 import OpenAI from 'openai';
 
+type GptContext = {
+  url?: string;
+  title?: string;
+  description?: string;
+  existingTags?: string;
+};
+
+type FetchGptOptions = {
+  token?: string;
+  context: GptContext;
+  model?: string;
+  temperature?: number;
+};
+
 const BASE_SYSTEM_PROMPT =
   'Return a comma-separated list containing suggested tags to use for bookmarking a page on the web. You will be provided an URL, and sometimes a title, a description or snippet from the page, and list of existing tags.  The format of your response should be a comma-separated list, for example: spying, russia, 1980s, nuclear_war, cold_war, history. ' +
   'The tags you suggest should all be in lowercase, with no surrounding whitespace. Use underscores instead of spaces to combine words if necessary. Avoid punctuation marks. ' +
@@ -10,7 +24,7 @@ export async function fetchGptTagSuggestions({
   context,
   model = 'gpt-4o-mini',
   temperature = 0.4,
-}) {
+}: FetchGptOptions): Promise<string[]> {
   if (!token) {
     return [];
   }

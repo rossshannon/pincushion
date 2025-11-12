@@ -14,7 +14,8 @@
       {
         "runtime": "automatic"
       }
-    ]
+    ],
+    "@babel/preset-typescript"
   ],
   "env": {
     "test": {

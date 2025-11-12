@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 import { cleanUrl } from '../utils/url';
-import { fetchGptTagSuggestions } from '../services/gptSuggestions';
+import { fetchGptTagSuggestions } from '../services/gptSuggestions.ts';
 
 // Fetch user's tags from Pinboard
 export const fetchTags = createAsyncThunk(
