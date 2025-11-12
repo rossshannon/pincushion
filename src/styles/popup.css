@@ -354,12 +354,20 @@ input#url.hash-detected {
 
 /* Tag suggestions */
 
-.suggestions-list {
+.suggestions-list,
+.tag-suggestions {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
-  margin: 0.8em 0 0.8em;
+  align-items: center;
+  margin: 0.8em 0;
   line-height: 1.5;
+}
+.tag-suggestions {
+  gap: 0.4em;
+  color: #444;
+}
+.tag-suggestions #tagspinner {
+  margin-right: 0.3em;
 }
 
 .suggestions-list label {
