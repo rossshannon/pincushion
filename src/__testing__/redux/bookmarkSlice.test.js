@@ -17,7 +17,7 @@ const initialState = {
     title: '',
     url: '',
     description: '',
-    tags: '',
+    tags: [],
     private: false,
     toread: false,
   },
@@ -153,7 +153,7 @@ describe('bookmark slice', () => {
         expect(state.initialLoading).toBe(false);
         expect(state.formData.title).toEqual(mockPost.description);
         expect(state.formData.description).toEqual(mockPost.extended);
-        expect(state.formData.tags).toEqual(mockPost.tags);
+        expect(state.formData.tags).toEqual(['fetched', 'tag1', 'tag2']);
         expect(state.formData.private).toBe(true);
         expect(state.formData.toread).toBe(true);
         expect(state.existingBookmarkTime).toEqual(mockPost.time);
@@ -185,7 +185,7 @@ describe('bookmark slice', () => {
         url: 'http://example.com/submit',
         title: 'Submit Title',
         description: 'Submit Desc',
-        tags: 'submit tag',
+        tags: ['submit', 'tag'],
         private: true,
         toread: false,
       };

@@ -19,7 +19,7 @@ describe('BookmarkForm Component', () => {
           url: '',
           title: '',
           description: '',
-          tags: '',
+          tags: [],
           private: false,
           toread: false,
         },

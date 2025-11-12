@@ -21,7 +21,7 @@ describe('App Component', () => {
           title: '',
           url: '',
           description: '',
-          tags: '',
+          tags: [],
           private: false,
           toread: false,
         },

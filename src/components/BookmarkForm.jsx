@@ -93,20 +93,14 @@ function BookmarkForm() {
 
   // Handler for the TagInput component
   const handleTagsChange = (newTagsArray) => {
-    // Convert the array back to a space-separated string for Redux state
-    const tagsString = newTagsArray.join(' ');
-    dispatch(setFormData({ tags: tagsString }));
+    dispatch(setFormData({ tags: newTagsArray }));
   };
 
   // --- Handler for clicking a suggested tag ---
   const handleAddSuggestion = (tagToAdd) => {
-    const currentTags = formData.tags
-      ? formData.tags.split(' ').filter(Boolean)
-      : [];
-    // Add the tag only if it's not already present
+    const currentTags = Array.isArray(formData.tags) ? formData.tags : [];
     if (!currentTags.includes(tagToAdd)) {
-      const updatedTagsString = [...currentTags, tagToAdd].join(' ');
-      dispatch(setFormData({ tags: updatedTagsString }));
+      dispatch(setFormData({ tags: [...currentTags, tagToAdd] }));
     }
     // Also dispatch action to remove the tag from the suggested list in UI
     dispatch(addSuggestedTag(tagToAdd));
@@ -134,8 +128,8 @@ function BookmarkForm() {
     getTimestampFormats(existingBookmarkTime);
 
   // Convert tags string from formData to array for TagInput component
-  const initialTagsArray = formData.tags
-    ? formData.tags.split(' ').filter(Boolean)
+  const initialTagsArray = Array.isArray(formData.tags)
+    ? formData.tags
     : [];
 
   // Determine button text based on state

@@ -2,6 +2,19 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 import { cleanUrl } from '../utils/url';
 
+const toTagArray = (value) => {
+  if (Array.isArray(value)) {
+    return value;
+  }
+  if (typeof value === 'string') {
+    return value
+      .split(' ')
+      .map((tag) => tag.trim())
+      .filter(Boolean);
+  }
+  return [];
+};
+
 // Define specific error messages
 const ERROR_MESSAGES = {
   MISSING_URL: 'URL is required.',
@@ -47,7 +60,7 @@ export const submitBookmark = createAsyncThunk(
     params.append('extended', formData.description);
     if (formData.private) params.append('shared', 'no');
     if (formData.toread) params.append('toread', 'yes');
-    params.append('tags', formData.tags);
+    params.append('tags', (formData.tags || []).join(' '));
 
     try {
       const response = await axios.get(
@@ -105,7 +118,7 @@ const initialState = {
     title: '',
     url: '',
     description: '',
-    tags: '',
+    tags: [],
     private: false,
     toread: false,
   },
@@ -127,6 +140,9 @@ const bookmarkSlice = createSlice({
   reducers: {
     setFormData(state, action) {
       const updates = { ...action.payload };
+      if (Object.prototype.hasOwnProperty.call(updates, 'tags')) {
+        updates.tags = toTagArray(updates.tags);
+      }
       state.formData = { ...state.formData, ...updates };
       if (state.errors) {
         Object.keys(updates).forEach((fieldName) => {
@@ -161,7 +177,7 @@ const bookmarkSlice = createSlice({
           state.formData.url = post.href || state.formData.url;
           state.formData.description =
             post.extended || state.formData.description;
-          state.formData.tags = post.tags || state.formData.tags;
+          state.formData.tags = toTagArray(post.tags);
           state.formData.private = post.shared === 'no';
           state.formData.toread = post.toread === 'yes';
           state.existingBookmarkTime = post.time || null;

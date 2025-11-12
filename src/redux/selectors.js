@@ -4,8 +4,10 @@ import { createSelector } from '@reduxjs/toolkit';
 const selectSuggestedTags = (state) => state.tags.suggested;
 
 // Select the current tags array from the bookmark form data
-const selectCurrentTags = (state) =>
-  state.bookmark.formData.tags.split(' ').filter(Boolean);
+const selectCurrentTags = (state) => {
+  const tags = state.bookmark.formData.tags;
+  return Array.isArray(tags) ? tags : [];
+};
 
 // Memoized selector for displayable suggestions
 export const selectDisplayableSuggestions = createSelector(
