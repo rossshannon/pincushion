@@ -46,6 +46,25 @@
   color: #fff !important;
 }
 
+/* Hide the slim indicator separator react-select inserts before the chevron */
+.pincushion-tag-select__indicator-separator {
+  display: none;
+}
+
+/* Make the real text input fully transparent so no extra block shows through */
+.pincushion-tag-select__input-container {
+  margin: 0;
+  padding: 0;
+}
+
+.pincushion-tag-select__input input {
+  background: transparent !important;
+  border: none;
+  box-shadow: none;
+  color: inherit;
+  padding: 0;
+}
+
 /* Dropdown Menu List Styling */
 .pincushion-tag-select__menu-list {
   /* Add some padding or other base styles if needed */
