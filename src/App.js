@@ -106,7 +106,10 @@ function App() {
   }, [url]);
 
   useEffect(() => {
-    if (initialTagSignatureRef.current === null && normalizedTagString) {
+    if (
+      initialTagSignatureRef.current === null &&
+      typeof normalizedTagString === 'string'
+    ) {
       initialTagSignatureRef.current = normalizedTagString;
     }
   }, [normalizedTagString]);
