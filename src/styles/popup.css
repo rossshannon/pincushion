@@ -374,7 +374,8 @@ input#url.hash-detected {
   font-size: 80%;
 }
 
-.suggestions-list button {
+.suggestions-list button,
+.suggestions-list .separator {
   position: relative;
   font-size: 12px;
   margin: 0.4em 0.3em 0 0.2em;
@@ -389,7 +390,23 @@ input#url.hash-detected {
   text-shadow: 1px 1px 1px #333;
   cursor: pointer;
   opacity: 0.9;
-  transition: background-color 0.1s ease, box-shadow 0.2s ease, transform 0.1s ease-out;
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  max-width: 240px;
+  flex: 0 0 auto;
+  transition: background-color 0.1s ease,
+    box-shadow 0.2s ease,
+    transform 0.12s ease-out,
+    margin 0.22s ease,
+    padding 0.22s ease,
+    max-width 0.22s ease;
+}
+.suggestions-list .separator {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  padding: 3px 6px 4px;
 }
 /* Hover & focus styling */
 .suggestions-list button:hover,
@@ -409,6 +426,38 @@ input#url.hash-detected {
   top: -8px;
   height: 40px;
   width: 115%;
+}
+
+/* Animations for suggestions entering/leaving */
+.suggestions-list button.suggestion-chip-enter,
+.suggestions-list span.suggestion-separator-enter {
+  opacity: 0;
+  transform: scale(0.7);
+  margin-right: -6px;
+}
+.suggestions-list button.suggestion-chip-enter-active,
+.suggestions-list span.suggestion-separator-enter-active {
+  opacity: 1;
+  transform: scale(1);
+  margin-right: 0.3em;
+  transition: opacity 160ms ease, transform 160ms ease, margin 160ms ease;
+}
+.suggestions-list button.suggestion-chip-exit,
+.suggestions-list span.suggestion-separator-exit {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.suggestions-list button.suggestion-chip-exit-active,
+.suggestions-list span.suggestion-separator-exit-active {
+  opacity: 0;
+  transform: scale(0.6);
+  margin: 0;
+  padding-left: 0;
+  padding-right: 0;
+  max-width: 0;
+  transition: opacity 220ms ease, transform 220ms ease, margin 220ms ease,
+    padding 220ms ease;
 }
 
 

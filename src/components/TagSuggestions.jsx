@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import PropTypes from 'prop-types';
+import { TransitionGroup, CSSTransition } from 'react-transition-group';
 
 const TagSuggestions = ({
   suggestions,
@@ -12,6 +13,14 @@ const TagSuggestions = ({
     if (onSuggestionClick) {
       onSuggestionClick(tag);
     }
+  };
+
+  const nodeRefs = useRef(new Map());
+  const getNodeRef = (key) => {
+    if (!nodeRefs.current.has(key)) {
+      nodeRefs.current.set(key, React.createRef());
+    }
+    return nodeRefs.current.get(key);
   };
 
   if (isLoading) {
@@ -28,19 +37,38 @@ const TagSuggestions = ({
   }
 
   return (
-    <div className="suggestions-list">
-      {suggestions.map((tag, index) =>
-        tag === '$separator' ? (
-          <span key={`separator-${index}`} className="separator">
-            •
-          </span>
-        ) : (
-          <button type="button" key={tag} onClick={() => handleClick(tag)}>
-            {tag}
-          </button>
-        )
-      )}
-    </div>
+    <TransitionGroup className="suggestions-list" component="div">
+      {suggestions.map((tag, index) => {
+        const key = tag === '$separator' ? `separator-${index}` : tag;
+        const nodeRef = getNodeRef(key);
+        return (
+          <CSSTransition
+            key={key}
+            nodeRef={nodeRef}
+            timeout={{ enter: 160, exit: 240 }}
+            classNames={
+              tag === '$separator'
+                ? 'suggestion-separator'
+                : 'suggestion-chip'
+            }
+          >
+            {tag === '$separator' ? (
+              <span ref={nodeRef} className="separator">
+                •
+              </span>
+            ) : (
+              <button
+                ref={nodeRef}
+                type="button"
+                onClick={() => handleClick(tag)}
+              >
+                {tag}
+              </button>
+            )}
+          </CSSTransition>
+        );
+      })}
+    </TransitionGroup>
   );
 };
 TagSuggestions.propTypes = {
