@@ -1,8 +1,50 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import {
+  createSlice,
+  createAsyncThunk,
+  type PayloadAction,
+} from '@reduxjs/toolkit';
 import axios from 'axios';
 import { cleanUrl } from '../utils/url';
+import type { AuthState } from './authSlice';
 
-const toTagArray = (value) => {
+type BookmarkFormData = {
+  title: string;
+  url: string;
+  description: string;
+  tags: string[];
+  private: boolean;
+  toread: boolean;
+};
+
+type BookmarkErrors = {
+  url: string | null;
+  title: string | null;
+  description: string | null;
+  generic: string | null;
+};
+
+export type BookmarkState = {
+  formData: BookmarkFormData;
+  status: 'idle' | 'saving' | 'success' | 'error';
+  data: unknown;
+  errors: BookmarkErrors;
+  initialLoading: boolean;
+  existingBookmarkTime: string | null;
+};
+
+type BookmarkThunkState = {
+  auth: AuthState;
+  bookmark: BookmarkState;
+};
+
+type SubmitRejectValue = {
+  validationErrors?: BookmarkErrors;
+  apiError?: string;
+  descriptionTooLongError?: boolean;
+  genericError?: string;
+};
+
+const toTagArray = (value: unknown): string[] => {
   if (Array.isArray(value)) {
     return value;
   }
@@ -26,7 +68,11 @@ const ERROR_MESSAGES = {
 };
 
 // Async thunk to submit bookmark via Pinboard API
-export const submitBookmark = createAsyncThunk(
+export const submitBookmark = createAsyncThunk<
+  any,
+  void,
+  { state: BookmarkThunkState; rejectValue: SubmitRejectValue }
+>(
   'bookmark/submit',
   async (_, { getState, rejectWithValue }) => {
     const {
@@ -35,7 +81,12 @@ export const submitBookmark = createAsyncThunk(
     } = getState();
 
     // --- Client-side validation ---
-    const errors = { url: null, title: null, generic: null };
+    const errors: BookmarkErrors = {
+      url: null,
+      title: null,
+      description: null,
+      generic: null,
+    };
     let hasError = false;
     if (!formData.url) {
       errors.url = ERROR_MESSAGES.MISSING_URL;
@@ -86,7 +137,11 @@ export const submitBookmark = createAsyncThunk(
 );
 
 // Fetch existing bookmark details if any
-export const fetchBookmarkDetails = createAsyncThunk(
+export const fetchBookmarkDetails = createAsyncThunk<
+  any,
+  void,
+  { state: BookmarkThunkState; rejectValue: string }
+>(
   'bookmark/fetchDetails',
   async (_, { getState, rejectWithValue }) => {
     const {
@@ -113,7 +168,7 @@ export const fetchBookmarkDetails = createAsyncThunk(
   }
 );
 
-const initialState = {
+const initialState: BookmarkState = {
   formData: {
     title: '',
     url: '',
@@ -138,7 +193,7 @@ const bookmarkSlice = createSlice({
   name: 'bookmark',
   initialState,
   reducers: {
-    setFormData(state, action) {
+    setFormData(state, action: PayloadAction<Partial<BookmarkFormData>>) {
       const updates = { ...action.payload };
       if (Object.prototype.hasOwnProperty.call(updates, 'tags')) {
         updates.tags = toTagArray(updates.tags);
@@ -180,7 +235,7 @@ const bookmarkSlice = createSlice({
           state.formData.tags = toTagArray(post.tags);
           state.formData.private = post.shared === 'no';
           state.formData.toread = post.toread === 'yes';
-          state.existingBookmarkTime = post.time || null;
+          state.existingBookmarkTime = (post.time as string) || null;
         }
       })
       .addCase(fetchBookmarkDetails.rejected, (state, action) => {
@@ -189,7 +244,8 @@ const bookmarkSlice = createSlice({
         state.errors = {
           ...initialState.errors,
           generic:
-            action.payload || 'Failed to load existing bookmark details.',
+            (action.payload as string) ||
+            'Failed to load existing bookmark details.',
         };
       })
       .addCase(submitBookmark.pending, (state) => {
@@ -205,13 +261,14 @@ const bookmarkSlice = createSlice({
       })
       .addCase(submitBookmark.rejected, (state, action) => {
         state.status = 'error';
+        const payload = action.payload as SubmitRejectValue | undefined;
         // Start with a clean error structure before applying specific errors
         const newErrors = { ...initialState.errors };
 
-        if (action.payload?.validationErrors) {
-          Object.assign(newErrors, action.payload.validationErrors);
-        } else if (action.payload?.apiError) {
-          const apiErrorCode = action.payload.apiError;
+        if (payload?.validationErrors) {
+          Object.assign(newErrors, payload.validationErrors);
+        } else if (payload?.apiError) {
+          const apiErrorCode = payload.apiError;
           if (apiErrorCode === 'missing url') {
             newErrors.url = ERROR_MESSAGES.MISSING_URL;
           } else if (apiErrorCode === 'must provide title') {
@@ -219,10 +276,10 @@ const bookmarkSlice = createSlice({
           } else {
             newErrors.generic = ERROR_MESSAGES[apiErrorCode] || apiErrorCode;
           }
-        } else if (action.payload?.descriptionTooLongError) {
+        } else if (payload?.descriptionTooLongError) {
           newErrors.description = ERROR_MESSAGES.DESCRIPTION_TOO_LONG;
-        } else if (action.payload?.genericError) {
-          newErrors.generic = action.payload.genericError;
+        } else if (payload?.genericError) {
+          newErrors.generic = payload.genericError;
         } else {
           newErrors.generic = ERROR_MESSAGES.GENERIC_ERROR;
         }

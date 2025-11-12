@@ -1,10 +1,37 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import {
+  createSlice,
+  createAsyncThunk,
+  type PayloadAction,
+} from '@reduxjs/toolkit';
 import axios from 'axios';
 import { cleanUrl } from '../utils/url';
-import { fetchGptTagSuggestions } from '../services/gptSuggestions.ts';
+import { fetchGptTagSuggestions } from '../services/gptSuggestions';
+import type { AuthState } from './authSlice';
+import type { BookmarkState } from './bookmarkSlice';
+
+export type TagState = {
+  tagCounts: Record<string, number>;
+  suggested: string[];
+  suggestedLoading: boolean;
+  gptSuggestions: string[];
+  gptStatus: 'idle' | 'loading' | 'succeeded' | 'failed';
+  gptError: string | null;
+  gptContextKey: string | null;
+  error: string | null;
+};
+
+type TagThunkState = {
+  auth: AuthState;
+  bookmark: BookmarkState;
+  tags: TagState;
+};
 
 // Fetch user's tags from Pinboard
-export const fetchTags = createAsyncThunk(
+export const fetchTags = createAsyncThunk<
+  Record<string, number>,
+  void,
+  { state: TagThunkState; rejectValue: string }
+>(
   'tags/fetchTags',
   async (_, { getState, rejectWithValue }) => {
     const {
@@ -31,7 +58,11 @@ export const fetchTags = createAsyncThunk(
 );
 
 // Fetch suggested tags for current URL
-export const fetchSuggestedTags = createAsyncThunk(
+export const fetchSuggestedTags = createAsyncThunk<
+  string[],
+  void,
+  { state: TagThunkState; rejectValue: string }
+>(
   'tags/fetchSuggested',
   async (_, { getState, rejectWithValue }) => {
     const {
@@ -59,7 +90,21 @@ export const fetchSuggestedTags = createAsyncThunk(
   }
 );
 
-export const fetchGptSuggestions = createAsyncThunk(
+type GptPayload = {
+  contextKey?: string;
+  context?: {
+    url?: string;
+    title?: string;
+    description?: string;
+    existingTags?: string;
+  };
+};
+
+export const fetchGptSuggestions = createAsyncThunk<
+  { suggestions: string[]; contextKey: string | null },
+  GptPayload | undefined,
+  { state: TagThunkState; rejectValue: string }
+>(
   'tags/fetchGptSuggestions',
   async (payload, { getState, rejectWithValue }) => {
     const {
@@ -96,27 +141,29 @@ export const fetchGptSuggestions = createAsyncThunk(
 
       const suggestions = aiSuggestions.filter((tag) => !existingSet.has(tag));
 
-      return { suggestions, contextKey: payload?.contextKey || null };
+      return { suggestions, contextKey: payload?.contextKey ?? null };
     } catch (err) {
-      return rejectWithValue(err.message);
+      return rejectWithValue((err as Error).message);
     }
   }
 );
 
+const initialState: TagState = {
+  tagCounts: {},
+  suggested: [],
+  suggestedLoading: false,
+  gptSuggestions: [],
+  gptStatus: 'idle',
+  gptError: null,
+  gptContextKey: null,
+  error: null,
+};
+
 const tagSlice = createSlice({
   name: 'tags',
-  initialState: {
-    tagCounts: {}, // Renamed from allTags, initialized as object
-    suggested: [],
-    suggestedLoading: false,
-    gptSuggestions: [],
-    gptStatus: 'idle',
-    gptError: null,
-    gptContextKey: null,
-    error: null,
-  },
+  initialState,
   reducers: {
-    addSuggestedTag(state, action) {
+    addSuggestedTag(state, action: PayloadAction<string>) {
       state.suggested = state.suggested.filter((tag) => tag !== action.payload);
       state.gptSuggestions = state.gptSuggestions.filter(
         (tag) => tag !== action.payload
@@ -125,7 +172,7 @@ const tagSlice = createSlice({
     /**
      * Initialize tagCounts from cached storage
      */
-    setTagCounts(state, action) {
+    setTagCounts(state, action: PayloadAction<Record<string, number> | null | undefined>) {
       // Renamed from setAllTags
       state.tagCounts =
         typeof action.payload === 'object' && action.payload !== null
@@ -144,7 +191,7 @@ const tagSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchTags.rejected, (state, action) => {
-        state.error = action.payload;
+        state.error = (action.payload as string) || action.error.message || null;
       })
       // Suggested tags
       .addCase(fetchSuggestedTags.pending, (state) => {
@@ -158,7 +205,7 @@ const tagSlice = createSlice({
       })
       .addCase(fetchSuggestedTags.rejected, (state, action) => {
         state.suggestedLoading = false;
-        state.error = action.payload;
+        state.error = (action.payload as string) || action.error.message || null;
       })
       .addCase(fetchGptSuggestions.pending, (state) => {
         state.gptStatus = 'loading';
@@ -166,12 +213,12 @@ const tagSlice = createSlice({
       })
       .addCase(fetchGptSuggestions.fulfilled, (state, action) => {
         state.gptStatus = 'succeeded';
-        state.gptSuggestions = action.payload.suggestions || [];
-        state.gptContextKey = action.payload.contextKey;
+        state.gptSuggestions = action.payload?.suggestions || [];
+        state.gptContextKey = action.payload?.contextKey || null;
       })
       .addCase(fetchGptSuggestions.rejected, (state, action) => {
         state.gptStatus = 'failed';
-        state.gptError = action.payload || action.error.message;
+        state.gptError = (action.payload as string) || action.error.message || null;
       });
   },
 });

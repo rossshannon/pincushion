@@ -1,6 +1,12 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
-const initialState = {
+export interface AuthState {
+  user: string;
+  token: string;
+  openAiToken: string;
+}
+
+const initialState: AuthState = {
   user: '',
   token: '',
   openAiToken: '',
@@ -10,7 +16,7 @@ const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    setAuth(state, action) {
+    setAuth(state, action: PayloadAction<Partial<AuthState>>) {
       const { user, token, openAiToken } = action.payload;
       if (typeof user !== 'undefined') {
         state.user = user;
