@@ -1,142 +1,50 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { Provider } from 'react-redux';
-import configureStore from 'redux-mock-store';
 import userEvent from '@testing-library/user-event';
 import TagSuggestions from '../TagSuggestions';
 
-const mockStore = configureStore([]);
-
-describe('TagSuggestions Component', () => {
-  let store;
+describe('TagSuggestions (presentational)', () => {
+  const baseProps = {
+    suggestions: ['tag1', '$separator', 'tag2'],
+    isLoading: false,
+    isEmpty: false,
+    onSuggestionClick: jest.fn(),
+  };
 
   beforeEach(() => {
-    store = mockStore({
-      bookmark: {
-        formData: {
-          tags: 'existing-tag',
-        },
-      },
-      tags: {
-        suggested: ['tag1', '$separator', 'tag2', 'tag3'],
-        suggestedLoading: false,
-      },
-    });
-    store.dispatch = jest.fn();
+    baseProps.onSuggestionClick.mockClear();
   });
 
-  test('renders suggestions correctly', () => {
-    render(
-      <Provider store={store}>
-        <TagSuggestions />
-      </Provider>
-    );
-
+  test('renders suggestions and separator', () => {
+    render(<TagSuggestions {...baseProps} />);
     expect(screen.getByText('tag1')).toBeInTheDocument();
     expect(screen.getByText('tag2')).toBeInTheDocument();
-    expect(screen.getByText('tag3')).toBeInTheDocument();
     expect(screen.getByText('•')).toBeInTheDocument();
   });
 
-  test('displays loading state', () => {
-    store = mockStore({
-      bookmark: {
-        formData: {
-          tags: '',
-        },
-      },
-      tags: {
-        suggested: [],
-        suggestedLoading: true,
-      },
-    });
-
-    render(
-      <Provider store={store}>
-        <TagSuggestions />
-      </Provider>
-    );
-
-    expect(screen.getByText('finding suggested tags…')).toBeInTheDocument();
+  test('shows loading indicator', () => {
+    render(<TagSuggestions {...baseProps} isLoading />);
+    expect(screen.getByText(/finding suggested tags/i)).toBeInTheDocument();
   });
 
-  test('renders nothing when suggestions are empty', () => {
-    store = mockStore({
-      bookmark: {
-        formData: {
-          tags: '',
-        },
-      },
-      tags: {
-        suggested: [],
-        suggestedLoading: false,
-      },
-    });
-
+  test('renders nothing when empty', () => {
     const { container } = render(
-      <Provider store={store}>
-        <TagSuggestions />
-      </Provider>
+      <TagSuggestions {...baseProps} isEmpty suggestions={[]} />
     );
-
     expect(container.firstChild).toBeNull();
   });
 
-  test('handles tag click correctly', async () => {
-    render(
-      <Provider store={store}>
-        <TagSuggestions />
-      </Provider>
-    );
-
-    const tagButton = screen.getByText('tag1');
-    await userEvent.click(tagButton);
-
-    expect(store.dispatch).toHaveBeenCalledWith({
-      type: 'bookmark/setFormData',
-      payload: { tags: 'existing-tag tag1' },
-    });
+  test('fires onSuggestionClick when tag clicked and does not submit form', async () => {
+    render(<TagSuggestions {...baseProps} />);
+    const button = screen.getByText('tag1');
+    expect(button).toHaveAttribute('type', 'button');
+    await userEvent.click(button);
+    expect(baseProps.onSuggestionClick).toHaveBeenCalledWith('tag1');
   });
 
-  test('ignores separator click', async () => {
-    render(
-      <Provider store={store}>
-        <TagSuggestions />
-      </Provider>
-    );
-
-    const separator = screen.getByText('•');
-    await userEvent.click(separator);
-
-    expect(store.dispatch).not.toHaveBeenCalled();
-  });
-
-  test('adds tag to empty tags string', async () => {
-    store = mockStore({
-      bookmark: {
-        formData: {
-          tags: '',
-        },
-      },
-      tags: {
-        suggested: ['tag1', '$separator', 'tag2'],
-        suggestedLoading: false,
-      },
-    });
-    store.dispatch = jest.fn();
-
-    render(
-      <Provider store={store}>
-        <TagSuggestions />
-      </Provider>
-    );
-
-    const tagButton = screen.getByText('tag1');
-    await userEvent.click(tagButton);
-
-    expect(store.dispatch).toHaveBeenCalledWith({
-      type: 'bookmark/setFormData',
-      payload: { tags: 'tag1' },
-    });
+  test('ignores separator clicks', async () => {
+    render(<TagSuggestions {...baseProps} />);
+    await userEvent.click(screen.getByText('•'));
+    expect(baseProps.onSuggestionClick).not.toHaveBeenCalled();
   });
 });

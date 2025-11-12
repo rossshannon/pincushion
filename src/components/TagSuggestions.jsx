@@ -1,24 +1,17 @@
 import React from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import {
-  selectDisplayableSuggestions,
-  selectSuggestedLoading,
-  selectIsSuggestionsEmpty,
-} from '../redux/selectors';
-import { setFormData } from '../redux/bookmarkSlice';
+import PropTypes from 'prop-types';
 
-const TagSuggestions = () => {
-  const dispatch = useDispatch();
-  const suggestions = useSelector(selectDisplayableSuggestions);
-  const isLoading = useSelector(selectSuggestedLoading);
-  const isEmpty = useSelector(selectIsSuggestionsEmpty);
-  const currentTags = useSelector((state) => state.bookmark.formData.tags);
-
+const TagSuggestions = ({
+  suggestions,
+  isLoading,
+  isEmpty,
+  onSuggestionClick,
+}) => {
   const handleClick = (tag) => {
     if (tag === '$separator') return;
-
-    const updatedTags = currentTags ? `${currentTags} ${tag}` : tag;
-    dispatch(setFormData({ tags: updatedTags }));
+    if (onSuggestionClick) {
+      onSuggestionClick(tag);
+    }
   };
 
   if (isLoading) {
@@ -42,13 +35,25 @@ const TagSuggestions = () => {
             •
           </span>
         ) : (
-          <button key={tag} onClick={() => handleClick(tag)}>
+          <button type="button" key={tag} onClick={() => handleClick(tag)}>
             {tag}
           </button>
         )
       )}
     </div>
   );
+};
+TagSuggestions.propTypes = {
+  suggestions: PropTypes.arrayOf(PropTypes.string).isRequired,
+  isLoading: PropTypes.bool,
+  isEmpty: PropTypes.bool,
+  onSuggestionClick: PropTypes.func,
+};
+
+TagSuggestions.defaultProps = {
+  isLoading: false,
+  isEmpty: false,
+  onSuggestionClick: undefined,
 };
 
 export default TagSuggestions;

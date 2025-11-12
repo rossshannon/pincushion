@@ -9,13 +9,21 @@ import {
 } from '../redux/bookmarkSlice';
 import { addSuggestedTag } from '../redux/tagSlice'; // Import action needed for suggestion removal
 import TagInput from './TagInput.jsx';
-import TagSuggestions from './TagSuggestions.jsx'; // <-- Import TagSuggestions
+import TagSuggestions from './TagSuggestions.jsx';
+import {
+  selectDisplayableSuggestions,
+  selectSuggestedLoading,
+  selectIsSuggestionsEmpty,
+} from '../redux/selectors';
 
 function BookmarkForm() {
   const dispatch = useDispatch();
   const { formData, status, errors, initialLoading, existingBookmarkTime } =
     useSelector((state) => state.bookmark);
   const userTags = useSelector((state) => state.tags.tagCounts);
+  const suggestions = useSelector(selectDisplayableSuggestions);
+  const suggestionsLoading = useSelector(selectSuggestedLoading);
+  const suggestionsEmpty = useSelector(selectIsSuggestionsEmpty);
   const btnRef = useRef(null);
   const descRef = useRef(null);
   const laddaRef = useRef(null);
@@ -280,7 +288,12 @@ function BookmarkForm() {
       />
       {errors?.tags && <span className="helptext">{errors.tags}</span>}
 
-      <TagSuggestions onSuggestionClick={handleAddSuggestion} />
+      <TagSuggestions
+        suggestions={suggestions}
+        isLoading={suggestionsLoading}
+        isEmpty={suggestionsEmpty}
+        onSuggestionClick={handleAddSuggestion}
+      />
     </form>
   );
 }
