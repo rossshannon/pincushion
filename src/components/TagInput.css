@@ -2,6 +2,10 @@
   padding: 2px 4px !important;
 }
 
+.pincushion-tag-select__placeholder {
+  margin-left: 8px !important;
+}
+
 .pincushion-tag-select__multi-value {
   color: #fff;
   text-shadow: 0 1px 0 rgba(0, 51, 83, 0.3);
@@ -59,10 +63,11 @@
 
 .pincushion-tag-select__input input {
   background: transparent !important;
-  border: none;
-  box-shadow: none;
+  border: none !important;
+  box-shadow: none !important;
   color: inherit;
   padding: 0;
+  min-width: 0;
 }
 
 /* Dropdown Menu List Styling */
@@ -92,4 +97,13 @@
   font-weight: bold;
   /* You could add color or background-color here if desired */
   /* color: #0056b3; */
+}
+.pincushion-tag-select__control input[type="text"],
+.pincushion-tag-select__control input[type="url"],
+.pincushion-tag-select__control textarea {
+  box-shadow: none !important;
+  border: none !important;
+  max-width: none;
+  padding: 0;
+  background: transparent !important;
 }
