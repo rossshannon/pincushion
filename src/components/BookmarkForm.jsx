@@ -9,7 +9,7 @@ import {
   resetStatus,
   clearStatus,
 } from '../redux/bookmarkSlice';
-import { addSuggestedTag } from '../redux/tagSlice'; // Import action needed for suggestion removal
+import { addSuggestedTag, restoreSuggestedTag } from '../redux/tagSlice'; // Import actions
 import TagInput from './TagInput.jsx';
 import TagSuggestions from './TagSuggestions.jsx';
 import {
@@ -207,6 +207,11 @@ function BookmarkForm() {
 
   // Handler for the TagInput component
   const handleTagsChange = (newTagsArray) => {
+    const currentTags = Array.isArray(formData.tags) ? formData.tags : [];
+    const removedTags = currentTags.filter(
+      (tag) => !newTagsArray.includes(tag)
+    );
+    removedTags.forEach((tag) => dispatch(restoreSuggestedTag(tag)));
     dispatch(setFormData({ tags: newTagsArray }));
   };
 

@@ -175,6 +175,17 @@ const tagSlice = createSlice({
         (tag) => tag !== action.payload
       );
     },
+    restoreSuggestedTag(state, action: PayloadAction<string>) {
+      if (typeof action.payload !== 'string') return;
+      const normalized = action.payload.trim().toLowerCase();
+      if (!normalized) return;
+
+      state.suggested = state.suggested.filter((tag) => tag !== normalized);
+      state.gptSuggestions = state.gptSuggestions.filter(
+        (tag) => tag !== normalized
+      );
+      state.suggested.unshift(normalized);
+    },
     resetGptSuggestions(state) {
       state.gptSuggestions = [];
       state.gptStatus = 'idle';
@@ -238,5 +249,10 @@ const tagSlice = createSlice({
   },
 });
 
-export const { addSuggestedTag, setTagCounts, resetGptSuggestions } = tagSlice.actions; // Updated export
+export const {
+  addSuggestedTag,
+  restoreSuggestedTag,
+  setTagCounts,
+  resetGptSuggestions,
+} = tagSlice.actions; // Updated export
 export default tagSlice.reducer;

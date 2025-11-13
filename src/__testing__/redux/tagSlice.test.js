@@ -1,6 +1,7 @@
 import axios from 'axios';
 import tagReducer, {
   addSuggestedTag,
+  restoreSuggestedTag,
   setTagCounts,
   fetchTags,
   fetchSuggestedTags,
@@ -121,6 +122,18 @@ describe('tag slice', () => {
       expect(state2.tagCounts).toEqual({});
       const state3 = tagReducer(initialState, setTagCounts('string'));
       expect(state3.tagCounts).toEqual({});
+    });
+
+    it('should restore removed tags to suggestions list front', () => {
+      const populatedState = {
+        ...initialState,
+        suggested: ['foo', '$separator', 'bar'],
+        gptSuggestions: ['baz'],
+      };
+      const state = tagReducer(populatedState, restoreSuggestedTag('Baz'));
+      expect(state.suggested[0]).toEqual('baz');
+      expect(state.gptSuggestions).toEqual([]);
+      expect(state.suggested).toContain('$separator');
     });
 
     it('should reset GPT suggestion state', () => {

@@ -1,5 +1,12 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
@@ -425,6 +432,50 @@ describe('BookmarkForm Component', () => {
         payload: 'foo',
       })
     );
+  });
+
+  test('removing a selected tag reinjects it into suggestions', async () => {
+    store = mockStore({
+      bookmark: {
+        formData: {
+          title: 'Test Title',
+          url: 'https://example.com',
+          description: '',
+          tags: ['testing', 'ux'],
+          private: false,
+          toread: false,
+        },
+        status: 'idle',
+        errors: {},
+        initialLoading: false,
+        existingBookmarkTime: null,
+        hasExistingBookmark: false,
+      },
+      tags: {
+        ...baseTagsState,
+        suggested: ['quality_assurance'],
+      },
+    });
+
+    render(
+      <Provider store={store}>
+        <BookmarkForm />
+      </Provider>
+    );
+
+    const removeButton = await screen.findByLabelText('Remove testing');
+    await userEvent.click(removeButton);
+
+    await waitFor(() => {
+      expect(store.getActions()).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: 'tags/restoreSuggestedTag',
+            payload: 'testing',
+          }),
+        ])
+      );
+    });
   });
 
   test('displays loading state correctly', async () => {
