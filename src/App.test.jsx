@@ -37,7 +37,7 @@ jest.mock('./redux/bookmarkSlice', () => {
 });
 
 import React from 'react';
-import { render, waitFor, act } from '@testing-library/react';
+import { render, waitFor, act, fireEvent } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import App from './App';
@@ -164,5 +164,37 @@ describe('App GPT integration', () => {
     await waitFor(() => {
       expect(fetchBookmarkDetails).toHaveBeenCalledWith('https://example.com');
     });
+  });
+
+  it('parses auth and form data from query params', async () => {
+    pushSearch(
+      '?user=ross&token=xyz&openai_token=sk-123&url=https%3A%2F%2Fexample.com%2Fpage&title=Hello&description=Snippet&private=true&toread=true'
+    );
+    const { store } = renderWithStore();
+    await waitFor(() => {
+      expect(store.getState().auth).toEqual({
+        user: 'ross',
+        token: 'xyz',
+        openAiToken: 'sk-123',
+      });
+    });
+    expect(store.getState().bookmark.formData).toEqual(
+      expect.objectContaining({
+        url: 'https://example.com/page',
+        title: 'Hello',
+        description: 'Snippet',
+        private: true,
+        toread: true,
+      })
+    );
+  });
+
+  it('binds Escape key to window.close', async () => {
+    const closeSpy = jest.spyOn(window, 'close').mockImplementation(() => {});
+    pushSearch('?user=test&token=abc');
+    renderWithStore();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(closeSpy).toHaveBeenCalled();
+    closeSpy.mockRestore();
   });
 });
