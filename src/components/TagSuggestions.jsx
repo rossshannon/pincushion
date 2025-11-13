@@ -53,8 +53,12 @@ const TagSuggestions = ({
             }
           >
             {tag === '$separator' ? (
-              <span ref={nodeRef} className="separator">
-                •
+              <span
+                ref={nodeRef}
+                className="separator"
+                aria-label="AI tag suggestions"
+              >
+                ai tag ideas
               </span>
             ) : (
               <button

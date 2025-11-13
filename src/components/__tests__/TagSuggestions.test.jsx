@@ -15,11 +15,13 @@ describe('TagSuggestions (presentational)', () => {
     baseProps.onSuggestionClick.mockClear();
   });
 
-  test('renders suggestions and separator', () => {
+  test('renders suggestions and separator label', () => {
     render(<TagSuggestions {...baseProps} />);
     expect(screen.getByText('tag1')).toBeInTheDocument();
     expect(screen.getByText('tag2')).toBeInTheDocument();
-    expect(screen.getByText('•')).toBeInTheDocument();
+    expect(screen.getByLabelText(/ai tag suggestions/i)).toHaveTextContent(
+      /ai tag ideas/i
+    );
   });
 
   test('shows loading indicator', () => {
@@ -44,7 +46,7 @@ describe('TagSuggestions (presentational)', () => {
 
   test('ignores separator clicks', async () => {
     render(<TagSuggestions {...baseProps} />);
-    await userEvent.click(screen.getByText('•'));
+    await userEvent.click(screen.getByLabelText(/ai tag suggestions/i));
     expect(baseProps.onSuggestionClick).not.toHaveBeenCalled();
   });
 });

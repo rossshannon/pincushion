@@ -414,7 +414,14 @@ input#url.hash-detected {
   border: none;
   background: transparent;
   box-shadow: none;
-  padding: 3px 6px 4px;
+  padding: 2px 6px 2px;
+  cursor: default;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 10px;
+  color: #99a8c5;
+  text-shadow: none;
+  font-weight: 600;
 }
 /* Hover & focus styling */
 .suggestions-list button:hover,

@@ -21,7 +21,7 @@ jest.mock('../redux/tagSlice', () => {
   return {
     ...actual,
     fetchTags: jest.fn(() => ({ type: 'tags/fetchTags' })),
-    fetchSuggestedTags: jest.fn(() => ({ type: 'tags/fetchSuggestedTags' })),
+    fetchSuggestedTags: jest.fn(() => ({ type: 'tags/fetchSuggested' })),
   };
 });
 

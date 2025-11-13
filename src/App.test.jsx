@@ -4,12 +4,19 @@ jest.mock('openai', () => jest.fn(() => ({
 
 jest.mock('./redux/tagSlice', () => {
   const actual = jest.requireActual('./redux/tagSlice');
+  const defaultSuggestedThunk = () => (dispatch) => {
+    dispatch({ type: 'tags/fetchSuggested/pending' });
+    dispatch({
+      type: 'tags/fetchSuggested/fulfilled',
+      payload: [],
+    });
+  };
   return {
     __esModule: true,
     ...actual,
     default: actual.default,
     fetchTags: jest.fn(() => () => {}),
-    fetchSuggestedTags: jest.fn(() => () => {}),
+    fetchSuggestedTags: jest.fn(defaultSuggestedThunk),
     fetchGptSuggestions: jest.fn((payload) => (dispatch) => {
       dispatch({
         type: 'tags/fetchGptSuggestions/fulfilled',
@@ -37,7 +44,7 @@ import App from './App';
 import authReducer from './redux/authSlice';
 import bookmarkReducer, { setFormData } from './redux/bookmarkSlice';
 import tagReducer from './redux/tagSlice';
-import { fetchGptSuggestions } from './redux/tagSlice';
+import { fetchGptSuggestions, fetchSuggestedTags } from './redux/tagSlice';
 
 const renderWithStore = () => {
   const store = configureStore({
@@ -74,9 +81,26 @@ const waitForStableCalls = async () => {
   }
 };
 
+const resolvePinboardSuggestions = (store, payload = []) => {
+  act(() => {
+    store.dispatch({
+      type: 'tags/fetchSuggested/fulfilled',
+      payload,
+    });
+  });
+};
+
 describe('App GPT integration', () => {
   beforeEach(() => {
     fetchGptSuggestions.mockClear();
+    fetchSuggestedTags.mockClear();
+    fetchSuggestedTags.mockImplementation(() => (dispatch) => {
+      dispatch({ type: 'tags/fetchSuggested/pending' });
+      dispatch({
+        type: 'tags/fetchSuggested/fulfilled',
+        payload: [],
+      });
+    });
   });
 
   it('dispatches GPT suggestions only once despite tag edits', async () => {
@@ -85,6 +109,11 @@ describe('App GPT integration', () => {
     );
 
     const { store } = renderWithStore();
+    resolvePinboardSuggestions(store);
+    await waitFor(() => {
+      expect(store.getState().auth.openAiToken).toBe('sk-123');
+      expect(store.getState().tags.suggestedStatus).toBe('succeeded');
+    });
 
     await waitFor(() => {
       expect(fetchGptSuggestions).toHaveBeenCalled();
@@ -102,6 +131,23 @@ describe('App GPT integration', () => {
 
   it('skips GPT dispatch when no token provided', async () => {
     pushSearch('?user=test&token=abc&url=https%3A%2F%2Fexample.com');
+    const { store } = renderWithStore();
+    resolvePinboardSuggestions(store);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(fetchGptSuggestions).not.toHaveBeenCalled();
+  });
+
+  it('skips GPT dispatch when Pinboard suggestions are plentiful', async () => {
+    fetchSuggestedTags.mockImplementationOnce(() => (dispatch) => {
+      dispatch({ type: 'tags/fetchSuggested/pending' });
+      dispatch({
+        type: 'tags/fetchSuggested/fulfilled',
+        payload: ['one', 'two', 'three', 'four'],
+      });
+    });
+    pushSearch(
+      '?user=test&token=abc&openai_token=sk-123&url=https%3A%2F%2Fexample.com'
+    );
     renderWithStore();
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(fetchGptSuggestions).not.toHaveBeenCalled();

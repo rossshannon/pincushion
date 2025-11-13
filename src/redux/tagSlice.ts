@@ -6,6 +6,7 @@ import {
 import axios from 'axios';
 import { cleanUrl } from '../utils/url';
 import { fetchGptTagSuggestions } from '../services/gptSuggestions';
+import { postProcessPinboardSuggestions } from '../utils/tagSuggestionFilters';
 import type { AuthState } from './authSlice';
 import type { BookmarkState } from './bookmarkSlice';
 
@@ -13,6 +14,7 @@ export type TagState = {
   tagCounts: Record<string, number>;
   suggested: string[];
   suggestedLoading: boolean;
+  suggestedStatus: 'idle' | 'loading' | 'succeeded' | 'failed';
   gptSuggestions: string[];
   gptStatus: 'idle' | 'loading' | 'succeeded' | 'failed';
   gptError: string | null;
@@ -70,6 +72,7 @@ export const fetchSuggestedTags = createAsyncThunk<
       bookmark: {
         formData: { url },
       },
+      tags: { tagCounts },
     } = getState();
     try {
       // Use cleanUrl to strip fragment and encode URL
@@ -80,12 +83,14 @@ export const fetchSuggestedTags = createAsyncThunk<
       );
       const rec = response.data[1]?.recommended || [];
       const pop = response.data[0]?.popular || [];
-      const tags = [...rec, ...pop]
-        .map((tag) => tag.toLowerCase())
-        .filter((tag, idx, arr) => arr.indexOf(tag) === idx);
-      return tags;
+      const combined = [...rec, ...pop]
+        .map((tag: string) => tag.toLowerCase())
+        .filter(Boolean);
+      return postProcessPinboardSuggestions(combined, tagCounts);
     } catch (err) {
-      return rejectWithValue(err.message);
+      const message =
+        err instanceof Error ? err.message : 'Unable to fetch suggested tags';
+      return rejectWithValue(message);
     }
   }
 );
@@ -152,6 +157,7 @@ const initialState: TagState = {
   tagCounts: {},
   suggested: [],
   suggestedLoading: false,
+  suggestedStatus: 'idle',
   gptSuggestions: [],
   gptStatus: 'idle',
   gptError: null,
@@ -168,6 +174,12 @@ const tagSlice = createSlice({
       state.gptSuggestions = state.gptSuggestions.filter(
         (tag) => tag !== action.payload
       );
+    },
+    resetGptSuggestions(state) {
+      state.gptSuggestions = [];
+      state.gptStatus = 'idle';
+      state.gptError = null;
+      state.gptContextKey = null;
     },
     /**
      * Initialize tagCounts from cached storage
@@ -196,15 +208,18 @@ const tagSlice = createSlice({
       // Suggested tags
       .addCase(fetchSuggestedTags.pending, (state) => {
         state.suggestedLoading = true; // Ensure this is set
+        state.suggestedStatus = 'loading';
         state.error = null;
       })
       .addCase(fetchSuggestedTags.fulfilled, (state, action) => {
         state.suggestedLoading = false;
         state.suggested = action.payload;
+        state.suggestedStatus = 'succeeded';
         state.error = null; // Reset error on success
       })
       .addCase(fetchSuggestedTags.rejected, (state, action) => {
         state.suggestedLoading = false;
+        state.suggestedStatus = 'failed';
         state.error = (action.payload as string) || action.error.message || null;
       })
       .addCase(fetchGptSuggestions.pending, (state) => {
@@ -223,5 +238,5 @@ const tagSlice = createSlice({
   },
 });
 
-export const { addSuggestedTag, setTagCounts } = tagSlice.actions; // Updated export
+export const { addSuggestedTag, setTagCounts, resetGptSuggestions } = tagSlice.actions; // Updated export
 export default tagSlice.reducer;

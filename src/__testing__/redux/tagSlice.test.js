@@ -5,6 +5,7 @@ import tagReducer, {
   fetchTags,
   fetchSuggestedTags,
   fetchGptSuggestions,
+  resetGptSuggestions,
 } from '../../redux/tagSlice';
 import { configureStore } from '@reduxjs/toolkit';
 import { cleanUrl } from '../../utils/url';
@@ -71,6 +72,7 @@ describe('tag slice', () => {
     tagCounts: {},
     suggested: [],
     suggestedLoading: false,
+    suggestedStatus: 'idle',
     gptSuggestions: [],
     gptStatus: 'idle',
     gptError: null,
@@ -119,6 +121,21 @@ describe('tag slice', () => {
       expect(state2.tagCounts).toEqual({});
       const state3 = tagReducer(initialState, setTagCounts('string'));
       expect(state3.tagCounts).toEqual({});
+    });
+
+    it('should reset GPT suggestion state', () => {
+      const loadedState = {
+        ...initialState,
+        gptSuggestions: ['foo'],
+        gptStatus: 'succeeded',
+        gptError: 'nope',
+        gptContextKey: 'ctx',
+      };
+      const state = tagReducer(loadedState, resetGptSuggestions());
+      expect(state.gptSuggestions).toEqual([]);
+      expect(state.gptStatus).toBe('idle');
+      expect(state.gptError).toBeNull();
+      expect(state.gptContextKey).toBeNull();
     });
   });
 
@@ -185,6 +202,7 @@ describe('tag slice', () => {
         // Check the state immediately after dispatch for pending status
         const pendingState = store.getState().tags;
         expect(pendingState.suggestedLoading).toBe(true);
+        expect(pendingState.suggestedStatus).toBe('loading');
         expect(pendingState.error).toBeNull();
 
         // Now we can optionally await the promise if we need to ensure it finishes
@@ -203,6 +221,7 @@ describe('tag slice', () => {
         const state = store.getState().tags;
 
         expect(state.suggestedLoading).toBe(false);
+        expect(state.suggestedStatus).toBe('succeeded');
         expect(state.suggested).toEqual(['rec1', 'common', 'pop1']); // Order might vary based on slice logic, adjust if needed
         expect(state.error).toBeNull();
         expect(mockedAxios.get).toHaveBeenCalledWith(expectedApiUrl);
@@ -217,6 +236,7 @@ describe('tag slice', () => {
         const state = store.getState().tags;
 
         expect(state.suggestedLoading).toBe(false);
+        expect(state.suggestedStatus).toBe('succeeded');
         expect(state.suggested).toEqual(['poponly']);
       });
 
@@ -228,7 +248,31 @@ describe('tag slice', () => {
         const state = store.getState().tags;
 
         expect(state.suggestedLoading).toBe(false);
+        expect(state.suggestedStatus).toBe('succeeded');
         expect(state.suggested).toEqual([]);
+      });
+
+      it('should drop spurious placeholder payloads', async () => {
+        const mockResponse = [
+          {
+            popular: [
+              'ifttt',
+              'facebook',
+              'youtube',
+              'objective-c',
+              'twitter',
+            ],
+          },
+          {
+            recommended: ['twitterlink', 'wsh', '.from:twitter', '@codepo8', '1960s'],
+          },
+        ];
+        mockedAxios.get.mockResolvedValueOnce({ data: mockResponse });
+
+        await store.dispatch(fetchSuggestedTags());
+        const state = store.getState().tags;
+        expect(state.suggested).toEqual([]);
+        expect(state.suggestedStatus).toBe('succeeded');
       });
 
       it('should handle rejected state', async () => {
@@ -241,6 +285,7 @@ describe('tag slice', () => {
         expect(state.suggestedLoading).toBe(false);
         expect(state.suggested).toEqual([]); // Should reset or keep previous suggestions?\ Slice resets.
         expect(state.error).toEqual(errorMessage);
+        expect(state.suggestedStatus).toBe('failed');
       });
     });
 

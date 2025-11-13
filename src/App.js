@@ -10,16 +10,23 @@ import {
   fetchSuggestedTags,
   fetchGptSuggestions,
   setTagCounts,
+  resetGptSuggestions,
 } from './redux/tagSlice';
 
 const TAG_CACHE_TTL_MS = 10000;
 const TAG_REFRESH_DELAY_MS = 10000;
+const MIN_PINBOARD_SUGGESTIONS_FOR_GPT = 4;
 
 function App() {
   const dispatch = useDispatch();
   const { formData, initialLoading } = useSelector((state) => state.bookmark);
   const openAiToken = useSelector((state) => state.auth.openAiToken);
-  const { gptStatus, gptContextKey } = useSelector((state) => state.tags);
+  const {
+    gptStatus,
+    gptContextKey,
+    suggested,
+    suggestedStatus,
+  } = useSelector((state) => state.tags);
   const { url, title, description, tags } = formData;
   const normalizedTagString = Array.isArray(tags) ? tags.join(' ') : '';
   useEffect(() => {
@@ -45,7 +52,7 @@ function App() {
       })
     );
     // Only load tags/suggestions if we have auth credentials
-      if (user && token) {
+    if (user && token) {
       let tagRefreshTimer;
       // Check if bookmark exists
       if (urlParam) {
@@ -100,15 +107,38 @@ function App() {
   }, [dispatch]);
 
   const initialTagSignatureRef = useRef(null);
+  const previousUrlRef = useRef(null);
 
   useEffect(() => {
     initialTagSignatureRef.current = null;
   }, [url]);
 
   useEffect(() => {
+    if (previousUrlRef.current !== null && previousUrlRef.current !== url) {
+      dispatch(resetGptSuggestions());
+    }
+    previousUrlRef.current = url;
+  }, [dispatch, url]);
+
+  useEffect(() => {
     if (!openAiToken) return;
     if (!url) return;
     if (initialLoading) return;
+    const pinboardReady =
+      suggestedStatus === 'succeeded' || suggestedStatus === 'failed';
+    if (!pinboardReady) return;
+
+    const suggestionCount = Array.isArray(suggested)
+      ? suggested.filter((tag) => tag !== '$separator').length
+      : 0;
+
+    const shouldFetchGpt =
+      suggestedStatus === 'failed' ||
+      suggestionCount < MIN_PINBOARD_SUGGESTIONS_FOR_GPT;
+
+    if (!shouldFetchGpt) {
+      return;
+    }
 
     let existingTagsSnapshot = initialTagSignatureRef.current;
     if (existingTagsSnapshot === null) {
@@ -148,6 +178,8 @@ function App() {
     initialLoading,
     gptStatus,
     gptContextKey,
+    suggested,
+    suggestedStatus,
   ]);
   return (
     <div className="pincushion-popup" data-testid="app-container">
