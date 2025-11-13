@@ -138,7 +138,7 @@ describe('App GPT integration', () => {
     expect(fetchGptSuggestions).not.toHaveBeenCalled();
   });
 
-  it('skips GPT dispatch when Pinboard suggestions are plentiful', async () => {
+  it('still dispatches GPT when Pinboard suggestions are plentiful', async () => {
     fetchSuggestedTags.mockImplementationOnce(() => (dispatch) => {
       dispatch({ type: 'tags/fetchSuggested/pending' });
       dispatch({
@@ -149,9 +149,13 @@ describe('App GPT integration', () => {
     pushSearch(
       '?user=test&token=abc&openai_token=sk-123&url=https%3A%2F%2Fexample.com'
     );
-    renderWithStore();
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(fetchGptSuggestions).not.toHaveBeenCalled();
+    const { store } = renderWithStore();
+    await waitFor(() => {
+      expect(store.getState().tags.suggestedStatus).toBe('succeeded');
+    });
+    await waitFor(() => {
+      expect(fetchGptSuggestions).toHaveBeenCalled();
+    });
   });
 
   it('fetches bookmark details for the provided URL parameter', async () => {

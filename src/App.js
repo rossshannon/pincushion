@@ -16,7 +16,6 @@ import { enforceMinimumPopupSize } from './utils/popupAffordances';
 
 const TAG_CACHE_TTL_MS = 10000;
 const TAG_REFRESH_DELAY_MS = 10000;
-const MIN_PINBOARD_SUGGESTIONS_FOR_GPT = 4;
 
 function App() {
   const dispatch = useDispatch();
@@ -143,18 +142,6 @@ function App() {
     const pinboardReady =
       suggestedStatus === 'succeeded' || suggestedStatus === 'failed';
     if (!pinboardReady) return;
-
-    const suggestionCount = Array.isArray(suggested)
-      ? suggested.filter((tag) => tag !== '$separator').length
-      : 0;
-
-    const shouldFetchGpt =
-      suggestedStatus === 'failed' ||
-      suggestionCount < MIN_PINBOARD_SUGGESTIONS_FOR_GPT;
-
-    if (!shouldFetchGpt) {
-      return;
-    }
 
     let existingTagsSnapshot = initialTagSignatureRef.current;
     if (existingTagsSnapshot === null) {
