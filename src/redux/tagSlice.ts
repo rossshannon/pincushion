@@ -114,7 +114,6 @@ export const fetchGptSuggestions = createAsyncThunk<
   async (payload, { getState, rejectWithValue }) => {
     const {
       auth: { openAiToken },
-      tags: { suggested },
       bookmark: { formData },
     } = getState();
 
