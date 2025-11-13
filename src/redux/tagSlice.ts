@@ -144,7 +144,7 @@ export const fetchGptSuggestions = createAsyncThunk<
       );
       const deduped = aiSuggestions
         .map((tag) => (typeof tag === 'string' ? tag.trim() : tag))
-        .filter((tag) => tag)
+        .filter((tag) => tag && tag !== '[]')
         .filter((tag) => !selectedTags.has(tag.toLowerCase()));
 
       return { suggestions: deduped, contextKey: payload?.contextKey ?? null };

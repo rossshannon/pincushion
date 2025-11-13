@@ -372,7 +372,7 @@ describe('tag slice', () => {
       });
 
       it('filters out blank GPT tags before storing', async () => {
-        fetchGptTagSuggestions.mockResolvedValueOnce(['', '  ', 'tag']);
+        fetchGptTagSuggestions.mockResolvedValueOnce(['', '[]', '  ', 'tag']);
         const store = createMockStore(initialState, {
           url: 'https://example.com',
           title: 'Example',
