@@ -82,7 +82,7 @@ describe('Redux Selectors', () => {
       ]);
     });
 
-    it('should return only $separator if all other suggestions are present in current tags', () => {
+    it('should drop $separator when all other suggestions are present in current tags', () => {
       const mockState = {
         tags: {
           ...baseTagsState,
@@ -90,7 +90,7 @@ describe('Redux Selectors', () => {
         },
         bookmark: { formData: { tags: ['common', 'suggest1'] } },
       };
-      expect(selectDisplayableSuggestions(mockState)).toEqual(['$separator']);
+      expect(selectDisplayableSuggestions(mockState)).toEqual([]);
     });
 
     it('should return an empty array if suggestions are empty', () => {
@@ -99,6 +99,18 @@ describe('Redux Selectors', () => {
         bookmark: { formData: { tags: ['current'] } },
       };
       expect(selectDisplayableSuggestions(mockState)).toEqual([]);
+    });
+
+    it('should remove separator when one side has no remaining suggestions', () => {
+      const mockState = {
+        tags: {
+          ...baseTagsState,
+          suggested: ['left', '$separator', 'right'],
+          gptSuggestions: [],
+        },
+        bookmark: { formData: { tags: ['right'] } },
+      };
+      expect(selectDisplayableSuggestions(mockState)).toEqual(['left']);
     });
   });
 
@@ -111,12 +123,12 @@ describe('Redux Selectors', () => {
       expect(selectIsSuggestionsEmpty(mockState)).toBe(true);
     });
 
-    it('should return true if displayable suggestions only contain $separator', () => {
+    it('should return true if displayable suggestions only contained separator', () => {
       const mockState = {
         tags: {
           ...baseTagsState,
           suggested: ['current', '$separator'],
-        }, // 'current' will be filtered
+        },
         bookmark: { formData: { tags: ['current'] } },
       };
       expect(selectIsSuggestionsEmpty(mockState)).toBe(true);

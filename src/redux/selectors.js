@@ -32,9 +32,20 @@ export const selectDisplayableSuggestions = createSelector(
   [selectAllSuggestions, selectCurrentTags],
   (suggestions, currentTags) => {
     const currentTagsSet = new Set(currentTags);
-    return suggestions.filter(
+    const filtered = suggestions.filter(
       (tag) => tag === '$separator' || !currentTagsSet.has(tag)
     );
+
+    if (!filtered.includes('$separator')) {
+      return filtered;
+    }
+
+    return filtered.filter((tag, idx, arr) => {
+      if (tag !== '$separator') return true;
+      const hasLeft = arr.slice(0, idx).some((t) => t !== '$separator');
+      const hasRight = arr.slice(idx + 1).some((t) => t !== '$separator');
+      return hasLeft && hasRight;
+    });
   }
 );
 
