@@ -103,6 +103,7 @@ describe('BookmarkForm Component', () => {
     // Check input fields
     expect(screen.getByLabelText(/title/i)).toHaveValue('Test Title');
     expect(screen.getByLabelText(/url/i)).toHaveValue('https://example.com');
+    expect(screen.getByLabelText(/^tags$/i)).toBeInTheDocument();
 
     // Check for tag input field
     expect(screen.getByRole('combobox')).toBeInTheDocument();
@@ -413,8 +414,6 @@ describe('BookmarkForm Component', () => {
     await waitFor(() => {
       expect(screen.getByRole('form')).toBeInTheDocument();
     });
-
-    expect(screen.queryByText(/finding suggested tags/i)).not.toBeInTheDocument();
 
     const suggestionButton = screen.getByText('foo');
     fireEvent.click(suggestionButton);

@@ -364,7 +364,7 @@ input#url.hash-detected {
 }
 .tag-suggestions {
   gap: 0.4em;
-  color: #444;
+  color: #047bff;
 }
 .tag-suggestions #tagspinner {
   margin-right: 0.3em;

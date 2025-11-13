@@ -77,8 +77,6 @@ between them.
              • Original used OpenAI chat completions as a fallback/add‑on. React version omits any AI integration.
         5. Scroll‑to‑top on blur & input focus
              • Original scrolled body to top on blur and auto‑focused Selectize. React does not scroll or explicitly focus the tag field.
-        6. “Finding suggested tags…” header
-             • Original showed a header cell text alongside spinner. React only shows the spinner icon with no label.
 
 Overall the React port covers all core bookmarking/tagging flows, plus improves structure, caching, and animations—but omits AI fallbacks, detailed field errors, timestamp UI, ESC/resize behaviors, and
 initial immediate tag API fetch. If any of those are critical, we can layer them back in.

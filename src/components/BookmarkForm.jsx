@@ -394,9 +394,10 @@ function BookmarkForm() {
       </div>
 
       {/* Tags Field */}
-      <label htmlFor="tags">tags</label>
+      <label htmlFor="tag-input-field">tags</label>
       <TagInput
         id="tags"
+        inputId="tag-input-field"
         userTags={userTags}
         value={initialTagsArray}
         onChange={handleTagsChange}

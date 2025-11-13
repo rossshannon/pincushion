@@ -42,6 +42,7 @@ const TagInput = ({
   value = [],
   onChange,
   tabIndex,
+  inputId,
   autoFocus = false,
 }) => {
   // Convert value array to the format react-select expects: { label: string, value: string }
@@ -188,6 +189,7 @@ const TagInput = ({
       placeholder="Add or create tags..."
       hideSelectedOptions={true}
       captureMenuScroll={false}
+      inputId={inputId}
       components={{
         MenuList: VirtualizedMenuList,
       }}
@@ -207,6 +209,7 @@ TagInput.propTypes = {
   value: PropTypes.arrayOf(PropTypes.string),
   onChange: PropTypes.func.isRequired,
   tabIndex: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  inputId: PropTypes.string,
   autoFocus: PropTypes.bool,
 };
 
