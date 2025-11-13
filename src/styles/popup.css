@@ -400,7 +400,7 @@ input#url.hash-detected {
   opacity: 0.9;
   display: inline-flex;
   align-items: center;
-  overflow: hidden;
+  overflow: visible;
   max-width: 240px;
   flex: 0 0 auto;
   transition: background-color 0.1s ease,
@@ -439,8 +439,8 @@ input#url.hash-detected {
   position: absolute;
   left: -7%;
   top: -8px;
-  height: 40px;
-  width: 115%;
+  height: 200%;
+  width: 120%;
 }
 
 /* Animations for suggestions entering/leaving */
