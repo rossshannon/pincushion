@@ -107,6 +107,18 @@ describe('Redux Selectors', () => {
       };
       expect(selectDisplayableSuggestions(mockState)).toEqual(['left']);
     });
+
+    it('should drop separator when both lists end up empty', () => {
+      const mockState = {
+        tags: {
+          ...baseTagsState,
+          suggested: ['current'],
+          gptSuggestions: ['current'],
+        },
+        bookmark: { formData: { tags: ['current'] } },
+      };
+      expect(selectDisplayableSuggestions(mockState)).toEqual([]);
+    });
   });
 
   describe('selectIsSuggestionsEmpty', () => {

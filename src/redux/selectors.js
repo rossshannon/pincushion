@@ -10,7 +10,8 @@ const selectCurrentTags = (state) => {
   return Array.isArray(tags) ? tags : [];
 };
 
-const normalize = (tag) => (typeof tag === 'string' ? tag.toLowerCase() : tag);
+const normalize = (tag) =>
+  typeof tag === 'string' ? tag.trim().toLowerCase() : tag;
 
 // Memoized selector for displayable suggestions
 export const selectDisplayableSuggestions = createSelector(
@@ -27,6 +28,9 @@ export const selectDisplayableSuggestions = createSelector(
 
     const pinboardFiltered = cleanse(pinboard);
     const gptFiltered = cleanse(gpt);
+    if (!pinboardFiltered.length && !gptFiltered.length) {
+      return [];
+    }
 
     if (pinboardFiltered.length && gptFiltered.length) {
       return [...pinboardFiltered, '$separator', ...gptFiltered];
