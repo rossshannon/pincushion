@@ -17,6 +17,13 @@ const mockUserTags = {
 
 describe('TagInput Component', () => {
   const mockOnChange = jest.fn();
+  const partitionTags = {
+    react: 20,
+    reactor: 15,
+    preact: 12,
+    xreact: 5,
+    unrelated: 30,
+  };
 
   beforeEach(() => {
     mockOnChange.mockClear();
@@ -109,6 +116,41 @@ describe('TagInput Component', () => {
     expect(mockOnChange).toHaveBeenCalledWith(['javascript']);
   });
 
+  test('allows selecting multiple tags in a controlled parent', async () => {
+    const Harness = () => {
+      const [value, setValue] = React.useState([]);
+      const handleChange = (tags) => {
+        setValue(tags);
+        mockOnChange(tags);
+      };
+      return (
+        <>
+          <TagInput
+            userTags={mockUserTags}
+            value={value}
+            onChange={handleChange}
+          />
+          <div data-testid="selected-tags">{value.join(',')}</div>
+        </>
+      );
+    };
+
+    render(<Harness />);
+
+    const input = screen.getByRole('combobox');
+    await userEvent.click(input);
+    const javascriptOption = await screen.findByText('javascript');
+    await userEvent.click(javascriptOption.closest('.item'));
+
+    await userEvent.click(input);
+    const typescriptOption = await screen.findByText('typescript');
+    await userEvent.click(typescriptOption.closest('.item'));
+
+    expect(screen.getByTestId('selected-tags')).toHaveTextContent(
+      'javascript,typescript'
+    );
+  });
+
   test('filters options based on input', async () => {
     render(
       <TagInput userTags={mockUserTags} value={[]} onChange={mockOnChange} />
@@ -199,6 +241,27 @@ describe('TagInput Component', () => {
     const options = await screen.findAllByRole('option');
     expect(options[0].textContent).toContain('the_onion');
     expect(options[options.length - 1].textContent).toContain('Create "the_on"');
+  });
+
+  test('prioritizes exact and prefix matches ahead of substrings', async () => {
+    render(
+      <TagInput userTags={partitionTags} value={[]} onChange={mockOnChange} />
+    );
+    const input = screen.getByRole('combobox');
+    await userEvent.type(input, 'react');
+    const options = await screen.findAllByRole('option');
+    const tagLabels = options
+      .filter((option) => option.querySelector('.tag-count'))
+      .map((option) => {
+        const countText = option.querySelector('.tag-count').textContent;
+        return option.textContent.replace(countText, '').trim();
+      });
+    expect(tagLabels[0]).toContain('react');
+    expect(tagLabels[1]).toContain('reactor');
+    expect(tagLabels).toContain('preact');
+    expect(tagLabels.indexOf('preact')).toBeGreaterThan(
+      tagLabels.indexOf('reactor')
+    );
   });
 
   test('sorts options by count in dropdown', async () => {
