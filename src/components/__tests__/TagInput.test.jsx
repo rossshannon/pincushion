@@ -270,6 +270,8 @@ describe('TagInput Component', () => {
       theoracle: 120,
       theo: 80,
       theodolite: 5,
+      'The-O': 60,
+      'tHe.o': 40,
     };
 
     render(
@@ -286,8 +288,10 @@ describe('TagInput Component', () => {
         return option.textContent.replace(countText, '').trim();
       });
 
-    expect(tagLabels.slice(0, 3)).toEqual([
+    expect(tagLabels.slice(0, 5)).toEqual([
       'theo',
+      'The-O',
+      'tHe.o',
       'the_onion',
       'theoracle',
     ]);
