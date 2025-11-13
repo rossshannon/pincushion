@@ -313,7 +313,11 @@ describe('tag slice', () => {
 
     describe('fetchGptSuggestions', () => {
       it('stores GPT tags and context key while skipping duplicates', async () => {
-        fetchGptTagSuggestions.mockResolvedValueOnce(['foo', 'bar', 'baz']);
+        fetchGptTagSuggestions.mockResolvedValueOnce([
+          'foo',
+          'bar',
+          'baz',
+        ]);
 
         const bookmarkFormData = {
           url: 'https://example.com',
@@ -331,7 +335,7 @@ describe('tag slice', () => {
         const state = store.getState().tags;
 
         expect(state.gptStatus).toEqual('succeeded');
-        expect(state.gptSuggestions).toEqual(['bar']);
+        expect(state.gptSuggestions).toEqual(['bar', 'baz']);
         expect(state.gptContextKey).toEqual('ctx-1');
         expect(fetchGptTagSuggestions).toHaveBeenCalledTimes(1);
       });
@@ -348,6 +352,23 @@ describe('tag slice', () => {
         expect(state.gptSuggestions).toEqual([]);
         expect(state.gptContextKey).toEqual('ctx-2');
         expect(fetchGptTagSuggestions).not.toHaveBeenCalled();
+      });
+
+      it('keeps GPT suggestions even when they duplicate Pinboard ones', async () => {
+        fetchGptTagSuggestions.mockResolvedValueOnce(['dup', 'fresh']);
+        const store = createMockStore(
+          { ...initialState, suggested: ['dup'] },
+          {
+            url: 'https://example.com',
+            title: 'Title',
+            description: 'Desc',
+            tags: [],
+          }
+        );
+
+        await store.dispatch(fetchGptSuggestions({ contextKey: 'ctx-dup' }));
+        const { gptSuggestions } = store.getState().tags;
+        expect(gptSuggestions).toEqual(['dup', 'fresh']);
       });
 
       it('sets error state when GPT request fails', async () => {

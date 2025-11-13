@@ -139,14 +139,12 @@ export const fetchGptSuggestions = createAsyncThunk<
         context,
       });
 
-      const existingSet = new Set([
-        ...(formData.tags || []).map((tag) => tag.toLowerCase()),
-        ...suggested.map((tag) => tag.toLowerCase()),
-      ]);
+      const selectedTags = new Set(
+        (formData.tags || []).map((tag) => tag.toLowerCase())
+      );
+      const deduped = aiSuggestions.filter((tag) => !selectedTags.has(tag));
 
-      const suggestions = aiSuggestions.filter((tag) => !existingSet.has(tag));
-
-      return { suggestions, contextKey: payload?.contextKey ?? null };
+      return { suggestions: deduped, contextKey: payload?.contextKey ?? null };
     } catch (err) {
       return rejectWithValue((err as Error).message);
     }
