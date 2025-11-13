@@ -412,16 +412,15 @@ input#url.hash-detected {
 }
 .suggestions-list .separator {
   border: none;
-  background: #c8d1ed;
-  box-shadow: 0 0 6px rgba(72, 85, 154, 0.65);
-  width: 8px;
-  height: 8px;
+  background: #a9a9c4;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.6),
+    inset 0 -1px 2px rgba(80, 78, 135, 0.65);
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  margin: 0.6em 0.8em 0.2em;
+  margin: 0.4em 0.7em 0;
   padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  display: inline-block;
   font-size: 0;
 }
 /* Hover & focus styling */
