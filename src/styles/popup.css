@@ -369,15 +369,27 @@ input#url.hash-detected {
 .tag-suggestions #tagspinner {
   margin-right: 0.3em;
 }
-.tag-suggestions__text {
-  color: #047bff;
-  transition: opacity 0.25s ease, transform 0.25s ease;
-}
-.tag-suggestions__text.hidden {
+.tag-spinner-enter {
   opacity: 0;
-  transform: scale(0.85);
-  animation: squelch 0.4s linear forwards;
-  display: inline-block;
+  max-height: 0;
+  margin: 0;
+}
+.tag-spinner-enter-active {
+  opacity: 1;
+  max-height: 32px;
+  margin: 0.6em 0;
+  transition: opacity 0.2s ease, max-height 0.2s ease, margin 0.2s ease;
+}
+.tag-spinner-exit {
+  opacity: 1;
+  max-height: 32px;
+  margin: 0.6em 0;
+}
+.tag-spinner-exit-active {
+  opacity: 0;
+  max-height: 0;
+  margin: 0;
+  transition: opacity 0.2s ease, max-height 0.2s ease, margin 0.2s ease;
 }
 
 .suggestions-list label {

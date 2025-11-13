@@ -8,6 +8,8 @@ const TagSuggestions = ({
   isEmpty = false,
   onSuggestionClick,
 }) => {
+  const spinnerRef = useRef(null);
+
   const handleClick = (tag) => {
     if (tag === '$separator') return;
     if (onSuggestionClick) {
@@ -23,26 +25,24 @@ const TagSuggestions = ({
     return nodeRefs.current.get(key);
   };
 
-  const shouldRenderSpinner = isLoading || (!isLoading && !isEmpty);
   const showSuggestions = !isLoading && !isEmpty;
 
   return (
     <>
-      {shouldRenderSpinner && (
-        <div className="tag-suggestions">
-          <span
-            className={`spinner ${!isLoading ? 'hidden' : ''}`}
-            id="tagspinner"
-          ></span>
-          <span
-            className={`tag-suggestions__text ${
-              !isLoading ? 'hidden' : ''
-            }`}
-          >
+      <CSSTransition
+        in={isLoading}
+        timeout={250}
+        classNames="tag-spinner"
+        unmountOnExit
+        nodeRef={spinnerRef}
+      >
+        <div className="tag-suggestions" ref={spinnerRef}>
+          <span className="spinner" id="tagspinner"></span>
+          <span className="tag-suggestions__text">
             finding suggested tags&hellip;
           </span>
         </div>
-      )}
+      </CSSTransition>
       {showSuggestions && (
         <TransitionGroup className="suggestions-list" component="div">
           {suggestions.map((tag, index) => {

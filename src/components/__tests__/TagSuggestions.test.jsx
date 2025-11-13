@@ -21,15 +21,13 @@ describe('TagSuggestions (presentational)', () => {
     expect(screen.getByText('tag2')).toBeInTheDocument();
     const separator = screen.getByLabelText(/ai tag suggestions/i);
     expect(separator).toHaveTextContent('•');
-    const spinnerText = screen.getByText(/finding suggested tags/i);
-    expect(spinnerText).toHaveClass('tag-suggestions__text', { exact: false });
-    expect(spinnerText).toHaveClass('hidden');
+    expect(screen.queryByText(/finding suggested tags/i)).not.toBeInTheDocument();
   });
 
   test('shows loading indicator', () => {
     render(<TagSuggestions {...baseProps} isLoading />);
     const spinnerText = screen.getByText(/finding suggested tags/i);
-    expect(spinnerText).not.toHaveClass('hidden');
+    expect(spinnerText).toBeInTheDocument();
     expect(screen.queryByText('tag1')).not.toBeInTheDocument();
   });
 
