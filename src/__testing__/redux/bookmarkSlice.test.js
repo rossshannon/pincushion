@@ -273,6 +273,19 @@ describe('bookmark slice', () => {
         expect(state.errors.generic).toEqual('item already exists');
       });
 
+      it('validates description length client-side', async () => {
+        const overlyLong = 'a'.repeat(70000);
+        const longFormState = createMockStore({
+          ...initialState,
+          formData: { ...validFormData, description: overlyLong },
+        });
+        await longFormState.dispatch(submitBookmark());
+        const state = longFormState.getState().bookmark;
+        expect(state.status).toEqual('error');
+        expect(state.errors.description).toMatch(/65,535/);
+        expect(mockedAxios.get).not.toHaveBeenCalled();
+      });
+
       it('should handle rejected state (API error - missing url code)', async () => {
         const apiErrorData = { result_code: 'missing url' };
         mockedAxios.get.mockResolvedValueOnce({ data: apiErrorData });

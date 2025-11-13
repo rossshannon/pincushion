@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
@@ -559,7 +559,9 @@ describe('BookmarkForm Component', () => {
       ).toBeInTheDocument();
 
       // Check that form has error styling
-      expect(screen.getByRole('form')).toHaveClass('fail');
+      await waitFor(() => {
+        expect(screen.getByRole('form')).toHaveClass('fail');
+      });
     });
 
     test('clears field errors when user types', async () => {
@@ -609,5 +611,90 @@ describe('BookmarkForm Component', () => {
         })
       );
     });
+  });
+
+  test('focuses first invalid field when submission fails', async () => {
+    store = mockStore({
+      bookmark: {
+        formData: {
+          title: '',
+          url: '',
+          description: '',
+          tags: [],
+          private: false,
+          toread: false,
+        },
+        status: 'error',
+        errors: {
+          url: 'URL is required.',
+          title: null,
+          description: null,
+          generic: null,
+        },
+        initialLoading: false,
+        existingBookmarkTime: null,
+        hasExistingBookmark: false,
+      },
+      tags: { ...baseTagsState },
+    });
+
+    render(
+      <Provider store={store}>
+        <BookmarkForm />
+      </Provider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('form')).toBeInTheDocument();
+    });
+
+    const urlInput = screen.getByLabelText(/url/i);
+    await waitFor(() => {
+      expect(document.activeElement).toBe(urlInput);
+    });
+  });
+
+  test('soft clears status after error animation completes', async () => {
+    jest.useFakeTimers();
+    store = mockStore({
+      bookmark: {
+        formData: {
+          title: '',
+          url: '',
+          description: '',
+          tags: [],
+          private: false,
+          toread: false,
+        },
+        status: 'error',
+        errors: {
+          url: 'URL is required.',
+          title: null,
+          description: null,
+          generic: null,
+        },
+        initialLoading: false,
+        existingBookmarkTime: null,
+        hasExistingBookmark: false,
+      },
+      tags: { ...baseTagsState },
+    });
+
+    render(
+      <Provider store={store}>
+        <BookmarkForm />
+      </Provider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('form')).toBeInTheDocument();
+    });
+
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
+    const actions = store.getActions();
+    expect(actions).toContainEqual({ type: 'bookmark/clearStatus' });
+    jest.useRealTimers();
   });
 });

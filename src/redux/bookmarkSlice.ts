@@ -45,6 +45,8 @@ type SubmitRejectValue = {
   genericError?: string;
 };
 
+const DESCRIPTION_CHAR_LIMIT = 65535;
+
 const toTagArray = (value: unknown): string[] => {
   if (Array.isArray(value)) {
     return value;
@@ -95,6 +97,13 @@ export const submitBookmark = createAsyncThunk<
     }
     if (!formData.title) {
       errors.title = ERROR_MESSAGES.MISSING_TITLE;
+      hasError = true;
+    }
+    if (
+      formData.description &&
+      formData.description.length > DESCRIPTION_CHAR_LIMIT
+    ) {
+      errors.description = `Description must be under ${DESCRIPTION_CHAR_LIMIT.toLocaleString()} characters.`;
       hasError = true;
     }
 
@@ -214,6 +223,9 @@ const bookmarkSlice = createSlice({
       // Reset errors to the full initial structure
       state.errors = { ...initialState.errors };
     },
+    clearStatus(state) {
+      state.status = 'idle';
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -300,5 +312,5 @@ const bookmarkSlice = createSlice({
   },
 });
 
-export const { setFormData, resetStatus } = bookmarkSlice.actions;
+export const { setFormData, resetStatus, clearStatus } = bookmarkSlice.actions;
 export default bookmarkSlice.reducer;

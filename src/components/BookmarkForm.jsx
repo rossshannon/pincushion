@@ -6,6 +6,7 @@ import {
   setFormData,
   submitBookmark,
   resetStatus,
+  clearStatus,
 } from '../redux/bookmarkSlice';
 import { addSuggestedTag } from '../redux/tagSlice'; // Import action needed for suggestion removal
 import TagInput from './TagInput.jsx';
@@ -32,6 +33,9 @@ function BookmarkForm() {
   const suggestionsLoading = useSelector(selectSuggestedLoading);
   const suggestionsEmpty = useSelector(selectIsSuggestionsEmpty);
   const btnRef = useRef(null);
+  const formRef = useRef(null);
+  const titleRef = useRef(null);
+  const urlRef = useRef(null);
   const descRef = useRef(null);
   const laddaRef = useRef(null);
 
@@ -70,15 +74,57 @@ function BookmarkForm() {
     }
   }, [status, dispatch]);
 
-  // Add useEffect to handle error shake animation (similar to original)
+  // Error feedback: shake form, pulse button, focus first invalid field, then soften status.
   useEffect(() => {
-    const form = btnRef.current?.closest('form'); // Find the parent form
-    if (status === 'error' && form) {
-      form.classList.add('fail'); // Add shake class
-      const timer = setTimeout(() => form.classList.remove('fail'), 820); // Match animation duration
-      return () => clearTimeout(timer);
+    if (status !== 'error') {
+      return;
     }
-  }, [status]);
+    const formEl = formRef.current;
+    const btn = btnRef.current;
+    if (formEl) {
+      formEl.classList.add('fail');
+    }
+    if (btn) {
+      btn.classList.add('fail');
+    }
+
+    const fieldOrder = ['url', 'title', 'description'];
+    const refMap = {
+      url: urlRef,
+      title: titleRef,
+      description: descRef,
+    };
+    const firstError = fieldOrder.find(
+      (field) => errors?.[field]
+    );
+    const targetRef = firstError ? refMap[firstError] : null;
+    if (targetRef?.current) {
+      targetRef.current.focus();
+      if (typeof targetRef.current.scrollIntoView === 'function') {
+        targetRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
+    const timer = setTimeout(() => {
+      if (formEl) {
+        formEl.classList.remove('fail');
+      }
+      if (btn) {
+        btn.classList.remove('fail');
+      }
+      dispatch(clearStatus());
+    }, 1600);
+
+    return () => {
+      clearTimeout(timer);
+      if (formEl) {
+        formEl.classList.remove('fail');
+      }
+      if (btn) {
+        btn.classList.remove('fail');
+      }
+    };
+  }, [status, errors, dispatch]);
 
   // Add useEffect to toggle body class based on 'private' state
   useEffect(() => {
@@ -150,8 +196,9 @@ function BookmarkForm() {
 
   return (
     <form
+      ref={formRef}
       onSubmit={handleSubmit}
-      className={`bookmark-form ${status === 'error' ? 'fail' : ''}`}
+      className="bookmark-form"
       role="form"
     >
       <div id="bookmark-save" className="bookmark-save">
@@ -197,6 +244,7 @@ function BookmarkForm() {
         value={formData.title}
         onChange={handleChange}
         aria-invalid={!!errors?.title}
+        ref={titleRef}
         tabIndex="1"
       />
       {errors?.title && <span className="helptext">{errors.title}</span>}
@@ -212,6 +260,7 @@ function BookmarkForm() {
           onChange={handleChange}
           className={formData.url?.includes('#') ? 'hash-detected' : ''}
           aria-invalid={!!errors?.url}
+          ref={urlRef}
           tabIndex="2"
         />
         {/* Remove hash button remains sibling to input inside the wrapper */}
