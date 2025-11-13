@@ -23,56 +23,65 @@ const TagSuggestions = ({
     return nodeRefs.current.get(key);
   };
 
-  if (isLoading) {
-    return (
-      <div className="tag-suggestions">
-        <span className="spinner" id="tagspinner"></span>
-        finding suggested tags&hellip;
-      </div>
-    );
-  }
-
-  if (isEmpty) {
-    return null;
-  }
+  const shouldRenderSpinner = isLoading || (!isLoading && !isEmpty);
+  const showSuggestions = !isLoading && !isEmpty;
 
   return (
-    <TransitionGroup className="suggestions-list" component="div">
-      {suggestions.map((tag, index) => {
-        const key = tag === '$separator' ? `separator-${index}` : tag;
-        const nodeRef = getNodeRef(key);
-        return (
-          <CSSTransition
-            key={key}
-            nodeRef={nodeRef}
-            timeout={{ enter: 160, exit: 240 }}
-            classNames={
-              tag === '$separator'
-                ? 'suggestion-separator'
-                : 'suggestion-chip'
-            }
+    <>
+      {shouldRenderSpinner && (
+        <div className="tag-suggestions">
+          <span
+            className={`spinner ${!isLoading ? 'hidden' : ''}`}
+            id="tagspinner"
+          ></span>
+          <span
+            className={`tag-suggestions__text ${
+              !isLoading ? 'hidden' : ''
+            }`}
           >
-            {tag === '$separator' ? (
-              <span
-                ref={nodeRef}
-                className="separator"
-                aria-label="AI tag suggestions"
+            finding suggested tags&hellip;
+          </span>
+        </div>
+      )}
+      {showSuggestions && (
+        <TransitionGroup className="suggestions-list" component="div">
+          {suggestions.map((tag, index) => {
+            const key = tag === '$separator' ? `separator-${index}` : tag;
+            const nodeRef = getNodeRef(key);
+            return (
+              <CSSTransition
+                key={key}
+                nodeRef={nodeRef}
+                timeout={{ enter: 160, exit: 240 }}
+                classNames={
+                  tag === '$separator'
+                    ? 'suggestion-separator'
+                    : 'suggestion-chip'
+                }
               >
-                &bull;
-              </span>
-            ) : (
-              <button
-                ref={nodeRef}
-                type="button"
-                onClick={() => handleClick(tag)}
-              >
-                {tag}
-              </button>
-            )}
-          </CSSTransition>
-        );
-      })}
-    </TransitionGroup>
+                {tag === '$separator' ? (
+                  <span
+                    ref={nodeRef}
+                    className="separator"
+                    aria-label="AI tag suggestions"
+                  >
+                    &bull;
+                  </span>
+                ) : (
+                  <button
+                    ref={nodeRef}
+                    type="button"
+                    onClick={() => handleClick(tag)}
+                  >
+                    {tag}
+                  </button>
+                )}
+              </CSSTransition>
+            );
+          })}
+        </TransitionGroup>
+      )}
+    </>
   );
 };
 TagSuggestions.propTypes = {
