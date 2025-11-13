@@ -44,6 +44,11 @@ function App() {
     const user = params.get('user') || '';
     const token = params.get('token') || '';
     const openAi = params.get('openai_token') || '';
+    if (!openAi) {
+      console.info(
+        '[Pincushion] No OpenAI token provided; GPT suggestions will be skipped.'
+      );
+    }
     dispatch(setAuth({ user, token, openAiToken: openAi }));
     // Initial bookmark form values
     const urlParam = params.get('url') || '';
