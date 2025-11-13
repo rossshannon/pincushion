@@ -45,6 +45,7 @@ import authReducer from './redux/authSlice';
 import bookmarkReducer, { setFormData, fetchBookmarkDetails } from './redux/bookmarkSlice';
 import tagReducer from './redux/tagSlice';
 import { fetchGptSuggestions, fetchSuggestedTags } from './redux/tagSlice';
+import { setAuth } from './redux/authSlice';
 
 const renderWithStore = () => {
   const store = configureStore({
@@ -196,5 +197,28 @@ describe('App GPT integration', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(closeSpy).toHaveBeenCalled();
     closeSpy.mockRestore();
+  });
+
+  it('passes the existing tags snapshot into GPT context', async () => {
+    pushSearch('?user=test&token=abc&url=https%3A%2F%2Fexample.com');
+    const { store } = renderWithStore();
+    act(() => {
+      store.dispatch(
+        setFormData({
+          tags: ['Alpha Tag', 'beta-tag'],
+          title: 'Example',
+          description: 'Desc',
+        })
+      );
+    });
+    expect(fetchGptSuggestions).not.toHaveBeenCalled();
+    act(() => {
+      store.dispatch(setAuth({ user: 'test', token: 'abc', openAiToken: 'sk-123' }));
+    });
+    await waitFor(() => {
+      expect(fetchGptSuggestions).toHaveBeenCalled();
+    });
+    const context = fetchGptSuggestions.mock.calls[0][0].context;
+    expect(context.existingTags).toBe('Alpha Tag beta-tag');
   });
 });
