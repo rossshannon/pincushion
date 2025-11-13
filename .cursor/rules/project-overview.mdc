@@ -1,0 +1,27 @@
+---
+description: Starting new conversations.
+globs:
+alwaysApply: false
+---
+# Project Overview & Conventions
+
+This project is a web application for saving bookmarks, built with React, utilising Redux for state management. It was recently refactored from an older jQuery implementation.
+
+## Key Directories:
+
+*   **`src/`**: Contains the main application source code.
+    *   The main entry point is [src/index.js](mdc:src/index.js).
+    *   **`src/@redux/`**: Houses all Redux-related files, including slices, selectors, and the store configuration.
+        *   Focus is currently on adding tests for slices like [src/@redux/authSlice.js](mdc:src/@redux/authSlice.js).
+    *   **`src/components/`**: Contains reusable React components.
+    *   **`src/__testing__/`**: Centralised directory for all test files (Jest/React Testing Library). Standard practice is to have corresponding test files for Redux slices and selectors.
+
+## Testing Strategy:
+
+*   Tests are located in [src/__testing__](mdc:src/__testing__).
+*   The primary focus for new tests is on Redux logic (slices and selectors).
+*   Component tests also reside within the central testing directory.
+
+## Legacy Code:
+
+*   Efforts have been made to remove legacy jQuery code. Any remaining instances should be identified and replaced with React/vanilla JS alternatives.

@@ -1,0 +1,581 @@
+html {
+  -ms-touch-action: manipulation;
+  touch-action: manipulation;
+}
+
+body {
+  min-height: 1100px;
+  margin: 0;
+  padding: 0.2em 0.6em 0 0.6em;
+  background: #fdfdfd;
+  color: #333;
+  transition: background-color 0.6s ease;
+  font-family: "Helvetica Neue", Helvetica, "Arial Unicode", Arial, "Nimbus Sans L", "Liberation Sans", FreeSans, sans-serif;
+
+  @media only screen and (min-width: 480px) {
+    min-height: 1400px;
+  }
+
+  &.private {
+    background-color: #f2f2f4;
+  }
+}
+
+body,
+input,
+textarea,
+button {
+  font:
+    15px/1.5 'Helvetica Neue',
+    Helvetica,
+    'Arial Unicode',
+    Arial,
+    'Nimbus Sans L',
+    'Liberation Sans',
+    FreeSans,
+    sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
+/* Container */
+.pincushion-popup {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  max-width: 740px;
+  margin: 0 auto;
+  padding: 2px;
+  background-color: #fdfdfd;
+  color: #333;
+  background: url(../assets/images/padlock.png) 50% 8px no-repeat;
+  background-size: 55px 55px;
+}
+/* Ensure pointer cursor on labels and checkboxes */
+label, input[type=checkbox] {
+  cursor: pointer;
+}
+
+/* Keyframe animations from legacy CSS */
+@keyframes pop {
+  0% { transform: scale(0.98); }
+  50% { transform: scale(1.05); }
+ 100% { transform: scale(1.0); }
+}
+@keyframes non {
+  20% { transform: translateX(0); }
+  45% { transform: translateX(-5px); }
+  60% { transform: translateX(6px); }
+  75% { transform: translateX(-7px); }
+  90% { transform: translateX(6px); }
+}
+@keyframes ahem {
+  30% { text-shadow: 0 0 2px #ff7868; }
+}
+/* Override Ladda default for main submit button */
+#submit {
+  min-width: 177px;
+  font-size: 16px;
+  border-radius: 4px;
+  box-shadow: inset 0 0 13px #48aadf;
+  transition: transform 1s ease, text-shadow 0.1s linear, border-radius 0.1s linear;
+}
+#submit:focus {
+  animation: pop 0.3s ease 0.5s;
+  box-shadow: 2px 2px 7px #ddd;
+  outline: none;
+}
+#submit:active {
+  transform: translate(1px, 3px);
+}
+#submit[disabled] {
+  box-shadow: none;
+}
+#submit.success {
+  background-color: #4adc76;
+  box-shadow: none;
+  text-shadow: 1px 1px 1px #3d682c;
+  animation: pop 0.3s ease 0.5s;
+}
+#submit.fail {
+  background-color: #ff6868;
+  box-shadow: none;
+  animation: non 0.8s ease 0;
+}
+#submit.fail[disabled] {
+  background-color: #988;
+  opacity: 0.7;
+}
+
+
+/* Error message animation */
+.error {
+  display: block;
+  color: #ff6868;
+  text-shadow: 1px 1px 1px #fff;
+  animation: ahem 0.8s ease 0;
+}
+
+.error-message {
+  display: block;
+  color: #ff6868;
+  text-shadow: 1px 1px 1px #fff;
+  padding: 0.5em;
+  margin: 0.5em 0;
+  text-align: center;
+  font-weight: 500;
+  background: rgba(255, 104, 104, 0.1);
+  border-radius: 4px;
+}
+
+/* Animations for tag suggestion enter/exit */
+/* Container for suggestion, handles layout shrink */
+.suggestion-item {
+  display: inline-block;
+  vertical-align: top;
+  margin: 0 0.3em 0 0;
+  /* Shrink towards top-left corner */
+  transform-origin: top left;
+  flex: 0 0 auto;
+  overflow: hidden;
+  /* Animate collapse via max-width, max-height and fade */
+  transition: max-width 300ms ease-in, max-height 300ms ease-in, opacity 100ms ease-out, margin-right 300ms ease-in;
+}
+/* Allow buttons on hover to extend outside their container */
+.suggestion-item:hover {
+  overflow: visible;
+  z-index: 1;
+}
+/* Suggestion enter/exit animations */
+.suggestion-enter {
+  opacity: 0;
+  transform: scale(0);
+}
+.suggestion-enter-active {
+  opacity: 1;
+  transform: scale(1);
+  transition: transform 300ms ease-out, opacity 300ms ease-out;
+}
+.suggestion-exit {
+  opacity: 1;
+  transform: scale(1);
+  /* Ensure collapse hides content even if hovered */
+  overflow: hidden !important;
+}
+.suggestion-exit-active {
+  /* Fade out and collapse width/height */
+  opacity: 0;
+  max-width: 0 !important;
+  max-height: 0 !important;
+  margin-right: 0 !important;
+  /* Override hover overflow to prevent visibility during exit */
+  overflow: hidden !important;
+}
+form.bookmark-form {
+  margin: 0;
+  padding: 0;
+}
+/* Input field labels styling */
+label {
+  display: block;
+  color: #047BFF;
+  padding: 4px 0 0 3px;
+  font-weight: normal;
+  -webkit-font-smoothing: antialiased;
+  transition: color 0.3s ease;
+}
+/* Bookmark save area */
+ .bookmark-save {
+  text-align: right;
+  margin-bottom: 0.4em;
+}
+
+/* Timestamp Info */
+.timestamp-info {
+  text-align: right;
+  font-size: 12px;
+  color: #aac;
+  margin: 0 0 0.5em;
+  padding: 3px 4px 0 0;
+}
+
+
+input[type="text"],
+input[type="url"],
+textarea {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 740px;
+  padding: 10px 1px 10px 7px;
+  line-height: 1;
+  border: 1px solid #c8c8c8;
+  border-bottom-color: #bbb;
+  border-radius: 2px;
+  box-shadow: 0 1px 4px #ddf;
+  background: #fefefe;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: border-color 0.1s ease, background-color 0.1s ease, max-width 0.4s ease;
+  overflow: hidden;
+  resize: none;
+}
+
+input[type="text"] {
+  font-size: 120%;
+  -webkit-font-smoothing: antialiased;
+}
+input[type="url"] {
+  font-size: 100%;
+}
+textarea {
+  font-size: 85%;
+  line-height: 1.7;
+  padding: 6px;
+  text-indent: 1.8em;
+  transition: height 0.4s ease;
+  form-sizing: content;
+  min-height: 2lh;
+  max-height: 10lh;
+}
+input[type="text"]:hover,
+input[type="url"]:hover,
+textarea:hover {
+  border-color: #aaa;
+  background-color: #fff;
+}
+input[type="text"]:focus,
+input[type="url"]:focus,
+textarea:focus {
+  border-color: #ccc;
+  background-color: #fffffc !important;
+}
+button {
+  padding: 8px 16px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+button:hover { background-color: #0056b3; }
+
+/* URL field with hash remove */
+.url-field {
+  position: relative;
+}
+
+input#url.hash-detected {
+  max-width: 92%;
+}
+
+.remove-hash {
+  position: relative;
+  top: 1px;
+  margin: 0 0 0 10px;
+  padding: 0.1em 0.4em 0.1em 0.5em;
+  border: none;
+  border-radius: 4px;
+  border: 1px solid #c8c8c8;
+  background-color: #fff;
+  box-shadow: inset 0 0 4px #ddf;
+  transform: translateY(0) skew(0deg);
+  animation: bounceIn ease-in 0.8s 1 0.4s forwards;
+  opacity: 0;
+  cursor: pointer;
+  color: #000;
+  font-style: italic;
+  font-weight: 600;
+  font-size: 18px;
+
+  &:hover {
+    border-color: #aaa;
+    background-color: #f3f3f3;
+  }
+
+  &:after { /* Expand click area. */
+    position: absolute;
+    left: -45%;
+    top: -14px;
+    height: 200%;
+    width: 190%;
+    content: "";
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    transform: translateY(0) skew(0deg);
+  }
+  40%,
+  60%,
+  80%,
+  100% {
+    transform: translateY(0) skew(-15deg);
+    opacity: 1;
+  }
+  20% {
+    transform: translateY(-15px) skew(-15deg) rotate(-10deg);
+    opacity: 0.8;
+  }
+  60% {
+    transform: translateY(-9px) skew(-15deg) rotate(5deg);
+  }
+}
+
+
+/* Checkbox button modifiers */
+#modifiers {
+  margin: 0.4em 0 0.6em;
+  padding: 0.2em;
+}
+#modifiers label {
+  display: inline-block;
+  min-width: 105px;
+  font-size: 110%;
+  color: #333;
+  margin: 0 15px 0 0;
+  padding: 10px 14px 10px 0;
+  border: 1px solid #c8c8cc;
+  border-radius: 10px;
+  background-color: #fff;
+  text-transform: capitalize;
+  box-shadow: 0 1px 4px #ddd;
+  transition: transform 0.1s ease;
+  user-select: none;
+}
+#modifiers label:hover {
+  border-color: #aaa;
+}
+#modifiers label:active {
+  transform: translate(2px,2px);
+}
+#modifiers input[type=checkbox] {
+  margin: 0 10px 0 13px;
+  transform: scale(1.5);
+}
+
+/* Tag suggestions */
+
+.suggestions-list,
+.tag-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 0.8em 0;
+  line-height: 1.5;
+}
+.tag-suggestions {
+  gap: 0.4em;
+  color: #047bff;
+}
+.tag-suggestions #tagspinner {
+  margin-right: 0.3em;
+}
+.tag-spinner-enter {
+  opacity: 0;
+  max-height: 0;
+  margin: 0;
+}
+.tag-spinner-enter-active {
+  opacity: 1;
+  max-height: 32px;
+  margin: 0.6em 0;
+  transition: opacity 0.2s ease, max-height 0.2s ease, margin 0.2s ease;
+}
+.tag-spinner-exit {
+  opacity: 1;
+  max-height: 32px;
+  margin: 0.6em 0;
+}
+.tag-spinner-exit-active {
+  opacity: 0;
+  max-height: 0;
+  margin: 0;
+  transition: opacity 0.2s ease, max-height 0.2s ease, margin 0.2s ease;
+}
+
+.suggestions-list label {
+  margin: 0 0 8px;
+  font-size: 1em;
+  font-weight: 400;
+  color: #047BFF;
+}
+
+.none {
+  color: #99a;
+  font-size: 80%;
+}
+
+.suggestions-list button,
+.suggestions-list .separator {
+  position: relative;
+  font-size: 12px;
+  margin: 0.4em 0.3em 0 0.2em;
+  padding: 3px 10px 4px;
+  border: 1px solid #445;
+  border-bottom-color: #335;
+  border-radius: 4px;
+  background: #76a;
+  color: #fff;
+  letter-spacing: 1px;
+  box-shadow: inset 0 -2px 10px #559;
+  text-shadow: 1px 1px 1px #333;
+  cursor: pointer;
+  opacity: 0.9;
+  display: inline-flex;
+  align-items: center;
+  overflow: visible;
+  max-width: 240px;
+  flex: 0 0 auto;
+  transition: background-color 0.1s ease,
+    box-shadow 0.2s ease,
+    transform 0.12s ease-out,
+    margin 0.22s ease,
+    padding 0.22s ease,
+    max-width 0.22s ease;
+}
+.suggestions-list .separator {
+  border: none;
+  background: #a9a9c4;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  margin: 0 0.35em;
+  padding: 0;
+  display: inline-block;
+  vertical-align: middle;
+  transform: translateY(1px);
+  font-size: 0;
+}
+/* Hover & focus styling */
+.suggestions-list button:hover,
+.suggestions-list button:focus {
+  background-color: #20a5e4;
+  background-image: linear-gradient(to bottom, #1da7ee, #178ee9);
+  border: 1px solid #1073bb;
+  box-shadow: 2px 2px 4px #bcd;
+  text-shadow: 1px 1px 1px #222;
+  transform: translate(0, -2px);
+}
+/* Expand clickable area of suggestion buttons */
+.suggestions-list button:after {
+  content: "";
+  position: absolute;
+  left: -7%;
+  top: -8px;
+  height: 200%;
+  width: 120%;
+}
+
+/* Animations for suggestions entering/leaving */
+.suggestions-list button.suggestion-chip-enter,
+.suggestions-list span.suggestion-separator-enter {
+  opacity: 0;
+  transform: scale(0.7);
+  margin-right: -6px;
+}
+.suggestions-list button.suggestion-chip-enter-active,
+.suggestions-list span.suggestion-separator-enter-active {
+  opacity: 1;
+  transform: scale(1);
+  margin-right: 0.3em;
+  transition: opacity 160ms ease, transform 160ms ease, margin 160ms ease;
+}
+.suggestions-list button.suggestion-chip-exit,
+.suggestions-list span.suggestion-separator-exit {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.suggestions-list button.suggestion-chip-exit-active,
+.suggestions-list span.suggestion-separator-exit-active {
+  opacity: 0;
+  transform: scale(0.6);
+  margin: 0;
+  padding-left: 0;
+  padding-right: 0;
+  max-width: 0;
+  transition: opacity 220ms ease, transform 220ms ease, margin 220ms ease,
+    padding 220ms ease;
+}
+
+
+footer {
+  margin: 3em 0 1em;
+  padding: 1em 0.6em 0;
+  border-top: 2px dotted #ddd;
+}
+
+#pinboard-link {
+  opacity: 0.8;
+}
+
+/* Spinner styles ported from original popup.less */
+.spinner {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  margin: -4px 6px 0 0;
+  vertical-align: middle;
+  /* Adjust path relative to CSS file location */
+  background: url(../assets/images/spinner_2x.gif) 0 0 no-repeat;
+  background-size: 24px 24px;
+  opacity: 0.6;
+}
+
+.spinner.hidden {
+  /* Animation to hide spinner */
+  animation: squelch 0.4s linear forwards;
+}
+
+#tagspinner {
+  /* Specific styles for the smaller tag spinner */
+  width: 16px;
+  height: 16px;
+  background-size: 16px 16px;
+  opacity: 0.8;
+}
+
+/* Keyframes for hiding animation */
+@keyframes squelch {
+  100% {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+
+a {
+  text-decoration: none;
+  font-weight: bold;
+  color: #00d;
+}
+
+/* Selectize dropdown option count styling */
+.optioncount {
+  margin-left: 65px;
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 300;
+  color: #bbb;
+  float: right; /* Align count to the right */
+  margin-right: 10px; /* Add some space from the edge */
+}
+
+/* Tag weight classes */
+.tw1 {
+  font-weight: 400;
+}
+
+.tw10 {
+  font-weight: 400;
+  color: #99b;
+}
+
+.tw50 {
+  font-size: 110%;
+  font-weight: 600;
+  color: #aaf;
+}
+
+.tw100 {
+  font-size: 120%;
+  font-weight: 700;
+  color: #89f;
+}
