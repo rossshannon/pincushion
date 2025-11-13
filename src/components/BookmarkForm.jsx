@@ -239,7 +239,7 @@ function BookmarkForm() {
         value={formData.description}
         onChange={handleChange}
         onInput={resizeTextarea}
-        style={{ overflow: 'hidden', resize: 'none' }}
+        style={{ overflow: 'hidden', resize: 'vertical' }}
         tabIndex="3"
       />
       {errors?.description && (
