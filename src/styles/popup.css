@@ -413,11 +413,11 @@ input#url.hash-detected {
 .suggestions-list .separator {
   border: none;
   background: #c8d1ed;
-  box-shadow: none;
-  width: 6px;
-  height: 6px;
+  box-shadow: 0 0 6px rgba(72, 85, 154, 0.65);
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  margin: 0 0.6em;
+  margin: 0.6em 0.8em 0.2em;
   padding: 0;
   display: inline-flex;
   align-items: center;
