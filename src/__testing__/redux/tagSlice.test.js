@@ -127,13 +127,22 @@ describe('tag slice', () => {
     it('should restore removed tags to suggestions list front', () => {
       const populatedState = {
         ...initialState,
-        suggested: ['foo', '$separator', 'bar'],
+        suggested: ['foo', 'bar'],
         gptSuggestions: ['baz'],
       };
       const state = tagReducer(populatedState, restoreSuggestedTag('Baz'));
       expect(state.suggested[0]).toEqual('baz');
       expect(state.gptSuggestions).toEqual([]);
-      expect(state.suggested).toContain('$separator');
+    });
+
+    it('should strip separator when no GPT suggestions remain', () => {
+      const populatedState = {
+        ...initialState,
+        suggested: ['foo', '$separator', 'bar'],
+        gptSuggestions: [],
+      };
+      const state = tagReducer(populatedState, restoreSuggestedTag('foo'));
+      expect(state.suggested).not.toContain('$separator');
     });
 
     it('should reset GPT suggestion state', () => {

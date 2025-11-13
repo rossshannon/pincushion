@@ -177,14 +177,18 @@ const tagSlice = createSlice({
     },
     restoreSuggestedTag(state, action: PayloadAction<string>) {
       if (typeof action.payload !== 'string') return;
-      const normalized = action.payload.trim().toLowerCase();
-      if (!normalized) return;
+      const trimmed = action.payload.trim();
+      if (!trimmed) return;
+      const normalized = trimmed.toLowerCase();
 
       state.suggested = state.suggested.filter((tag) => tag !== normalized);
       state.gptSuggestions = state.gptSuggestions.filter(
         (tag) => tag !== normalized
       );
       state.suggested.unshift(normalized);
+      if (state.gptSuggestions.length === 0) {
+        state.suggested = state.suggested.filter((tag) => tag !== '$separator');
+      }
     },
     resetGptSuggestions(state) {
       state.gptSuggestions = [];
