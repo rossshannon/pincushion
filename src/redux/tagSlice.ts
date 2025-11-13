@@ -142,7 +142,10 @@ export const fetchGptSuggestions = createAsyncThunk<
       const selectedTags = new Set(
         (formData.tags || []).map((tag) => tag.toLowerCase())
       );
-      const deduped = aiSuggestions.filter((tag) => !selectedTags.has(tag));
+      const deduped = aiSuggestions
+        .map((tag) => (typeof tag === 'string' ? tag.trim() : tag))
+        .filter((tag) => tag)
+        .filter((tag) => !selectedTags.has(tag.toLowerCase()));
 
       return { suggestions: deduped, contextKey: payload?.contextKey ?? null };
     } catch (err) {

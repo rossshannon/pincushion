@@ -371,6 +371,18 @@ describe('tag slice', () => {
         expect(gptSuggestions).toEqual(['dup', 'fresh']);
       });
 
+      it('filters out blank GPT tags before storing', async () => {
+        fetchGptTagSuggestions.mockResolvedValueOnce(['', '  ', 'tag']);
+        const store = createMockStore(initialState, {
+          url: 'https://example.com',
+          title: 'Example',
+          description: 'Desc',
+          tags: [],
+        });
+        await store.dispatch(fetchGptSuggestions({ contextKey: 'ctx-blank' }));
+        expect(store.getState().tags.gptSuggestions).toEqual(['tag']);
+      });
+
       it('sets error state when GPT request fails', async () => {
         fetchGptTagSuggestions.mockRejectedValueOnce(new Error('boom'));
         const store = createMockStore(initialState, {
