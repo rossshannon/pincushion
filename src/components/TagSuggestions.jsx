@@ -58,7 +58,7 @@ const TagSuggestions = ({
                 className="separator"
                 aria-label="AI tag suggestions"
               >
-                ai tag ideas
+                &bull;
               </span>
             ) : (
               <button

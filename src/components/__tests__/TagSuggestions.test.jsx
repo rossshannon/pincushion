@@ -19,9 +19,8 @@ describe('TagSuggestions (presentational)', () => {
     render(<TagSuggestions {...baseProps} />);
     expect(screen.getByText('tag1')).toBeInTheDocument();
     expect(screen.getByText('tag2')).toBeInTheDocument();
-    expect(screen.getByLabelText(/ai tag suggestions/i)).toHaveTextContent(
-      /ai tag ideas/i
-    );
+    const separator = screen.getByLabelText(/ai tag suggestions/i);
+    expect(separator).toHaveTextContent('•');
   });
 
   test('shows loading indicator', () => {
