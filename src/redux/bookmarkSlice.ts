@@ -149,23 +149,24 @@ export const submitBookmark = createAsyncThunk<
 // Fetch existing bookmark details if any
 export const fetchBookmarkDetails = createAsyncThunk<
   any,
-  void,
+  string | undefined,
   { state: BookmarkThunkState; rejectValue: string }
 >(
   'bookmark/fetchDetails',
-  async (_, { getState, rejectWithValue }) => {
+  async (overrideUrl, { getState, rejectWithValue }) => {
     const {
       auth: { user, token },
       bookmark: {
         formData: { url },
       },
     } = getState();
-    if (!user || !token || !url) return null;
+    const targetUrl = overrideUrl || url;
+    if (!user || !token || !targetUrl) return null;
     try {
       // Fetch details: strip fragment and encode URL parameter
       const response = await axios.get(
         `https://pinboard-api.herokuapp.com/posts/get?format=json&auth_token=${user}:${token}&url=${cleanUrl(
-          url
+          targetUrl
         )}`
       );
       if (response.data.posts && response.data.posts.length === 1) {
@@ -250,7 +251,8 @@ const bookmarkSlice = createSlice({
           state.formData.tags = toTagArray(post.tags);
           state.formData.private = post.shared === 'no';
           state.formData.toread = post.toread === 'yes';
-          state.existingBookmarkTime = (post.time as string) || null;
+          state.existingBookmarkTime =
+            (post.time as string) || (post.dt as string) || null;
           state.hasExistingBookmark = true;
         } else {
           state.hasExistingBookmark = false;

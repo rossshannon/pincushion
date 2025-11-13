@@ -42,7 +42,7 @@ import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import App from './App';
 import authReducer from './redux/authSlice';
-import bookmarkReducer, { setFormData } from './redux/bookmarkSlice';
+import bookmarkReducer, { setFormData, fetchBookmarkDetails } from './redux/bookmarkSlice';
 import tagReducer from './redux/tagSlice';
 import { fetchGptSuggestions, fetchSuggestedTags } from './redux/tagSlice';
 
@@ -93,6 +93,7 @@ const resolvePinboardSuggestions = (store, payload = []) => {
 describe('App GPT integration', () => {
   beforeEach(() => {
     fetchGptSuggestions.mockClear();
+    fetchBookmarkDetails.mockClear();
     fetchSuggestedTags.mockClear();
     fetchSuggestedTags.mockImplementation(() => (dispatch) => {
       dispatch({ type: 'tags/fetchSuggested/pending' });
@@ -151,5 +152,13 @@ describe('App GPT integration', () => {
     renderWithStore();
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(fetchGptSuggestions).not.toHaveBeenCalled();
+  });
+
+  it('fetches bookmark details for the provided URL parameter', async () => {
+    pushSearch('?user=test&token=abc&url=https%3A%2F%2Fexample.com');
+    renderWithStore();
+    await waitFor(() => {
+      expect(fetchBookmarkDetails).toHaveBeenCalledWith('https://example.com');
+    });
   });
 });

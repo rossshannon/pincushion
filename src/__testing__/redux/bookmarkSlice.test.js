@@ -174,6 +174,17 @@ describe('bookmark slice', () => {
         expect(mockedAxios.get).toHaveBeenCalledWith(expectedApiUrl);
       });
 
+      it('allows overriding the lookup URL', async () => {
+        const overrideUrl = 'http://override.test';
+        mockedAxios.get.mockResolvedValueOnce({ data: { posts: [] } });
+        await store.dispatch(fetchBookmarkDetails(overrideUrl));
+        expect(mockedAxios.get).toHaveBeenCalledWith(
+          `https://pinboard-api.herokuapp.com/posts/get?format=json&auth_token=testUser:testToken&url=${encodeURIComponent(
+            overrideUrl
+          )}`
+        );
+      });
+
       it('should handle rejected state', async () => {
         const errorMessage = 'Network Error';
         mockedAxios.get.mockRejectedValueOnce(new Error(errorMessage));

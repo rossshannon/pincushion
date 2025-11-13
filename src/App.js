@@ -21,7 +21,7 @@ const MIN_PINBOARD_SUGGESTIONS_FOR_GPT = 4;
 function App() {
   const dispatch = useDispatch();
   const { formData, initialLoading } = useSelector((state) => state.bookmark);
-  const openAiToken = useSelector((state) => state.auth.openAiToken);
+  const { user, token, openAiToken } = useSelector((state) => state.auth);
   const {
     gptStatus,
     gptContextKey,
@@ -30,6 +30,7 @@ function App() {
   } = useSelector((state) => state.tags);
   const { url, title, description, tags } = formData;
   const normalizedTagString = Array.isArray(tags) ? tags.join(' ') : '';
+  const lastLookupUrlRef = useRef(null);
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
@@ -63,11 +64,6 @@ function App() {
     // Only load tags/suggestions if we have auth credentials
     if (user && token) {
       let tagRefreshTimer;
-      // Check if bookmark exists
-      if (urlParam) {
-        dispatch(fetchBookmarkDetails());
-        dispatch(fetchSuggestedTags());
-      }
       // Load cached user tags from localStorage
       let shouldFetchTagsImmediately = true;
       let nextFetchDelay = TAG_REFRESH_DELAY_MS;
@@ -114,6 +110,17 @@ function App() {
       };
     }
   }, [dispatch]);
+
+  useEffect(() => {
+    if (!user || !token) return;
+    if (!url) return;
+    const trimmedUrl = url.trim();
+    if (!trimmedUrl) return;
+    if (lastLookupUrlRef.current === trimmedUrl) return;
+    lastLookupUrlRef.current = trimmedUrl;
+    dispatch(fetchBookmarkDetails(trimmedUrl));
+    dispatch(fetchSuggestedTags());
+  }, [dispatch, user, token, url]);
 
   const initialTagSignatureRef = useRef(null);
   const previousUrlRef = useRef(null);
