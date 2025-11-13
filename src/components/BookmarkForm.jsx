@@ -1,7 +1,8 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Ladda from 'ladda';
 import { useSelector, useDispatch } from 'react-redux';
 import { getTimestampFormats } from '../utils/date'; // Import the utility function
+import { isLikelyTouchDevice } from '../utils/popupAffordances';
 import {
   setFormData,
   submitBookmark,
@@ -38,6 +39,7 @@ function BookmarkForm() {
   const urlRef = useRef(null);
   const descRef = useRef(null);
   const laddaRef = useRef(null);
+  const [shouldAutoFocusTags] = useState(() => !isLikelyTouchDevice());
 
   useEffect(() => {
     if (btnRef.current) {
@@ -138,6 +140,26 @@ function BookmarkForm() {
       document.body.classList.remove('private');
     };
   }, [formData.private]); // Dependency array ensures this runs only when 'private' changes
+
+  useEffect(() => {
+    const formEl = formRef.current;
+    if (!formEl) return undefined;
+    const handleBlur = (event) => {
+      if (
+        event.target &&
+        (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA')
+      ) {
+        if (
+          typeof window !== 'undefined' &&
+          typeof window.scrollTo === 'function'
+        ) {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }
+    };
+    formEl.addEventListener('blur', handleBlur, true);
+    return () => formEl.removeEventListener('blur', handleBlur, true);
+  }, []);
 
   const handleChange = (e) => {
     const { name, type, checked, value } = e.target;
@@ -335,6 +357,7 @@ function BookmarkForm() {
         value={initialTagsArray}
         onChange={handleTagsChange}
         tabIndex="6"
+        autoFocus={shouldAutoFocusTags}
       />
       {errors?.tags && <span className="helptext">{errors.tags}</span>}
 

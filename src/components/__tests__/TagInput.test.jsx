@@ -248,9 +248,14 @@ describe('TagInput Component', () => {
     expect(tagNamesInOrder).toEqual(expectedOrder);
   });
 
-  test('automatically focuses the input on render', () => {
+  test('automatically focuses the input on render when enabled', () => {
     render(
-      <TagInput userTags={mockUserTags} value={[]} onChange={mockOnChange} />
+      <TagInput
+        userTags={mockUserTags}
+        value={[]}
+        onChange={mockOnChange}
+        autoFocus
+      />
     );
 
     const input = screen.getByRole('combobox');

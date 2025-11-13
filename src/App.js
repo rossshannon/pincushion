@@ -12,6 +12,7 @@ import {
   setTagCounts,
   resetGptSuggestions,
 } from './redux/tagSlice';
+import { enforceMinimumPopupSize } from './utils/popupAffordances';
 
 const TAG_CACHE_TTL_MS = 10000;
 const TAG_REFRESH_DELAY_MS = 10000;
@@ -29,6 +30,14 @@ function App() {
   } = useSelector((state) => state.tags);
   const { url, title, description, tags } = formData;
   const normalizedTagString = Array.isArray(tags) ? tags.join(' ') : '';
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      enforceMinimumPopupSize(window);
+    } catch (_err) {
+      // Ignore resize errors in restricted environments.
+    }
+  }, []);
   useEffect(() => {
     // Parse URL parameters for auth and initial form data
     const params = new URLSearchParams(window.location.search);

@@ -37,7 +37,13 @@ const MultiValueLabel = ({ children }) => {
   return <>{children}</>;
 };
 
-const TagInput = ({ userTags = {}, value = [], onChange, tabIndex }) => {
+const TagInput = ({
+  userTags = {},
+  value = [],
+  onChange,
+  tabIndex,
+  autoFocus = false,
+}) => {
   // Convert value array to the format react-select expects: { label: string, value: string }
   const currentSelectedOptions = useMemo(() => {
     return value.map((tag) => ({
@@ -174,7 +180,7 @@ const TagInput = ({ userTags = {}, value = [], onChange, tabIndex }) => {
   return (
     <AsyncCreatableSelect
       isMulti
-      autoFocus
+      autoFocus={autoFocus}
       value={currentSelectedOptions}
       onChange={handleChange}
       onCreateOption={handleCreate}
@@ -200,7 +206,8 @@ TagInput.propTypes = {
   userTags: PropTypes.objectOf(PropTypes.number),
   value: PropTypes.arrayOf(PropTypes.string),
   onChange: PropTypes.func.isRequired,
-  tabIndex: PropTypes.string,
+  tabIndex: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  autoFocus: PropTypes.bool,
 };
 
 export default TagInput;

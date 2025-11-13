@@ -7,7 +7,11 @@ jest.mock('openai', () => jest.fn(() => ({
   chat: { completions: { create: jest.fn() } },
 })));
 
+jest.mock('../../utils/popupAffordances', () => ({
+  isLikelyTouchDevice: jest.fn(() => false),
+}));
 import BookmarkForm from '../BookmarkForm';
+import { isLikelyTouchDevice } from '../../utils/popupAffordances';
 
 jest.mock('react-transition-group', () => {
   const Noop = ({ children }) => (typeof children === 'function' ? children(null) : children);
@@ -41,6 +45,8 @@ describe('BookmarkForm Component', () => {
   let store;
 
   beforeEach(() => {
+    isLikelyTouchDevice.mockReset();
+    isLikelyTouchDevice.mockReturnValue(false);
     store = mockStore({
       bookmark: {
         formData: {
@@ -116,6 +122,56 @@ describe('BookmarkForm Component', () => {
         type: 'bookmark/submit/pending',
       })
     );
+  });
+
+  test('scrolls to top when a field loses focus', async () => {
+    const originalScrollTo = window.scrollTo || (() => {});
+    if (!window.scrollTo) {
+      window.scrollTo = () => {};
+    }
+    const scrollSpy = jest
+      .spyOn(window, 'scrollTo')
+      .mockImplementation(() => {});
+    render(
+      <Provider store={store}>
+        <BookmarkForm />
+      </Provider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('form')).toBeInTheDocument();
+    });
+
+    const titleInput = screen.getByLabelText(/title/i);
+    fireEvent.blur(titleInput);
+    expect(scrollSpy).toHaveBeenCalled();
+    scrollSpy.mockRestore();
+    window.scrollTo = originalScrollTo;
+  });
+
+  test('auto-focuses tag input on non-touch devices', async () => {
+    render(
+      <Provider store={store}>
+        <BookmarkForm />
+      </Provider>
+    );
+
+    const combobox = await screen.findByRole('combobox');
+    await waitFor(() => {
+      expect(combobox).toHaveFocus();
+    });
+  });
+
+  test('avoids tag auto-focus on touch devices', async () => {
+    isLikelyTouchDevice.mockReturnValueOnce(true);
+    render(
+      <Provider store={store}>
+        <BookmarkForm />
+      </Provider>
+    );
+
+    const combobox = await screen.findByRole('combobox');
+    expect(combobox).not.toHaveFocus();
   });
 
   test('shows update button text when bookmark already exists', async () => {
