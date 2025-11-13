@@ -10,42 +10,34 @@ const selectCurrentTags = (state) => {
   return Array.isArray(tags) ? tags : [];
 };
 
-const selectAllSuggestions = createSelector(
-  [selectSuggestedTags, selectGptSuggestions],
-  (pinboard, gpt) => {
-    if (!gpt.length) {
-      return pinboard;
-    }
-    if (!pinboard.length) {
-      return gpt;
-    }
-    const combined = [...pinboard];
-    if (combined[combined.length - 1] !== '$separator') {
-      combined.push('$separator');
-    }
-    return [...combined, ...gpt];
-  }
-);
+const normalize = (tag) => (typeof tag === 'string' ? tag.toLowerCase() : tag);
 
 // Memoized selector for displayable suggestions
 export const selectDisplayableSuggestions = createSelector(
-  [selectAllSuggestions, selectCurrentTags],
-  (suggestions, currentTags) => {
-    const currentTagsSet = new Set(currentTags);
-    const filtered = suggestions.filter(
-      (tag) => tag === '$separator' || !currentTagsSet.has(tag)
-    );
+  [selectSuggestedTags, selectGptSuggestions, selectCurrentTags],
+  (pinboard, gpt, currentTags) => {
+    const currentTagsSet = new Set(currentTags.map(normalize));
+    const cleanse = (list) =>
+      (list || []).filter(
+        (tag) =>
+          tag &&
+          tag !== '$separator' &&
+          !currentTagsSet.has(normalize(tag))
+      );
 
-    if (!filtered.includes('$separator')) {
-      return filtered;
+    const pinboardFiltered = cleanse(pinboard);
+    const gptFiltered = cleanse(gpt);
+
+    if (pinboardFiltered.length && gptFiltered.length) {
+      return [...pinboardFiltered, '$separator', ...gptFiltered];
     }
-
-    return filtered.filter((tag, idx, arr) => {
-      if (tag !== '$separator') return true;
-      const hasLeft = arr.slice(0, idx).some((t) => t !== '$separator');
-      const hasRight = arr.slice(idx + 1).some((t) => t !== '$separator');
-      return hasLeft && hasRight;
-    });
+    if (pinboardFiltered.length) {
+      return pinboardFiltered;
+    }
+    if (gptFiltered.length) {
+      return gptFiltered;
+    }
+    return [];
   }
 );
 

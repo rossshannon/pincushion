@@ -54,10 +54,8 @@ describe('Redux Selectors', () => {
         },
         bookmark: { formData: { tags: ['current', 'common'] } },
       };
-      // 'common' should be filtered out, $separator remains
       expect(selectDisplayableSuggestions(mockState)).toEqual([
         'suggest1',
-        '$separator',
         'suggest2',
         'another',
         '$separator',
@@ -69,16 +67,13 @@ describe('Redux Selectors', () => {
       const mockState = {
         tags: {
           ...baseTagsState,
-          suggested: ['suggest1', 'common', '$separator', 'suggest2'],
+          suggested: ['suggest1', 'common'],
         },
         bookmark: { formData: { tags: [] } }, // Empty current tags
       };
-      // $separator might still be filtered depending on use case, selector keeps it
       expect(selectDisplayableSuggestions(mockState)).toEqual([
         'suggest1',
         'common',
-        '$separator',
-        'suggest2',
       ]);
     });
 
@@ -105,8 +100,8 @@ describe('Redux Selectors', () => {
       const mockState = {
         tags: {
           ...baseTagsState,
-          suggested: ['left', '$separator', 'right'],
-          gptSuggestions: [],
+          suggested: ['left'],
+          gptSuggestions: ['right'],
         },
         bookmark: { formData: { tags: ['right'] } },
       };
@@ -123,22 +118,12 @@ describe('Redux Selectors', () => {
       expect(selectIsSuggestionsEmpty(mockState)).toBe(true);
     });
 
-    it('should return true if displayable suggestions only contained separator', () => {
-      const mockState = {
-        tags: {
-          ...baseTagsState,
-          suggested: ['current', '$separator'],
-        },
-        bookmark: { formData: { tags: ['current'] } },
-      };
-      expect(selectIsSuggestionsEmpty(mockState)).toBe(true);
-    });
-
     it('should return false if there are displayable suggestions other than $separator', () => {
       const mockState = {
         tags: {
           ...baseTagsState,
           suggested: ['suggest1', '$separator', 'current'],
+          gptSuggestions: ['ai_tag'],
         },
         bookmark: { formData: { tags: ['current'] } },
       };
