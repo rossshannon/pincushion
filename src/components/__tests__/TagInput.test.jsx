@@ -264,6 +264,35 @@ describe('TagInput Component', () => {
     );
   });
 
+  test('treats underscores as ignorable when ranking matches', async () => {
+    const underscoreTags = {
+      the_onion: 300,
+      theoracle: 120,
+      theo: 80,
+      theodolite: 5,
+    };
+
+    render(
+      <TagInput userTags={underscoreTags} value={[]} onChange={mockOnChange} />
+    );
+    const input = screen.getByRole('combobox');
+    await userEvent.type(input, 'theo');
+
+    const options = await screen.findAllByRole('option');
+    const tagLabels = options
+      .filter((option) => option.querySelector('.tag-count'))
+      .map((option) => {
+        const countText = option.querySelector('.tag-count').textContent;
+        return option.textContent.replace(countText, '').trim();
+      });
+
+    expect(tagLabels.slice(0, 3)).toEqual([
+      'theo',
+      'the_onion',
+      'theoracle',
+    ]);
+  });
+
   test('sorts options by count in dropdown', async () => {
     render(
       <TagInput userTags={mockUserTags} value={[]} onChange={mockOnChange} />
