@@ -50,6 +50,7 @@ describe('App Component', () => {
         errors: { url: null, title: null, generic: null },
         initialLoading: false,
         existingBookmarkTime: null,
+        hasExistingBookmark: false,
       },
       tags: {
         tagCounts: {},
@@ -94,6 +95,7 @@ describe('App Component', () => {
         errors: { url: null, title: null, generic: null },
         initialLoading: false,
         existingBookmarkTime: null,
+        hasExistingBookmark: false,
       },
       tags: {
         tagCounts: {},

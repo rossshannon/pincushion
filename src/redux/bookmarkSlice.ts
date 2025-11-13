@@ -30,6 +30,7 @@ export type BookmarkState = {
   errors: BookmarkErrors;
   initialLoading: boolean;
   existingBookmarkTime: string | null;
+  hasExistingBookmark: boolean;
 };
 
 type BookmarkThunkState = {
@@ -187,6 +188,7 @@ const initialState: BookmarkState = {
   },
   initialLoading: false,
   existingBookmarkTime: null,
+  hasExistingBookmark: false,
 };
 
 const bookmarkSlice = createSlice({
@@ -218,6 +220,7 @@ const bookmarkSlice = createSlice({
       .addCase(fetchBookmarkDetails.pending, (state) => {
         state.initialLoading = true;
         state.existingBookmarkTime = null;
+        state.hasExistingBookmark = false;
         // Reset errors to the full initial structure
         state.errors = { ...initialState.errors };
       })
@@ -236,10 +239,15 @@ const bookmarkSlice = createSlice({
           state.formData.private = post.shared === 'no';
           state.formData.toread = post.toread === 'yes';
           state.existingBookmarkTime = (post.time as string) || null;
+          state.hasExistingBookmark = true;
+        } else {
+          state.hasExistingBookmark = false;
+          state.existingBookmarkTime = null;
         }
       })
       .addCase(fetchBookmarkDetails.rejected, (state, action) => {
         state.initialLoading = false;
+        state.hasExistingBookmark = false;
         // Set generic error, ensure full errors object exists
         state.errors = {
           ...initialState.errors,
@@ -256,6 +264,10 @@ const bookmarkSlice = createSlice({
       .addCase(submitBookmark.fulfilled, (state, action) => {
         state.status = 'success';
         state.data = action.payload;
+        state.hasExistingBookmark = true;
+        if (!state.existingBookmarkTime) {
+          state.existingBookmarkTime = new Date().toISOString();
+        }
         // Reset errors to the full initial structure
         state.errors = { ...initialState.errors };
       })

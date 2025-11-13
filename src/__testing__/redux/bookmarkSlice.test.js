@@ -31,6 +31,7 @@ const initialState = {
   },
   initialLoading: false,
   existingBookmarkTime: null,
+  hasExistingBookmark: false,
 };
 
 // Helper to create a mock store
@@ -135,6 +136,7 @@ describe('bookmark slice', () => {
         const state = store.getState().bookmark; // Check immediately
         expect(state.initialLoading).toBe(true);
         expect(state.existingBookmarkTime).toBeNull();
+        expect(state.hasExistingBookmark).toBe(false);
       });
 
       it('should handle fulfilled state (bookmark found)', async () => {
@@ -157,6 +159,7 @@ describe('bookmark slice', () => {
         expect(state.formData.private).toBe(true);
         expect(state.formData.toread).toBe(true);
         expect(state.existingBookmarkTime).toEqual(mockPost.time);
+        expect(state.hasExistingBookmark).toBe(true);
         expect(mockedAxios.get).toHaveBeenCalledWith(expectedApiUrl);
       });
 
@@ -167,6 +170,7 @@ describe('bookmark slice', () => {
         expect(state.initialLoading).toBe(false);
         expect(state.formData.title).toEqual('');
         expect(state.existingBookmarkTime).toBeNull();
+        expect(state.hasExistingBookmark).toBe(false);
         expect(mockedAxios.get).toHaveBeenCalledWith(expectedApiUrl);
       });
 
@@ -176,6 +180,7 @@ describe('bookmark slice', () => {
         await store.dispatch(fetchBookmarkDetails());
         const state = store.getState().bookmark;
         expect(state.initialLoading).toBe(false);
+        expect(state.hasExistingBookmark).toBe(false);
       });
     });
 
@@ -219,6 +224,7 @@ describe('bookmark slice', () => {
         const state = store.getState().bookmark;
         expect(state.status).toEqual('success');
         expect(state.data).toEqual(successData);
+        expect(state.hasExistingBookmark).toBe(true);
         expect(state.errors).toEqual({
           url: null,
           title: null,

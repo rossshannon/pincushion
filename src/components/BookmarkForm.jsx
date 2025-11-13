@@ -18,7 +18,14 @@ import {
 
 function BookmarkForm() {
   const dispatch = useDispatch();
-  const { formData, status, errors, initialLoading, existingBookmarkTime } =
+  const {
+    formData,
+    status,
+    errors,
+    initialLoading,
+    existingBookmarkTime,
+    hasExistingBookmark,
+  } =
     useSelector((state) => state.bookmark);
   const userTags = useSelector((state) => state.tags.tagCounts);
   const suggestions = useSelector(selectDisplayableSuggestions);
@@ -138,7 +145,7 @@ function BookmarkForm() {
     if (status === 'saving') return 'Saving…';
     if (status === 'success') return 'Bookmark saved!';
     if (status === 'error') return 'Save failed';
-    return existingBookmarkTime ? 'Update bookmark' : 'Add bookmark';
+    return hasExistingBookmark ? 'Update bookmark' : 'Add bookmark';
   };
 
   return (

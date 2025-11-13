@@ -55,6 +55,7 @@ describe('BookmarkForm Component', () => {
         errors: {},
         initialLoading: false,
         existingBookmarkTime: null,
+        hasExistingBookmark: false,
       },
       tags: {
         ...baseTagsState,
@@ -115,6 +116,37 @@ describe('BookmarkForm Component', () => {
         type: 'bookmark/submit/pending',
       })
     );
+  });
+
+  test('shows update button text when bookmark already exists', async () => {
+    store = mockStore({
+      bookmark: {
+        formData: {
+          title: 'Existing Title',
+          url: 'https://example.com',
+          description: '',
+          tags: [],
+          private: false,
+          toread: false,
+        },
+        status: 'idle',
+        errors: {},
+        initialLoading: false,
+        existingBookmarkTime: null,
+        hasExistingBookmark: true,
+      },
+      tags: { ...baseTagsState },
+    });
+
+    render(
+      <Provider store={store}>
+        <BookmarkForm />
+      </Provider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /update bookmark/i })).toBeInTheDocument();
+    });
   });
 
   test('updates form fields correctly', async () => {
@@ -199,6 +231,7 @@ describe('BookmarkForm Component', () => {
         errors: {},
         initialLoading: false,
         existingBookmarkTime: null,
+        hasExistingBookmark: false,
       },
       tags: { ...baseTagsState },
     });
@@ -243,6 +276,7 @@ describe('BookmarkForm Component', () => {
         errors: {},
         initialLoading: false,
         existingBookmarkTime: null,
+        hasExistingBookmark: false,
       },
       tags: {
         ...baseTagsState,
@@ -296,6 +330,7 @@ describe('BookmarkForm Component', () => {
         errors: {},
         initialLoading: false,
         existingBookmarkTime: null,
+        hasExistingBookmark: false,
       },
       tags: { ...baseTagsState },
     });
@@ -333,6 +368,7 @@ describe('BookmarkForm Component', () => {
         errors: {},
         initialLoading: false,
         existingBookmarkTime: existingTime,
+        hasExistingBookmark: true,
       },
       tags: { ...baseTagsState },
     });
@@ -373,6 +409,7 @@ describe('BookmarkForm Component', () => {
           },
           initialLoading: false,
           existingBookmarkTime: null,
+          hasExistingBookmark: false,
         },
       tags: { ...baseTagsState },
       });
@@ -416,6 +453,7 @@ describe('BookmarkForm Component', () => {
           },
           initialLoading: false,
           existingBookmarkTime: null,
+          hasExistingBookmark: false,
         },
         tags: { ...baseTagsState },
       });
@@ -458,6 +496,7 @@ describe('BookmarkForm Component', () => {
           },
           initialLoading: false,
           existingBookmarkTime: null,
+          hasExistingBookmark: false,
         },
         tags: { ...baseTagsState },
       });
@@ -499,6 +538,7 @@ describe('BookmarkForm Component', () => {
           },
           initialLoading: false,
           existingBookmarkTime: null,
+          hasExistingBookmark: false,
         },
         tags: { ...baseTagsState },
       });
@@ -541,6 +581,7 @@ describe('BookmarkForm Component', () => {
           },
           initialLoading: false,
           existingBookmarkTime: null,
+          hasExistingBookmark: false,
         },
         tags: { ...baseTagsState },
       });
