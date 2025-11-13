@@ -309,6 +309,20 @@ describe('tag slice', () => {
         expect(state.error).toEqual(errorMessage);
         expect(state.suggestedStatus).toBe('failed');
       });
+
+      it('preserves previous suggestions when request fails', async () => {
+        const storeWithSuggestions = createMockStore(
+          { ...initialState, suggested: ['persist-me'], suggestedStatus: 'succeeded' },
+          { url: bookmarkUrl }
+        );
+        const boom = new Error('network down');
+        mockedAxios.get.mockRejectedValueOnce(boom);
+        await storeWithSuggestions.dispatch(fetchSuggestedTags());
+        const state = storeWithSuggestions.getState().tags;
+        expect(state.suggested).toEqual(['persist-me']);
+        expect(state.error).toEqual(boom.message);
+        expect(state.suggestedStatus).toBe('failed');
+      });
     });
 
     describe('fetchGptSuggestions', () => {
