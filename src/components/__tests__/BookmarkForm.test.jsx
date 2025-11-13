@@ -10,7 +10,8 @@ jest.mock('openai', () => jest.fn(() => ({
 jest.mock('../../utils/popupAffordances', () => ({
   isLikelyTouchDevice: jest.fn(() => false),
 }));
-import BookmarkForm from '../BookmarkForm';
+import BookmarkForm, { __TEST_MIN_SPINNER_DURATION } from '../BookmarkForm';
+import Ladda from 'ladda';
 import { isLikelyTouchDevice } from '../../utils/popupAffordances';
 
 jest.mock('react-transition-group', () => {
@@ -47,6 +48,7 @@ describe('BookmarkForm Component', () => {
   beforeEach(() => {
     isLikelyTouchDevice.mockReset();
     isLikelyTouchDevice.mockReturnValue(false);
+    Ladda.create.mockClear();
     store = mockStore({
       bookmark: {
         formData: {
@@ -172,6 +174,60 @@ describe('BookmarkForm Component', () => {
 
     const combobox = await screen.findByRole('combobox');
     expect(combobox).not.toHaveFocus();
+  });
+
+  test('spinner remains visible for minimum duration', async () => {
+    jest.useFakeTimers();
+    const spinnerMock = { start: jest.fn(), stop: jest.fn() };
+    Ladda.create.mockReturnValue(spinnerMock);
+
+    const baseBookmarkState = {
+      formData: {
+        title: 'Test Title',
+        url: 'https://example.com',
+        description: '',
+        tags: ['test', 'tag1'],
+        private: false,
+        toread: false,
+      },
+      status: 'idle',
+      errors: {},
+      initialLoading: false,
+      existingBookmarkTime: null,
+      hasExistingBookmark: false,
+    };
+
+    store = mockStore({
+      bookmark: { ...baseBookmarkState, status: 'saving' },
+      tags: { ...baseTagsState },
+    });
+
+    const { rerender } = render(
+      <Provider store={store}>
+        <BookmarkForm />
+      </Provider>
+    );
+
+    expect(spinnerMock.start).toHaveBeenCalledTimes(1);
+    expect(spinnerMock.stop).not.toHaveBeenCalled();
+
+    const successStore = mockStore({
+      bookmark: { ...baseBookmarkState, status: 'success' },
+      tags: { ...baseTagsState },
+    });
+
+    rerender(
+      <Provider store={successStore}>
+        <BookmarkForm />
+      </Provider>
+    );
+    expect(spinnerMock.stop).not.toHaveBeenCalled();
+
+    act(() => {
+      jest.advanceTimersByTime(__TEST_MIN_SPINNER_DURATION);
+    });
+    expect(spinnerMock.stop).toHaveBeenCalledTimes(1);
+    jest.useRealTimers();
   });
 
   test('shows update button text when bookmark already exists', async () => {

@@ -18,6 +18,9 @@ import {
   selectIsSuggestionsEmpty,
 } from '../redux/selectors';
 
+const MIN_SPINNER_DURATION_MS = 400;
+export const __TEST_MIN_SPINNER_DURATION = MIN_SPINNER_DURATION_MS;
+
 function BookmarkForm() {
   const dispatch = useDispatch();
   const {
@@ -39,6 +42,8 @@ function BookmarkForm() {
   const urlRef = useRef(null);
   const descRef = useRef(null);
   const laddaRef = useRef(null);
+  const spinnerStartRef = useRef(null);
+  const spinnerStopTimerRef = useRef(null);
   const [shouldAutoFocusTags] = useState(() => !isLikelyTouchDevice());
 
   useEffect(() => {
@@ -49,10 +54,44 @@ function BookmarkForm() {
 
   // Control Ladda spinner
   useEffect(() => {
-    if (laddaRef.current) {
-      if (status === 'saving') laddaRef.current.start();
-      else laddaRef.current.stop();
+    const spinner = laddaRef.current;
+    if (!spinner) return undefined;
+
+    const clearPendingStop = () => {
+      if (spinnerStopTimerRef.current) {
+        clearTimeout(spinnerStopTimerRef.current);
+        spinnerStopTimerRef.current = null;
+      }
+    };
+
+    if (status === 'saving') {
+      clearPendingStop();
+      spinnerStartRef.current = Date.now();
+      spinner.start();
+      return;
     }
+
+    const stopSpinner = () => {
+      spinner.stop();
+      spinnerStartRef.current = null;
+      spinnerStopTimerRef.current = null;
+    };
+
+    const elapsed =
+      spinnerStartRef.current !== null
+        ? Date.now() - spinnerStartRef.current
+        : MIN_SPINNER_DURATION_MS;
+    const remaining = Math.max(MIN_SPINNER_DURATION_MS - elapsed, 0);
+    if (remaining === 0) {
+      stopSpinner();
+    } else {
+      clearPendingStop();
+      spinnerStopTimerRef.current = setTimeout(stopSpinner, remaining);
+    }
+
+    return () => {
+      clearPendingStop();
+    };
   }, [status]);
 
   // Success animation: pulse button, close window, then reset status and text
