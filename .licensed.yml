@@ -1,6 +1,5 @@
 sources:
-  bundler: true
-  yarn: true
+  npm: true
 
 # Dependencies with these licenses are allowed by default.
 allowed:

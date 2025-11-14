@@ -10,7 +10,6 @@ GEM
       faraday-net_http (>= 2.0, < 3.1)
       ruby2_keywords (>= 0.0.4)
     faraday-net_http (3.0.2)
-    foreman (0.87.2)
     json (2.6.3)
     licensed (4.4.0)
       json (~> 2.6)
@@ -48,16 +47,12 @@ GEM
       faraday (>= 0.17.3, < 3)
     thor (1.2.2)
     tomlrb (2.0.3)
-    webrick (1.9.1)
 
 PLATFORMS
   ruby
 
 DEPENDENCIES
-  foreman
   licensed
-  nokogiri (>= 1.18.2)
-  webrick (>= 1.9.0)
 
 RUBY VERSION
    ruby 3.3.8p144
