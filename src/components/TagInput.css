@@ -75,9 +75,13 @@
 }
 
 
-.pincushion-tag-select__option .optioncount,
-.pincushion-tag-select__option .tag-count {
+.pincushion-tag-select__option
+  .optioncount:not(.tw10):not(.tw50):not(.tw100) {
   color: var(--pc-optioncount-text) !important;
+}
+
+.pincushion-tag-select__option .tag-count {
+  color: inherit;
 }
 
 .pincushion-tag-select__multi-value {
