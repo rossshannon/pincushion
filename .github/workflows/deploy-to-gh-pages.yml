@@ -9,23 +9,29 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pages: write
+      id-token: write
     steps:
       - name: Checkout master branch
         uses: actions/checkout@v4
         with:
           ref: master
-          fetch-depth: 0  # Fetch all history for all branches
-          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
-      - name: Push to gh-pages
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          # Use gh CLI to bypass branch protection if needed
-          gh api repos/${{ github.repository }}/git/refs/heads/gh-pages \
-            --method PATCH \
-            --field sha="$(git rev-parse HEAD)" \
-            --field force=true || \
-          git push origin master:gh-pages --force
+      - name: Use Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build
