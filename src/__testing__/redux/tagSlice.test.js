@@ -288,15 +288,15 @@ describe('tag slice', () => {
         const mockResponse = [
           {
             popular: [
-              'ifttt',
-              'facebook',
-              'youtube',
-              'objective-c',
-              'twitter',
+              'ai',
+              '2025',
+              'articles',
+              'history',
+              'programming',
             ],
           },
           {
-            recommended: ['twitterlink', 'wsh', '.from:twitter', '@codepo8', '1960s'],
+            recommended: ['howto', 'Politics', 'tools', 'fic', 'llm'],
           },
         ];
         mockedAxios.get.mockResolvedValueOnce({ data: mockResponse });

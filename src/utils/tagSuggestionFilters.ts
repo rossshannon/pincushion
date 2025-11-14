@@ -1,14 +1,14 @@
 const SPURIOUS_TAGS = [
-  'ifttt',
-  'facebook',
-  'youtube',
-  'objective-c',
-  'twitter',
-  'twitterlink',
-  'wsh',
-  '.from:twitter',
-  '@codepo8',
-  '1960s',
+  'ai',
+  '2025',
+  'articles',
+  'history',
+  'programming',
+  'howto',
+  'politics',
+  'tools',
+  'fic',
+  'llm',
 ];
 
 const OVERLY_COMMON_TAGS = [

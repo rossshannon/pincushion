@@ -8,22 +8,22 @@ import {
 describe('tagSuggestionFilters', () => {
   it('removeSpuriousResults empties default response payloads', () => {
     const spuriousPayload = [
-      'ifttt',
-      'facebook',
-      'youtube',
-      'objective-c',
-      'twitter',
-      'twitterlink',
-      'wsh',
-      '.from:twitter',
-      '@codepo8',
-      '1960s',
+      'ai',
+      '2025',
+      'articles',
+      'history',
+      'programming',
+      'howto',
+      'Politics', // Mixed case still works due to case-insensitive matching
+      'tools',
+      'fic',
+      'llm',
     ];
     expect(removeSpuriousResults(spuriousPayload)).toEqual([]);
   });
 
   it('removeSpuriousResults keeps tags if default set incomplete', () => {
-    const tags = ['ifttt', 'useful', 'objective-c'];
+    const tags = ['ai', 'useful', 'programming'];
     expect(removeSpuriousResults(tags)).toEqual(tags);
   });
 
