@@ -1,9 +1,9 @@
 /*!
- * Ladda 1.0.6 (2018-02-04, 13:19)
+ * Ladda
  * http://lab.hakim.se/ladda
  * MIT licensed
  *
- * Copyright (C) 2017 Hakim El Hattab, http://hakim.se
+ * Copyright (C) 2018 Hakim El Hattab, http://hakim.se
  */
 
 /**
