@@ -324,7 +324,9 @@ function BookmarkForm() {
 
       {/* URL Field - Keep wrapper for positioning button */}
       <div className={`url-field ${errors?.url ? 'error' : ''}`}>
-        <label htmlFor="url">URL</label>
+        <label htmlFor="url" className={errors?.url ? 'error' : ''}>
+          URL
+        </label>
         <input
           type="url"
           id="url"

@@ -128,6 +128,13 @@ label, input[type=checkbox] {
   border-radius: 4px;
 }
 
+.helptext {
+  display: block;
+  color: #ff6868;
+  font-size: 0.85rem;
+  margin: 4px 0 8px;
+}
+
 /* Animations for tag suggestion enter/exit */
 /* Container for suggestion, handles layout shrink */
 .suggestion-item {
