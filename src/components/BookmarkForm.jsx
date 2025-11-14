@@ -44,6 +44,7 @@ function BookmarkForm() {
   const laddaRef = useRef(null);
   const spinnerStartRef = useRef(null);
   const spinnerStopTimerRef = useRef(null);
+  const spinnerActiveRef = useRef(false);
   const [shouldAutoFocusTags] = useState(() => !isLikelyTouchDevice());
 
   useEffect(() => {
@@ -65,16 +66,22 @@ function BookmarkForm() {
     };
 
     if (status === 'saving') {
-      clearPendingStop();
-      spinnerStartRef.current = Date.now();
-      spinner.start();
-      return;
+      if (!spinnerActiveRef.current) {
+        clearPendingStop();
+        spinnerStartRef.current = Date.now();
+        spinner.start();
+        spinnerActiveRef.current = true;
+      }
+      return () => {
+        clearPendingStop();
+      };
     }
 
     const stopSpinner = () => {
       spinner.stop();
       spinnerStartRef.current = null;
       spinnerStopTimerRef.current = null;
+      spinnerActiveRef.current = false;
     };
 
     const elapsed =

@@ -70,6 +70,9 @@ label, input[type=checkbox] {
   30% { text-shadow: 0 0 2px #ff7868; }
 }
 /* Override Ladda default for main submit button */
+.ladda-button {
+  transition: all 0.3s ease;
+}
 #submit {
   min-width: 177px;
   font-size: 16px;
