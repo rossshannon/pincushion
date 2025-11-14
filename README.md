@@ -12,9 +12,7 @@ Pincushion is an alternative bookmarklet for [Pinboard](https://pinboard.in) tha
   Pincushion uses as intelligent autocomplete widget that shows the tags you’ve previously used, along with the number of times you’ve used them. The autocomplete even lets you search within your tags without having to type the exact letters that a tag begins with.
 - **Search across _all_ of your tags**
   The first time you use Pincushion, it downloads a local copy of all of your tags into your browser’s “LocalStorage”, which allows you to store about 2.5MB of data and preferences for each site you use regularly. This means that from then on, the autocomplete widget can search across your entire collection.
-
-The autocomplete can use each tag’s score to be smarter about which tags to suggest to you as you are typing. (Tag autocomplete has been tested on a data set of over 12,500 tags, which totalled 184KB when downloaded.)
-
+  The autocomplete can use each tag’s score to be smarter about which tags to suggest to you as you are typing. (Tag autocomplete has been tested on a data set of over 12,500 tags, which totalled 184KB when downloaded.)
 - **AI-based tag suggestions**
   When bookmarking a new page, the form will suggest tags based on your previous usage, other Pinboard members tags for that same page, as well as optionally using AI to propose relevant tags.
 
@@ -34,7 +32,7 @@ To add the bookmarklet to your browser, simply add a new bookmark, give it any n
 
     javascript:q=location.href;d=(window.getSelection?window.getSelection():document.getSelection?document.getSelection():document.selection.createRange().text);p=document.title;void(open('https://rossshannon.github.io/pincushion/?url='+encodeURIComponent(q)+'&description='+encodeURIComponent(d)+'&title='+encodeURIComponent(p),'Pinboard','toolbar=yes,width=600,height=700,left=50,top=50'));
 
-Often the easiest way to do this is to bookmark the page you’re currently reading, and then edit this bookmark and replace the URL with the above code. Tokens are no longer passed through the bookmarklet query string; instead, enter them once inside the app (see “Configuring Credentials” below). Click the bookmarklet in your browser’s bookmarks bar and it will open the Pincushion interface.
+Often the easiest way to do this is to bookmark the page you’re currently reading, and then edit this bookmark and replace the URL with the above code. Click the bookmarklet in your browser’s bookmarks bar and it will open the Pincushion interface. The first time you run, you’ll be prompted to enter your Pinboard credentials and optionally an OpenAI API token for AI-powered tag suggestions.
 
 ![Pincushion bookmarklet in browser bookmarks bar](https://github.com/rossshannon/pincushion/raw/master/public/images/pincushion-icon-bookmarks-bar.png)
 
@@ -44,17 +42,19 @@ You can also pre-check the “private” and “to read” checkboxes by passing
 
 ### Configuring Credentials
 
-When the popup opens you’ll now see a gear button in the footer. Click it to open the Settings page, where you can enter your Pinboard username, Pinboard API token, and (optionally) an OpenAI API token for GPT-powered tag suggestions. These values are stored locally via `localStorage` and never ride along in the bookmarklet URL, keeping your credentials out of browser history and referrers. You can update or remove the tokens at any time from the same Settings view.
+When the popup opens you’ll now see a gear button in the footer. Click it to open the Settings page, where you can enter your Pinboard username, Pinboard API token, and (optionally) an OpenAI API token for GPT-powered tag suggestions. These values are stored locally via `localStorage` in your browser’s secure storage, keeping your credentials out of browser history and referrers. You can update or remove the tokens at any time from the same Settings view.
 
 ### Browser Support
 
-Pincushion is designed for modern browsers like Chrome, Safari, Firefox, Internet Explorer 10+, and mobile varieties of Safari and Chrome. Earlier versions of Internet Explorer have problems with the cross-domain Ajax required.
+Pincushion is designed for modern browsers like Chrome, Safari, Comet, Atlas, Edge, Firefox, and mobile varieties of Safari and Chrome.
+
+It supports Internet Explorer 10+, but earlier versions of Internet Explorer have problems with the cross-domain Ajax required.
 
 #### Running Locally
 
 - Clone the repository to your computer. `git clone https://github.com/rossshannon/pincushion.git`
 - Switch into the new directory and run `yarn install` or `npm install`
-- Install the `foreman` gem using `gem install foreman`, and then run the `Procfile` using `foreman start -p 5000`. Grunt will build the required packages and a web server will be booted to run Pincushion on localhost port 5100 (http://localhost:5100).
+- Run `npm start` to start the development server. A web server will be booted to run Pincushion on localhost port 3000 (http://localhost:3000).
 
 ## Changelog
 
@@ -64,7 +64,7 @@ Pincushion is designed for modern browsers like Chrome, Safari, Firefox, Interne
 
 ### 2.0 (2025-11-12)
 
-- Refactor the codebase to use React, Redux, and TypeScript.
+- Fully refactor the codebase to use React, Redux, and TypeScript.
 - Many usability and performance improvements.
 
 ### 1.6 (2023-10-18)
