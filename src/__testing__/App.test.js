@@ -28,6 +28,17 @@ jest.mock('../redux/tagSlice', () => {
 // Mock the Redux store
 const mockStore = configureStore([]);
 
+const seedCredentials = ({
+  user = 'testUser',
+  token = 'testToken',
+  openAiToken = '',
+} = {}) => {
+  window.localStorage.setItem(
+    'pincushion.credentials',
+    JSON.stringify({ pinboardUser: user, pinboardToken: token, openAiToken })
+  );
+};
+
 // Basic test suite for the App component
 describe('App Component', () => {
   let store;
@@ -36,7 +47,7 @@ describe('App Component', () => {
     // Initialize a fresh store for each test to avoid state leakage
     store = mockStore({
       // Provide initial mock state that App might depend on
-      auth: { user: null, token: null, openAiToken: '' },
+      auth: { user: 'testUser', token: 'testToken', openAiToken: '' },
       bookmark: {
         formData: {
           title: '',
@@ -81,7 +92,7 @@ describe('App Component', () => {
 
   describe('tag cache hydration', () => {
     const baseState = {
-      auth: { user: null, token: null, openAiToken: '' },
+      auth: { user: 'testUser', token: 'testToken', openAiToken: '' },
       bookmark: {
         formData: {
           title: '',
@@ -112,6 +123,7 @@ describe('App Component', () => {
 
     beforeEach(() => {
       jest.useFakeTimers();
+      window.localStorage.clear();
     });
 
     const renderWithSearch = () => {
@@ -132,10 +144,11 @@ describe('App Component', () => {
     });
 
     test('rehydrates cached tags immediately when cache is fresh', () => {
+      seedCredentials();
       window.history.replaceState(
         {},
         '',
-        '/?user=testUser&token=testToken&url=https%3A%2F%2Fexample.com'
+        '/?url=https%3A%2F%2Fexample.com'
       );
       window.localStorage.setItem('tags', JSON.stringify({ react: 5 }));
       window.localStorage.setItem('tagTimestamp', `${Date.now()}`);
@@ -167,10 +180,11 @@ describe('App Component', () => {
     });
 
     test('fetches tags immediately when cache is stale or missing', () => {
+      seedCredentials();
       window.history.replaceState(
         {},
         '',
-        '/?user=testUser&token=testToken&url=https%3A%2F%2Fexample.com'
+        '/?url=https%3A%2F%2Fexample.com'
       );
       window.localStorage.setItem('tags', JSON.stringify({ react: 2 }));
       window.localStorage.setItem(

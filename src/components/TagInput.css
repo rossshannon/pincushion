@@ -27,21 +27,23 @@
 }
 
 .pincushion-tag-select__multi-value__remove {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 0;
   padding: 0 !important;
-  text-align: center;
   color: #fff;
   border: 1px solid #0073bb;
   border-width: 1px 1px 1px 0;
   border-radius: 0 3px 3px 0;
-  transition: width 0.3s ease;
   cursor: pointer;
+  overflow: hidden;
+  transition: width 0.3s ease, padding 0.3s ease;
 }
 
 .pincushion-tag-select__multi-value:hover .pincushion-tag-select__multi-value__remove {
-  width: 22px;
-  padding: 0 2px;
+  width: 24px;
+  padding: 0 4px 0 6px !important;
   border-left: 1px solid rgba(0, 0, 0, 0.1);
 }
 

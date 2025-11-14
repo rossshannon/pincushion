@@ -26,12 +26,12 @@ input,
 textarea,
 button {
   font:
-    15px/1.5 'Helvetica Neue',
+    15px/1.5 "Helvetica Neue",
     Helvetica,
-    'Arial Unicode',
+    "Arial Unicode",
     Arial,
-    'Nimbus Sans L',
-    'Liberation Sans',
+    "Nimbus Sans L",
+    "Liberation Sans",
     FreeSans,
     sans-serif;
   text-rendering: optimizeLegibility;
@@ -512,6 +512,123 @@ footer {
   margin: 3em 0 1em;
   padding: 1em 0.6em 0;
   border-top: 2px dotted #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.settings-button {
+  background: linear-gradient(180deg, #f9fbff 0%, #e1e6f1 100%);
+  border: 1px solid #b9c5d6;
+  border-radius: 28px;
+  padding: 0 1.2rem;
+  min-height: 44px;
+  cursor: pointer;
+  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #2b3a4f;
+  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  gap: 0.35rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 2px 4px rgba(15, 30, 50, 0.1);
+}
+
+.settings-button:hover,
+.settings-button:focus {
+  background: linear-gradient(180deg, #eef3ff 0%, #d4dce9 100%);
+  outline: none;
+  transform: translateY(-1px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 3px 6px rgba(15, 30, 50, 0.2);
+}
+
+.settings-button__icon {
+  font-size: 1.4rem;
+  line-height: 1.5rem;
+  width: 1.6rem;
+  height: 1.6rem;
+  display: inline-block;
+  text-align: center;
+  transform-origin: 50% 50%;
+}
+
+.settings-button:hover .settings-button__icon,
+.settings-button:focus .settings-button__icon {
+  animation: gear-spin 1.5s linear infinite;
+}
+
+@keyframes gear-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.settings-banner {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  background: #fff6e5;
+  border: 1px solid #f2c46d;
+  border-radius: 4px;
+  color: #7a540a;
+  font-size: 0.95rem;
+}
+
+.settings-form {
+  padding: 1rem 0.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.settings-form h2 {
+  margin-bottom: 0;
+}
+
+.settings-form__helper {
+  font-size: 0.9rem;
+  color: #444;
+  margin-top: 0;
+}
+
+.settings-form__helper.small {
+  font-size: 0.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.settings-form input {
+  padding: 0.5rem;
+  border: 1px solid #d4d8dd;
+  border-radius: 4px;
+}
+
+.settings-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.settings-form__actions button {
+  min-width: 120px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.settings-form__actions button.secondary {
+  background: #e0e4e8;
+  color: #333;
+}
+
+.settings-form__actions button[type="submit"] {
+  background: #047bff;
+  color: #fff;
 }
 
 #pinboard-link {
@@ -561,7 +678,7 @@ a {
 /* Selectize dropdown option count styling */
 .optioncount {
   margin-left: 65px;
-  font-family: 'Open Sans', sans-serif;
+  font-family: "Open Sans", sans-serif;
   font-weight: 300;
   color: #bbb;
   float: right; /* Align count to the right */

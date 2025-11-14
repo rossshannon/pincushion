@@ -71,6 +71,17 @@ Object.defineProperty(window, 'localStorage', {
   value: localStorageStub,
 });
 
+const seedCredentials = ({
+  pinboardUser = 'ross',
+  pinboardToken = 'abc',
+  openAiToken = 'sk-test',
+} = {}) => {
+  window.localStorage.setItem(
+    'pincushion.credentials',
+    JSON.stringify({ pinboardUser, pinboardToken, openAiToken })
+  );
+};
+
 const originalError = console.error;
 beforeAll(() => {
   jest.spyOn(console, 'error').mockImplementation((message, ...rest) => {
@@ -133,11 +144,12 @@ describe('App integration', () => {
 
   it('hydrates bookmark details and suggestions end-to-end', async () => {
     mockPinboardApi();
+    seedCredentials();
 
     window.history.pushState(
       {},
       '',
-      '?user=ross&token=abc&openai_token=sk-test&url=https%3A%2F%2Ftesting.com%2F&title=Client%20Title&description=Snippet&private=false&toread=true'
+      '?url=https%3A%2F%2Ftesting.com%2F&title=Client%20Title&description=Snippet&private=false&toread=true'
     );
 
     const store = await renderAppWithStore();
@@ -153,7 +165,8 @@ describe('App integration', () => {
     jest.useFakeTimers();
     const closeSpy = jest.spyOn(window, 'close').mockImplementation(() => {});
     mockPinboardApi();
-    window.history.pushState({}, '', '?user=ross&token=abc&openai_token=sk-test&url=https%3A%2F%2Ftesting.com%2F');
+    seedCredentials();
+    window.history.pushState({}, '', '?url=https%3A%2F%2Ftesting.com%2F');
     const store = await renderAppWithStore();
 
     await waitFor(() =>
@@ -172,7 +185,8 @@ describe('App integration', () => {
 
   it('shows an error when submission fails', async () => {
     mockPinboardApi({ submitError: 'submit failed' });
-    window.history.pushState({}, '', '?user=ross&token=abc&openai_token=sk-test&url=https%3A%2F%2Ftesting.com%2F');
+    seedCredentials();
+    window.history.pushState({}, '', '?url=https%3A%2F%2Ftesting.com%2F');
     const store = await renderAppWithStore();
 
     await waitFor(() =>

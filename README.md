@@ -32,19 +32,19 @@ The part after the colon is the API token (`462E2B102D4CCDE36662` in this exampl
 
 To add the bookmarklet to your browser, simply add a new bookmark, give it any name you want, and use the following text as the URL:
 
-    javascript:q=location.href;d=(window.getSelection?window.getSelection():document.getSelection?document.getSelection():document.selection.createRange().text);p=document.title;void(open('https://rossshannon.github.io/pincushion/?user=USERNAME&token=API_TOKEN&url='+encodeURIComponent(q)+'&description='+encodeURIComponent(d)+'&title='+encodeURIComponent(p),'Pinboard','toolbar=yes,width=600,height=700,left=50,top=50'));
+    javascript:q=location.href;d=(window.getSelection?window.getSelection():document.getSelection?document.getSelection():document.selection.createRange().text);p=document.title;void(open('https://rossshannon.github.io/pincushion/?url='+encodeURIComponent(q)+'&description='+encodeURIComponent(d)+'&title='+encodeURIComponent(p),'Pinboard','toolbar=yes,width=600,height=700,left=50,top=50'));
 
-Often the easiest way to do this is to bookmark the page you’re currently reading, and then edit this bookmark and replace the URL with the above code. Replace `USERNAME` with your Pinboard username, and `API_TOKEN` with your 20-character alphanumeric API token and you’re all set. Click the bookmarklet in your browser’s bookmarks bar and it will open the Pincushion interface.
+Often the easiest way to do this is to bookmark the page you’re currently reading, and then edit this bookmark and replace the URL with the above code. Tokens are no longer passed through the bookmarklet query string; instead, enter them once inside the app (see “Configuring Credentials” below). Click the bookmarklet in your browser’s bookmarks bar and it will open the Pincushion interface.
 
 ![Pincushion bookmarklet in browser bookmarks bar](https://github.com/rossshannon/pincushion/raw/master/public/images/pincushion-icon-bookmarks-bar.png)
 
 You can also pre-check the “private” and “to read” checkboxes by passing these properties with the value `true`:
 
-    javascript:q=location.href;d=(window.getSelection?window.getSelection():document.getSelection?document.getSelection():document.selection.createRange().text);p=document.title;void(open('https://rossshannon.github.io/pincushion/?user=USERNAME&token=API_TOKEN&url='+encodeURIComponent(q)+'&description='+encodeURIComponent(d)+'&title='+encodeURIComponent(p)+'&private=true&toread=true','Pinboard','toolbar=yes,width=600,height=700,left=50,top=50'));
+    javascript:q=location.href;d=(window.getSelection?window.getSelection():document.getSelection?document.getSelection():document.selection.createRange().text);p=document.title;void(open('https://rossshannon.github.io/pincushion/?url='+encodeURIComponent(q)+'&description='+encodeURIComponent(d)+'&title='+encodeURIComponent(p)+'&private=true&toread=true','Pinboard','toolbar=yes,width=600,height=700,left=50,top=50'));
 
-You can also enable the AI features by passing in an OpenAI user token as a parameter (`openai_token`).
+### Configuring Credentials
 
-    javascript:q=location.href;d=(window.getSelection?window.getSelection():document.getSelection?document.getSelection():document.selection.createRange().text);p=document.title;void(open('https://rossshannon.github.io/pincushion/?user=USERNAME&token=API_TOKEN&url='+encodeURIComponent(q)+'&description='+encodeURIComponent(d)+'&title='+encodeURIComponent(p)+'&openai_token=sk-FasOvdWzKZDBlcQ6wONkT3BlbkFIVc9ihRqqBLSrF98ww3yX','Pinboard','toolbar=yes,width=600,height=700,left=50,top=50'));
+When the popup opens you’ll now see a gear button in the footer. Click it to open the Settings page, where you can enter your Pinboard username, Pinboard API token, and (optionally) an OpenAI API token for GPT-powered tag suggestions. These values are stored locally via `localStorage` and never ride along in the bookmarklet URL, keeping your credentials out of browser history and referrers. You can update or remove the tokens at any time from the same Settings view.
 
 ### Browser Support
 
@@ -57,6 +57,15 @@ Pincushion is designed for modern browsers like Chrome, Safari, Firefox, Interne
 - Install the `foreman` gem using `gem install foreman`, and then run the `Procfile` using `foreman start -p 5000`. Grunt will build the required packages and a web server will be booted to run Pincushion on localhost port 5100 (http://localhost:5100).
 
 ## Changelog
+
+### 2.1 (2025-11-14)
+
+- Add a settings page to configure the credentials securely in the browser rather than in the bookmarklet URL.
+
+### 2.0 (2025-11-12)
+
+- Refactor the codebase to use React, Redux, and TypeScript.
+- Many usability and performance improvements.
 
 ### 1.6 (2023-10-18)
 
@@ -92,7 +101,7 @@ Pincushion is designed for modern browsers like Chrome, Safari, Firefox, Interne
 
 ## License
 
-Copyright &copy; 2014–2024 [Ross Shannon](http://twitter.com/rossshannon).
+Copyright &copy; 2014–2025 [Ross Shannon](http://twitter.com/rossshannon).
 
 Pincushion is open source software, [licensed](LICENSE) under the MIT License. Suggestions and pull requests are welcome.
 
@@ -100,8 +109,6 @@ Pincushion is open source software, [licensed](LICENSE) under the MIT License. S
 
 Pincushion uses a number of excellent open source libraries.
 
-- [jQuery](https://github.com/jquery/jquery).
-- [selectize.js](https://brianreavis.github.io/selectize.js/) autocomplete library for tagging.
+- [react-select](https://react-select.com/) for the tag autocomplete experience.
 - [Ladda](https://github.com/hakimel/Ladda) for the submit buttons with integrated progress indicators.
 - [Pinboard-Bridge](https://github.com/aaronpowell/pinboard-bridge), a Node.js-based wrapper which allows use of the Pinboard API with Ajax methods, as the API does not natively support [cross-origin resource sharing (CORS)](https://groups.google.com/d/topic/pinboard-dev/RtyJC1Gm67E/discussion). An instance of pinboard-bridge is deployed for use on [Heroku](https://www.heroku.com/) (https://pinboard-api.herokuapp.com/).
-- [Grunt](http://gruntjs.com/) for building and asset management, and [LESS](http://lesscss.org/) for CSS.

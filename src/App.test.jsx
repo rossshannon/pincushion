@@ -46,6 +46,7 @@ import bookmarkReducer, { setFormData, fetchBookmarkDetails } from './redux/book
 import tagReducer from './redux/tagSlice';
 import { fetchGptSuggestions, fetchSuggestedTags } from './redux/tagSlice';
 import { setAuth } from './redux/authSlice';
+import { persistStoredCredentials } from './utils/credentialStorage';
 
 const renderWithStore = () => {
   const store = configureStore({
@@ -67,6 +68,14 @@ const renderWithStore = () => {
 
 const pushSearch = (query) => {
   window.history.pushState({}, '', query);
+};
+
+const seedCredentials = ({
+  pinboardUser = 'test',
+  pinboardToken = 'abc',
+  openAiToken = 'sk-123',
+} = {}) => {
+  persistStoredCredentials({ pinboardUser, pinboardToken, openAiToken });
 };
 
 const waitForStableCalls = async () => {
@@ -96,6 +105,9 @@ describe('App GPT integration', () => {
     fetchGptSuggestions.mockClear();
     fetchBookmarkDetails.mockClear();
     fetchSuggestedTags.mockClear();
+    if (window.localStorage) {
+      window.localStorage.clear();
+    }
     fetchSuggestedTags.mockImplementation(() => (dispatch) => {
       dispatch({ type: 'tags/fetchSuggested/pending' });
       dispatch({
@@ -106,8 +118,9 @@ describe('App GPT integration', () => {
   });
 
   it('dispatches GPT suggestions only once despite tag edits', async () => {
+    seedCredentials();
     pushSearch(
-      '?user=test&token=abc&openai_token=sk-123&url=https%3A%2F%2Fexample.com&title=Example&description=Desc'
+      '?url=https%3A%2F%2Fexample.com&title=Example&description=Desc'
     );
 
     const { store } = renderWithStore();
@@ -132,7 +145,8 @@ describe('App GPT integration', () => {
   });
 
   it('skips GPT dispatch when no token provided', async () => {
-    pushSearch('?user=test&token=abc&url=https%3A%2F%2Fexample.com');
+    seedCredentials({ openAiToken: '' });
+    pushSearch('?url=https%3A%2F%2Fexample.com');
     const { store } = renderWithStore();
     resolvePinboardSuggestions(store);
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -147,9 +161,8 @@ describe('App GPT integration', () => {
         payload: ['one', 'two', 'three', 'four'],
       });
     });
-    pushSearch(
-      '?user=test&token=abc&openai_token=sk-123&url=https%3A%2F%2Fexample.com'
-    );
+    seedCredentials();
+    pushSearch('?url=https%3A%2F%2Fexample.com');
     const { store } = renderWithStore();
     await waitFor(() => {
       expect(store.getState().tags.suggestedStatus).toBe('succeeded');
@@ -160,16 +173,18 @@ describe('App GPT integration', () => {
   });
 
   it('fetches bookmark details for the provided URL parameter', async () => {
-    pushSearch('?user=test&token=abc&url=https%3A%2F%2Fexample.com');
+    seedCredentials();
+    pushSearch('?url=https%3A%2F%2Fexample.com');
     renderWithStore();
     await waitFor(() => {
       expect(fetchBookmarkDetails).toHaveBeenCalledWith('https://example.com');
     });
   });
 
-  it('parses auth and form data from query params', async () => {
+  it('hydrates auth from storage and form data from query params', async () => {
+    seedCredentials({ pinboardUser: 'ross', pinboardToken: 'xyz', openAiToken: 'sk-123' });
     pushSearch(
-      '?user=ross&token=xyz&openai_token=sk-123&url=https%3A%2F%2Fexample.com%2Fpage&title=Hello&description=Snippet&private=true&toread=true'
+      '?url=https%3A%2F%2Fexample.com%2Fpage&title=Hello&description=Snippet&private=true&toread=true'
     );
     const { store } = renderWithStore();
     await waitFor(() => {
@@ -192,7 +207,8 @@ describe('App GPT integration', () => {
 
   it('binds Escape key to window.close', async () => {
     const closeSpy = jest.spyOn(window, 'close').mockImplementation(() => {});
-    pushSearch('?user=test&token=abc');
+    seedCredentials();
+    pushSearch('');
     renderWithStore();
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(closeSpy).toHaveBeenCalled();
@@ -200,7 +216,8 @@ describe('App GPT integration', () => {
   });
 
   it('passes the existing tags snapshot into GPT context', async () => {
-    pushSearch('?user=test&token=abc&url=https%3A%2F%2Fexample.com');
+    seedCredentials({ openAiToken: '' });
+    pushSearch('?url=https%3A%2F%2Fexample.com');
     const { store } = renderWithStore();
     act(() => {
       store.dispatch(

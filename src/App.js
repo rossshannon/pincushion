@@ -1,7 +1,7 @@
 import BookmarkForm from './components/BookmarkForm';
 import './styles/popup.css';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setAuth } from './redux/authSlice';
 import { setFormData, fetchBookmarkDetails } from './redux/bookmarkSlice';
@@ -13,9 +13,16 @@ import {
   resetGptSuggestions,
 } from './redux/tagSlice';
 import { enforceMinimumPopupSize } from './utils/popupAffordances';
+import Settings from './components/Settings';
+import {
+  readStoredCredentials,
+  persistStoredCredentials,
+} from './utils/credentialStorage';
 
 const TAG_CACHE_TTL_MS = 10000;
 const TAG_REFRESH_DELAY_MS = 10000;
+const VIEW_FORM = 'form';
+const VIEW_SETTINGS = 'settings';
 
 function App() {
   const dispatch = useDispatch();
@@ -30,6 +37,8 @@ function App() {
   const { url, title, description, tags } = formData;
   const normalizedTagString = Array.isArray(tags) ? tags.join(' ') : '';
   const lastLookupUrlRef = useRef(null);
+  const [view, setView] = useState(VIEW_FORM);
+  const [credentialsMissing, setCredentialsMissing] = useState(false);
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
@@ -41,15 +50,19 @@ function App() {
   useEffect(() => {
     // Parse URL parameters for auth and initial form data
     const params = new URLSearchParams(window.location.search);
-    const user = params.get('user') || '';
-    const token = params.get('token') || '';
-    const openAi = params.get('openai_token') || '';
-    if (!openAi) {
-      console.info(
-        '[Pincushion] No OpenAI token provided; GPT suggestions will be skipped.'
-      );
+    const storedCredentials = readStoredCredentials();
+    if (storedCredentials) {
+      if (
+        storedCredentials.user !== user ||
+        storedCredentials.token !== token ||
+        storedCredentials.openAiToken !== openAiToken
+      ) {
+        dispatch(setAuth(storedCredentials));
+      }
+      setCredentialsMissing(false);
+    } else {
+      setCredentialsMissing(true);
     }
-    dispatch(setAuth({ user, token, openAiToken: openAi }));
     // Initial bookmark form values
     const urlParam = params.get('url') || '';
     const titleParam = params.get('title') || '';
@@ -113,7 +126,7 @@ function App() {
         }
       };
     }
-  }, [dispatch]);
+  }, [dispatch, user, token, openAiToken]);
 
   useEffect(() => {
     if (!user || !token) return;
@@ -189,14 +202,74 @@ function App() {
     suggested,
     suggestedStatus,
   ]);
+
+  const handleSettingsSave = (creds) => {
+    persistStoredCredentials(creds);
+    dispatch(
+      setAuth({
+        user: creds.pinboardUser,
+        token: creds.pinboardToken,
+        openAiToken: creds.openAiToken,
+      })
+    );
+    setCredentialsMissing(false);
+    setView(VIEW_FORM);
+  };
+
+  const handleSettingsCancel = () => {
+    setView(VIEW_FORM);
+  };
+
+  const shouldShowSettingsPrompt = credentialsMissing && view === VIEW_FORM;
+
+  const renderMainContent = () => {
+    if (view === VIEW_SETTINGS) {
+      return (
+        <Settings
+          initialValues={{
+            pinboardUser: user,
+            pinboardToken: token,
+            openAiToken,
+          }}
+          onSave={handleSettingsSave}
+          onCancel={handleSettingsCancel}
+        />
+      );
+    }
+
+    return (
+      <>
+        {shouldShowSettingsPrompt && (
+          <div className="settings-banner" role="alert">
+            Please open Settings (⚙︎) to enter your Pinboard credentials.
+          </div>
+        )}
+        <BookmarkForm />
+      </>
+    );
+  };
   return (
     <div className="pincushion-popup" data-testid="app-container">
-      <BookmarkForm />
+      {renderMainContent()}
 
       <footer>
         <div id="pinboard-link">
           Powered by <a href="https://pinboard.in/">Pinboard</a>
         </div>
+        {view !== VIEW_SETTINGS && (
+          <button
+            type="button"
+            className="settings-button"
+            onClick={() => setView(VIEW_SETTINGS)}
+            aria-pressed="false"
+            title="Configure your Pinboard and OpenAI access tokens."
+          >
+            <span className="settings-button__icon" aria-hidden="true">
+              ⚙︎
+            </span>
+            Settings
+          </button>
+        )}
       </footer>
     </div>
   );
