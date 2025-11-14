@@ -36,9 +36,6 @@
     "react-window": "^1.8.11",
     "redux": "^4.2.0"
   },
-  "overrides": {
-    "ws": "^5.2.4"
-  },
   "devDependencies": {
     "@babel/cli": "^7.23.0",
     "@babel/core": "^7.23.0",
