@@ -72,6 +72,7 @@ const TagSuggestions = ({
                     ref={nodeRef}
                     type="button"
                     onClick={() => handleClick(tag)}
+                    onMouseDown={(event) => event.preventDefault()}
                   >
                     {tag}
                   </button>
