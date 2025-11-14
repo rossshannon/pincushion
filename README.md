@@ -58,6 +58,10 @@ It supports Internet Explorer 10+, but earlier versions of Internet Explorer hav
 
 ## Changelog
 
+### 2.2 (2025-11-14)
+
+- Add dark mode.
+
 ### 2.1 (2025-11-14)
 
 - Add a settings page to configure the credentials securely in the browser rather than in the bookmarklet URL.

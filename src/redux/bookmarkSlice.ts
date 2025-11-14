@@ -67,6 +67,23 @@ type BookmarkErrorKey = (typeof BOOKMARK_ERROR_KEYS)[number];
 const isBookmarkErrorKey = (value: string): value is BookmarkErrorKey =>
   (BOOKMARK_ERROR_KEYS as readonly string[]).includes(value);
 
+type ErrorWithStatus = {
+  response?: {
+    status?: number;
+  };
+};
+
+const hasHttpStatus = (error: unknown, statusCode: number): boolean => {
+  if (axios.isAxiosError(error)) {
+    return error.response?.status === statusCode;
+  }
+  if (typeof error === 'object' && error && 'response' in error) {
+    const resp = (error as ErrorWithStatus).response;
+    return resp?.status === statusCode;
+  }
+  return false;
+};
+
 const toTagArray = (value: unknown): string[] => {
   if (Array.isArray(value)) {
     return value;
@@ -154,10 +171,10 @@ export const submitBookmark = createAsyncThunk<
         return rejectWithValue({ apiError: response.data.result_code });
       }
     } catch (err) {
+      if (hasHttpStatus(err, 414)) {
+        return rejectWithValue({ descriptionTooLongError: true });
+      }
       if (axios.isAxiosError(err)) {
-        if (err.response?.status === 414) {
-          return rejectWithValue({ descriptionTooLongError: true });
-        }
         return rejectWithValue({
           genericError: err.message || ERROR_MESSAGES.GENERIC_ERROR,
         });

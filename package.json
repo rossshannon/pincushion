@@ -11,7 +11,7 @@
   ],
   "description": "Pincushion presents an enhanced version of the Pinboard.in 'Add Bookmark' page, which takes advantage of the capabilities of modern browsers",
   "homepage": "https://rossshannon.github.io/pincushion",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "author": "Ross Shannon <ross.shannon@gmail.com>",
   "license": "MIT",
   "repository": {
