@@ -84,7 +84,7 @@ export const fetchSuggestedTags = createAsyncThunk<
       const rec = response.data[1]?.recommended || [];
       const pop = response.data[0]?.popular || [];
       const combined = [...rec, ...pop]
-        .map((tag: string) => tag.toLowerCase())
+        .map((tag: string) => (typeof tag === 'string' ? tag.trim() : ''))
         .filter(Boolean);
       return postProcessPinboardSuggestions(combined, tagCounts);
     } catch (err) {
@@ -181,11 +181,23 @@ const tagSlice = createSlice({
       if (!trimmed) return;
       const normalized = trimmed.toLowerCase();
 
-      state.suggested = state.suggested.filter((tag) => tag !== normalized);
-      state.gptSuggestions = state.gptSuggestions.filter(
-        (tag) => tag !== normalized
+      const normalizeMatch = (tag: string) =>
+        typeof tag === 'string' && tag.toLowerCase() === normalized;
+
+      state.suggested = state.suggested.filter(
+        (tag) => tag === '$separator' || !normalizeMatch(tag)
       );
-      state.suggested.unshift(normalized);
+      state.gptSuggestions = state.gptSuggestions.filter(
+        (tag) => !normalizeMatch(tag)
+      );
+
+      const alreadyPresent = state.suggested.some((tag) =>
+        normalizeMatch(tag)
+      );
+      if (!alreadyPresent) {
+        state.suggested.unshift(trimmed);
+      }
+
       if (state.gptSuggestions.length === 0) {
         state.suggested = state.suggested.filter((tag) => tag !== '$separator');
       }

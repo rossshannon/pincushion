@@ -48,10 +48,9 @@ describe('tagSuggestionFilters', () => {
     const raw = ['Foo', 'foo', 'bar', 'bookmarks_bar', 'via:rss'];
     const tagCounts = { foo: 10 };
     expect(postProcessPinboardSuggestions(raw, tagCounts)).toEqual([
-      'foo',
+      'Foo',
       '$separator',
       'bar',
     ]);
   });
 });
-

@@ -24,11 +24,11 @@ describe('TagSuggestions (presentational)', () => {
     expect(screen.queryByText(/finding suggested tags/i)).not.toBeInTheDocument();
   });
 
-  test('shows loading indicator', () => {
+  test('shows loading indicator alongside existing suggestions', () => {
     render(<TagSuggestions {...baseProps} isLoading />);
     const spinnerText = screen.getByText(/finding suggested tags/i);
     expect(spinnerText).toBeInTheDocument();
-    expect(screen.queryByText('tag1')).not.toBeInTheDocument();
+    expect(screen.getByText('tag1')).toBeInTheDocument();
   });
 
   test('renders nothing when empty', () => {
@@ -36,6 +36,19 @@ describe('TagSuggestions (presentational)', () => {
       <TagSuggestions {...baseProps} isEmpty suggestions={[]} />
     );
     expect(container.firstChild).toBeNull();
+  });
+
+  test('keeps spinner visible when empty but still loading', () => {
+    render(
+      <TagSuggestions
+        {...baseProps}
+        isEmpty
+        isLoading
+        suggestions={[]}
+      />
+    );
+    expect(screen.getByText(/finding suggested tags/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
   test('fires onSuggestionClick when tag clicked and does not submit form', async () => {

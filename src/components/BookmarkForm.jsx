@@ -14,8 +14,8 @@ import TagInput from './TagInput.jsx';
 import TagSuggestions from './TagSuggestions.jsx';
 import {
   selectDisplayableSuggestions,
-  selectSuggestedLoading,
   selectIsSuggestionsEmpty,
+  selectSuggestionsSpinnerVisible,
 } from '../redux/selectors';
 
 const MIN_SPINNER_DURATION_MS = 400;
@@ -34,7 +34,7 @@ function BookmarkForm() {
     useSelector((state) => state.bookmark);
   const userTags = useSelector((state) => state.tags.tagCounts);
   const suggestions = useSelector(selectDisplayableSuggestions);
-  const suggestionsLoading = useSelector(selectSuggestedLoading);
+  const spinnerVisible = useSelector(selectSuggestionsSpinnerVisible);
   const suggestionsEmpty = useSelector(selectIsSuggestionsEmpty);
   const btnRef = useRef(null);
   const formRef = useRef(null);
@@ -408,7 +408,7 @@ function BookmarkForm() {
 
       <TagSuggestions
         suggestions={suggestions}
-        isLoading={suggestionsLoading}
+        isLoading={spinnerVisible}
         isEmpty={suggestionsEmpty}
         onSuggestionClick={handleAddSuggestion}
       />

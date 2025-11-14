@@ -124,14 +124,14 @@ describe('tag slice', () => {
       expect(state3.tagCounts).toEqual({});
     });
 
-    it('should restore removed tags to suggestions list front', () => {
+    it('should restore removed tags preserving original casing at front of list', () => {
       const populatedState = {
         ...initialState,
         suggested: ['foo', 'bar'],
         gptSuggestions: ['baz'],
       };
       const state = tagReducer(populatedState, restoreSuggestedTag('Baz'));
-      expect(state.suggested[0]).toEqual('baz');
+      expect(state.suggested[0]).toEqual('Baz');
       expect(state.gptSuggestions).toEqual([]);
     });
 
@@ -143,6 +143,16 @@ describe('tag slice', () => {
       };
       const state = tagReducer(populatedState, restoreSuggestedTag('foo'));
       expect(state.suggested).not.toContain('$separator');
+    });
+
+    it('should avoid adding duplicate restored tags that differ only by case', () => {
+      const populatedState = {
+        ...initialState,
+        suggested: ['Foo'],
+        gptSuggestions: ['bar'],
+      };
+      const state = tagReducer(populatedState, restoreSuggestedTag('foo'));
+      expect(state.suggested.filter((tag) => tag.toLowerCase() === 'foo')).toHaveLength(1);
     });
 
     it('should reset GPT suggestion state', () => {
@@ -244,7 +254,7 @@ describe('tag slice', () => {
 
         expect(state.suggestedLoading).toBe(false);
         expect(state.suggestedStatus).toBe('succeeded');
-        expect(state.suggested).toEqual(['rec1', 'common', 'pop1']); // Order might vary based on slice logic, adjust if needed
+        expect(state.suggested).toEqual(['Rec1', 'COMMON', 'Pop1']);
         expect(state.error).toBeNull();
         expect(mockedAxios.get).toHaveBeenCalledWith(expectedApiUrl);
         expect(cleanUrl).toHaveBeenCalledWith(bookmarkUrl);
@@ -259,7 +269,7 @@ describe('tag slice', () => {
 
         expect(state.suggestedLoading).toBe(false);
         expect(state.suggestedStatus).toBe('succeeded');
-        expect(state.suggested).toEqual(['poponly']);
+        expect(state.suggested).toEqual(['PopOnly']);
       });
 
       it('should handle fulfilled state with empty/no tags', async () => {

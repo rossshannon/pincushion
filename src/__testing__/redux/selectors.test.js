@@ -2,6 +2,7 @@ import {
   selectDisplayableSuggestions,
   selectSuggestedLoading,
   selectIsSuggestionsEmpty,
+  selectSuggestionsSpinnerVisible,
 } from '../../redux/selectors';
 
 const baseTagsState = {
@@ -16,7 +17,7 @@ const baseTagsState = {
 describe('Redux Selectors', () => {
   // Re-adding describe block for selectSuggestedLoading
   describe('selectSuggestedLoading', () => {
-    it('should return the suggestedLoading boolean', () => {
+    it('reflects only the Pinboard suggestion loading flag', () => {
       const mockState1 = {
         tags: { ...baseTagsState, suggestedLoading: true },
         bookmark: { formData: { tags: [] } },
@@ -33,7 +34,29 @@ describe('Redux Selectors', () => {
         tags: { ...baseTagsState, suggestedLoading: false, gptStatus: 'loading' },
         bookmark: { formData: { tags: [] } },
       };
-      expect(selectSuggestedLoading(mockState3)).toBe(true);
+      expect(selectSuggestedLoading(mockState3)).toBe(false);
+    });
+  });
+
+  describe('selectSuggestionsSpinnerVisible', () => {
+    it('is true when either Pinboard or GPT is loading', () => {
+      const pinboardLoading = {
+        tags: { ...baseTagsState, suggestedLoading: true },
+        bookmark: { formData: { tags: [] } },
+      };
+      expect(selectSuggestionsSpinnerVisible(pinboardLoading)).toBe(true);
+
+      const gptLoading = {
+        tags: { ...baseTagsState, gptStatus: 'loading' },
+        bookmark: { formData: { tags: [] } },
+      };
+      expect(selectSuggestionsSpinnerVisible(gptLoading)).toBe(true);
+
+      const idleState = {
+        tags: { ...baseTagsState },
+        bookmark: { formData: { tags: [] } },
+      };
+      expect(selectSuggestionsSpinnerVisible(idleState)).toBe(false);
     });
   });
 
@@ -106,6 +129,23 @@ describe('Redux Selectors', () => {
         bookmark: { formData: { tags: ['right'] } },
       };
       expect(selectDisplayableSuggestions(mockState)).toEqual(['left']);
+    });
+
+    it('should deduplicate overlapping pinboard and GPT suggestions case-insensitively', () => {
+      const mockState = {
+        tags: {
+          ...baseTagsState,
+          suggested: ['Foo', 'Bar'],
+          gptSuggestions: ['foo', 'baz'],
+        },
+        bookmark: { formData: { tags: [] } },
+      };
+      expect(selectDisplayableSuggestions(mockState)).toEqual([
+        'Foo',
+        'Bar',
+        '$separator',
+        'baz',
+      ]);
     });
 
     it('should drop separator when both lists end up empty', () => {

@@ -1,8 +1,8 @@
 import { createSelector } from '@reduxjs/toolkit';
 
 // Select the suggested tags from the state
-const selectSuggestedTags = (state) => state.tags.suggested;
-const selectGptSuggestions = (state) => state.tags.gptSuggestions;
+const selectSuggestedTags = (state) => state.tags.suggested || [];
+const selectGptSuggestions = (state) => state.tags.gptSuggestions || [];
 
 // Select the current tags array from the bookmark form data
 const selectCurrentTags = (state) => {
@@ -11,23 +11,31 @@ const selectCurrentTags = (state) => {
 };
 
 const normalize = (tag) =>
-  typeof tag === 'string' ? tag.trim().toLowerCase() : tag;
+  typeof tag === 'string' ? tag.trim().toLowerCase() : '';
+
+const sanitizeList = (list = []) =>
+  (list || []).filter((tag) => tag && tag !== '$separator');
+
+const buildUniqueList = (list, seen) => {
+  const unique = [];
+  sanitizeList(list).forEach((tag) => {
+    const lower = normalize(tag);
+    if (!lower) return;
+    if (seen.has(lower)) return;
+    seen.add(lower);
+    unique.push(tag);
+  });
+  return unique;
+};
 
 // Memoized selector for displayable suggestions
 export const selectDisplayableSuggestions = createSelector(
   [selectSuggestedTags, selectGptSuggestions, selectCurrentTags],
   (pinboard, gpt, currentTags) => {
-    const currentTagsSet = new Set(currentTags.map(normalize));
-    const cleanse = (list) =>
-      (list || []).filter(
-        (tag) =>
-          tag &&
-          tag !== '$separator' &&
-          !currentTagsSet.has(normalize(tag))
-      );
+    const seen = new Set(currentTags.map(normalize));
+    const pinboardFiltered = buildUniqueList(pinboard, seen);
+    const gptFiltered = buildUniqueList(gpt, seen);
 
-    const pinboardFiltered = cleanse(pinboard);
-    const gptFiltered = cleanse(gpt);
     if (!pinboardFiltered.length && !gptFiltered.length) {
       return [];
     }
@@ -47,7 +55,10 @@ export const selectDisplayableSuggestions = createSelector(
 
 // Selector for loading state
 export const selectSuggestedLoading = (state) =>
-  state.tags.suggestedLoading || state.tags.gptStatus === 'loading';
+  Boolean(state.tags.suggestedLoading);
+
+export const selectSuggestionsSpinnerVisible = (state) =>
+  Boolean(state.tags.suggestedLoading) || state.tags.gptStatus === 'loading';
 
 // Selector to check if suggestions are empty
 export const selectIsSuggestionsEmpty = createSelector(

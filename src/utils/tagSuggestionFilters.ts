@@ -137,10 +137,21 @@ export function postProcessPinboardSuggestions(
   if (!tags.length) {
     return tags;
   }
-  const normalized = tags
-    .map((tag) => tag.trim().toLowerCase())
+  const sanitized = tags
+    .map((tag) => (typeof tag === 'string' ? tag.trim() : ''))
     .filter(Boolean);
-  const deduped = normalized.filter((tag, idx, arr) => arr.indexOf(tag) === idx);
+
+  const deduped: string[] = [];
+  const seen = new Set<string>();
+  sanitized.forEach((tag) => {
+    const lower = tag.toLowerCase();
+    if (seen.has(lower)) {
+      return;
+    }
+    seen.add(lower);
+    deduped.push(tag);
+  });
+
   const withoutSpurious = removeSpuriousResults(deduped);
   const withoutCommon = removeOverlyCommonTags(withoutSpurious);
   return rankUserTagsHigher(withoutCommon, tagCounts);

@@ -25,7 +25,7 @@ const TagSuggestions = ({
     return nodeRefs.current.get(key);
   };
 
-  const showSuggestions = !isLoading && !isEmpty;
+  const showSuggestions = !isEmpty;
 
   return (
     <>
