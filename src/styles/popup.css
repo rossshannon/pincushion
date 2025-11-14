@@ -544,8 +544,7 @@ input#url.hash-detected {
   font-size: 80%;
 }
 
-.suggestions-list button,
-.suggestions-list .separator {
+.suggestions-list button {
   position: relative;
   font-size: 12px;
   margin: 0.4em 0.3em 0 0.2em;
@@ -573,17 +572,25 @@ input#url.hash-detected {
     max-width 0.22s ease;
 }
 .suggestions-list .separator {
-  border: none;
-  background: var(--pincushion-chip-separator);
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  margin: 0 0.35em;
-  padding: 0;
-  display: inline-block;
-  vertical-align: middle;
-  transform: translateY(1px);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 10px;
+  flex: 0 0 auto;
+  margin: 9px 0.4em 3px;
+  padding: 0 0.35em;
+  line-height: 0;
   font-size: 0;
+  pointer-events: none;
+}
+.suggestions-list .separator::after {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--pincushion-chip-separator);
+  display: block;
 }
 /* Hover & focus styling */
 .suggestions-list button:hover,

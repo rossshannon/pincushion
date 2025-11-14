@@ -1,6 +1,6 @@
 const STORAGE_KEY = 'pincushion.credentials';
 
-type CredentialRecord = {
+export type CredentialRecord = {
   pinboardUser: string;
   pinboardToken: string;
   openAiToken?: string;

@@ -36,6 +36,8 @@ const OVERLY_COMMON_TAGS = [
   'feedbin',
   'favorites_bar',
   'imported',
+  'Favorites',
+  'Imported_From_Firefox',
   '.dailybrowse',
   'barra_dei_preferiti',
   'bookmarks_toolbar',
@@ -90,7 +92,9 @@ export function removeOverlyCommonTags(tags: string[]): string[] {
   if (!tags.length) {
     return tags;
   }
-  const lowerIgnored = new Set(OVERLY_COMMON_TAGS.map((tag) => tag.toLowerCase()));
+  const lowerIgnored = new Set(
+    OVERLY_COMMON_TAGS.map((tag) => tag.toLowerCase())
+  );
   return tags.filter((tag) => {
     const lower = tag.toLowerCase();
     if (VIA_PREFIX.test(lower)) {

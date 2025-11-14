@@ -17,27 +17,32 @@ import Settings from './components/Settings';
 import {
   readStoredCredentials,
   persistStoredCredentials,
+  type CredentialRecord,
 } from './utils/credentialStorage';
+import type { AppDispatch, RootState } from './redux/store';
 
 const TAG_CACHE_TTL_MS = 10000;
 const TAG_REFRESH_DELAY_MS = 10000;
-const VIEW_FORM = 'form';
-const VIEW_SETTINGS = 'settings';
+const VIEW_FORM = 'form' as const;
+const VIEW_SETTINGS = 'settings' as const;
+type ViewMode = typeof VIEW_FORM | typeof VIEW_SETTINGS;
+type SettingsFormValues = Required<CredentialRecord>;
 
 function App() {
-  const dispatch = useDispatch();
-  const { formData, initialLoading } = useSelector((state) => state.bookmark);
-  const { user, token, openAiToken } = useSelector((state) => state.auth);
-  const {
-    gptStatus,
-    gptContextKey,
-    suggested,
-    suggestedStatus,
-  } = useSelector((state) => state.tags);
+  const dispatch = useDispatch<AppDispatch>();
+  const { formData, initialLoading } = useSelector(
+    (state: RootState) => state.bookmark
+  );
+  const { user, token, openAiToken } = useSelector(
+    (state: RootState) => state.auth
+  );
+  const { gptStatus, gptContextKey, suggestedStatus } = useSelector(
+    (state: RootState) => state.tags
+  );
   const { url, title, description, tags } = formData;
-  const normalizedTagString = Array.isArray(tags) ? tags.join(' ') : '';
-  const lastLookupUrlRef = useRef(null);
-  const [view, setView] = useState(VIEW_FORM);
+  const normalizedTagString = tags.join(' ');
+  const lastLookupUrlRef = useRef<string | null>(null);
+  const [view, setView] = useState<ViewMode>(VIEW_FORM);
   const [credentialsMissing, setCredentialsMissing] = useState(false);
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -80,7 +85,7 @@ function App() {
     );
     // Only load tags/suggestions if we have auth credentials
     if (user && token) {
-      let tagRefreshTimer;
+      let tagRefreshTimer: number | null = null;
       // Load cached user tags from localStorage
       let shouldFetchTagsImmediately = true;
       let nextFetchDelay = TAG_REFRESH_DELAY_MS;
@@ -107,10 +112,13 @@ function App() {
         dispatch(fetchTags());
       }
 
-      tagRefreshTimer = setTimeout(() => dispatch(fetchTags()), nextFetchDelay);
+      tagRefreshTimer = window.setTimeout(
+        () => dispatch(fetchTags()),
+        nextFetchDelay
+      );
 
       // Add ESC key listener
-      const handleKeyDown = (event) => {
+      const handleKeyDown = (event: KeyboardEvent) => {
         if (event.key === 'Escape') {
           window.close();
         }
@@ -121,8 +129,8 @@ function App() {
       // Cleanup listener on unmount
       return () => {
         document.removeEventListener('keydown', handleKeyDown);
-        if (tagRefreshTimer) {
-          clearTimeout(tagRefreshTimer);
+        if (tagRefreshTimer !== null) {
+          window.clearTimeout(tagRefreshTimer);
         }
       };
     }
@@ -139,8 +147,8 @@ function App() {
     dispatch(fetchSuggestedTags());
   }, [dispatch, user, token, url]);
 
-  const initialTagSignatureRef = useRef(null);
-  const previousUrlRef = useRef(null);
+  const initialTagSignatureRef = useRef<string | null>(null);
+  const previousUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     initialTagSignatureRef.current = null;
@@ -163,16 +171,16 @@ function App() {
 
     let existingTagsSnapshot = initialTagSignatureRef.current;
     if (existingTagsSnapshot === null) {
-      existingTagsSnapshot =
-        typeof normalizedTagString === 'string' ? normalizedTagString : '';
+      existingTagsSnapshot = normalizedTagString;
       initialTagSignatureRef.current = existingTagsSnapshot;
     }
+    const tagsSnapshot = existingTagsSnapshot ?? '';
 
     const contextKey = JSON.stringify({
       url,
       title,
       description,
-      existingTags: existingTagsSnapshot,
+      existingTags: tagsSnapshot,
     });
 
     if (gptContextKey === contextKey) return;
@@ -185,7 +193,7 @@ function App() {
           url,
           title,
           description,
-          existingTags: existingTagsSnapshot,
+          existingTags: tagsSnapshot,
         },
       })
     );
@@ -199,11 +207,10 @@ function App() {
     initialLoading,
     gptStatus,
     gptContextKey,
-    suggested,
     suggestedStatus,
   ]);
 
-  const handleSettingsSave = (creds) => {
+  const handleSettingsSave = (creds: SettingsFormValues): void => {
     persistStoredCredentials(creds);
     dispatch(
       setAuth({
@@ -216,13 +223,13 @@ function App() {
     setView(VIEW_FORM);
   };
 
-  const handleSettingsCancel = () => {
+  const handleSettingsCancel = (): void => {
     setView(VIEW_FORM);
   };
 
   const shouldShowSettingsPrompt = credentialsMissing && view === VIEW_FORM;
 
-  const renderMainContent = () => {
+  const renderMainContent = (): React.ReactNode => {
     if (view === VIEW_SETTINGS) {
       return (
         <Settings

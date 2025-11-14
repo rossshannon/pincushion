@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import AsyncCreatableSelect from 'react-select/async-creatable';
+import { components as selectComponents } from 'react-select';
 import PropTypes from 'prop-types';
 import VirtualizedMenuList from './VirtualizedMenuList.jsx';
 import './TagInput.css'; // Import the CSS file
@@ -35,6 +36,22 @@ const MultiValueLabel = ({ children }) => {
   // We don't need to worry about other props like selectProps here
   // because we are not rendering a DOM element that would receive them.
   return <>{children}</>;
+};
+
+const MultiValueRemove = (props) => {
+  const innerProps = props.innerProps || {};
+  return (
+    <selectComponents.MultiValueRemove
+      {...props}
+      innerProps={{
+        ...innerProps,
+        style: {
+          ...(innerProps.style || {}),
+          cursor: 'pointer',
+        },
+      }}
+    />
+  );
 };
 
 const TagInput = ({
@@ -74,6 +91,25 @@ const TagInput = ({
     const newSelectedTags = selectedOptions || [];
     onChange(newSelectedTags.map((option) => option.value));
   };
+
+  const selectStyles = useMemo(
+    () => ({
+      multiValueRemove: (base) => ({
+        ...base,
+        backgroundColor: 'transparent',
+        color: 'inherit',
+        cursor: 'pointer',
+        paddingLeft: 0,
+        paddingRight: 0,
+        borderRadius: 0,
+        ':hover': {
+          backgroundColor: 'var(--pincushion-tag-chip-remove-hover)',
+          color: 'inherit',
+        },
+      }),
+    }),
+    []
+  );
 
   // Handle the creation of a new tag
   const handleCreate = (inputValue) => {
@@ -192,7 +228,9 @@ const TagInput = ({
       inputId={inputId}
       components={{
         MenuList: VirtualizedMenuList,
+        MultiValueRemove,
       }}
+      styles={selectStyles}
       loadOptions={loadOptions}
       defaultOptions={defaultOptionsList}
       // Keep newly-created tag affordance, but place it after the best matches so

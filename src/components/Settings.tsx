@@ -1,35 +1,45 @@
 import React, { useState } from 'react';
-import PropTypes from 'prop-types';
 import {
   verifyPinboardCredentials,
   verifyOpenAiToken,
 } from '../services/credentialValidation';
+import type { CredentialRecord } from '../utils/credentialStorage';
 
-const fieldDefaults = {
+export type SettingsFormValues = Required<CredentialRecord>;
+
+type SettingsErrors = Partial<Record<keyof SettingsFormValues, string>>;
+
+interface SettingsProps {
+  initialValues?: SettingsFormValues;
+  onSave: (values: SettingsFormValues) => void;
+  onCancel: () => void;
+}
+
+const fieldDefaults: SettingsFormValues = {
   pinboardUser: '',
   pinboardToken: '',
   openAiToken: '',
 };
 
-function Settings({ initialValues = fieldDefaults, onSave, onCancel }) {
-  const [formState, setFormState] = useState({
+function Settings({ initialValues = fieldDefaults, onSave, onCancel }: SettingsProps) {
+  const [formState, setFormState] = useState<SettingsFormValues>({
     ...fieldDefaults,
     ...initialValues,
   });
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<SettingsErrors>({});
   const [submitError, setSubmitError] = useState('');
   const [isValidating, setIsValidating] = useState(false);
 
-  const handleChange = (event) => {
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
     setFormState((prev) => ({
       ...prev,
-      [name]: value,
+      [name as keyof SettingsFormValues]: value,
     }));
   };
 
-  const validate = () => {
-    const nextErrors = {};
+  const validate = (): SettingsErrors => {
+    const nextErrors: SettingsErrors = {};
     if (!formState.pinboardUser.trim()) {
       nextErrors.pinboardUser = 'Username is required';
     }
@@ -39,7 +49,7 @@ function Settings({ initialValues = fieldDefaults, onSave, onCancel }) {
     return nextErrors;
   };
 
-  const handleSubmit = async (event) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitError('');
     const nextErrors = validate();
@@ -178,15 +188,5 @@ function Settings({ initialValues = fieldDefaults, onSave, onCancel }) {
     </form>
   );
 }
-
-Settings.propTypes = {
-  initialValues: PropTypes.shape({
-    pinboardUser: PropTypes.string,
-    pinboardToken: PropTypes.string,
-    openAiToken: PropTypes.string,
-  }),
-  onSave: PropTypes.func.isRequired,
-  onCancel: PropTypes.func.isRequired,
-};
 
 export default Settings;

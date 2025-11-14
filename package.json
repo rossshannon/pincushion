@@ -73,6 +73,7 @@
     "build": "react-scripts build",
     "test": "npm run test:ci",
     "test:ci": "jest --config jest.config.js",
+    "test:coverage": "jest --config jest.config.js --coverage",
     "test:watch": "jest --config jest.config.js --watch",
     "lint": "eslint \"src/**/*.{js,jsx,ts,tsx}\" \"**/*.test.{js,jsx,ts,tsx}\"",
     "lint:fix": "npm run lint -- --fix",

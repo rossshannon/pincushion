@@ -1,23 +1,26 @@
 import { createSelector } from '@reduxjs/toolkit';
+import type { RootState } from './store';
 
-// Select the suggested tags from the state
-const selectSuggestedTags = (state) => state.tags.suggested || [];
-const selectGptSuggestions = (state) => state.tags.gptSuggestions || [];
+type TagList = string[];
 
-// Select the current tags array from the bookmark form data
-const selectCurrentTags = (state) => {
+const selectSuggestedTags = (state: RootState): TagList =>
+  state.tags.suggested || [];
+
+const selectGptSuggestions = (state: RootState): TagList =>
+  state.tags.gptSuggestions || [];
+
+const selectCurrentTags = (state: RootState): TagList => {
   const tags = state.bookmark.formData.tags;
   return Array.isArray(tags) ? tags : [];
 };
 
-const normalize = (tag) =>
-  typeof tag === 'string' ? tag.trim().toLowerCase() : '';
+const normalize = (tag: string): string => tag.trim().toLowerCase();
 
-const sanitizeList = (list = []) =>
-  (list || []).filter((tag) => tag && tag !== '$separator');
+const sanitizeList = (list: TagList = []): TagList =>
+  list.filter((tag) => Boolean(tag) && tag !== '$separator');
 
-const buildUniqueList = (list, seen) => {
-  const unique = [];
+const buildUniqueList = (list: TagList, seen: Set<string>): TagList => {
+  const unique: TagList = [];
   sanitizeList(list).forEach((tag) => {
     const lower = normalize(tag);
     if (!lower) return;
@@ -28,10 +31,9 @@ const buildUniqueList = (list, seen) => {
   return unique;
 };
 
-// Memoized selector for displayable suggestions
 export const selectDisplayableSuggestions = createSelector(
   [selectSuggestedTags, selectGptSuggestions, selectCurrentTags],
-  (pinboard, gpt, currentTags) => {
+  (pinboard: TagList, gpt: TagList, currentTags: TagList): TagList => {
     const seen = new Set(currentTags.map(normalize));
     const pinboardFiltered = buildUniqueList(pinboard, seen);
     const gptFiltered = buildUniqueList(gpt, seen);
@@ -53,17 +55,17 @@ export const selectDisplayableSuggestions = createSelector(
   }
 );
 
-// Selector for loading state
-export const selectSuggestedLoading = (state) =>
+export const selectSuggestedLoading = (state: RootState): boolean =>
   Boolean(state.tags.suggestedLoading);
 
-export const selectSuggestionsSpinnerVisible = (state) =>
+export const selectSuggestionsSpinnerVisible = (
+  state: RootState
+): boolean =>
   Boolean(state.tags.suggestedLoading) || state.tags.gptStatus === 'loading';
 
-// Selector to check if suggestions are empty
 export const selectIsSuggestionsEmpty = createSelector(
   [selectDisplayableSuggestions],
-  (suggestions) =>
+  (suggestions: TagList): boolean =>
     suggestions.length === 0 ||
     (suggestions.length === 1 && suggestions[0] === '$separator')
 );
