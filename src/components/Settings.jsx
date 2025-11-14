@@ -151,8 +151,9 @@ function Settings({ initialValues = fieldDefaults, onSave, onCancel }) {
         data-1p-ignore="true"
       />
       <p className="settings-form__helper small">
-        GPT suggestions run only when a valid OpenAI token is stored here. You can
-        create or find a key at <strong>https://platform.openai.com/account/api-keys</strong>.
+        GPT tag suggestions run only when a valid OpenAI token is stored here.
+        You can create a key at{' '}
+        <strong>https://platform.openai.com/account/api-keys</strong>.
       </p>
       {errors.openAiToken && (
         <span className="helptext" role="alert">
