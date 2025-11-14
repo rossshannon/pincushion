@@ -18,7 +18,7 @@ jest.mock('../../utils/popupAffordances', () => ({
   isLikelyTouchDevice: jest.fn(() => false),
 }));
 import BookmarkForm, { __TEST_MIN_SPINNER_DURATION } from '../BookmarkForm';
-import Ladda from 'ladda';
+import * as Ladda from 'ladda';
 import { isLikelyTouchDevice } from '../../utils/popupAffordances';
 
 jest.mock('react-transition-group', () => {
@@ -29,14 +29,7 @@ jest.mock('react-transition-group', () => {
   };
 });
 
-// Mock Ladda - Replaced with inline mock
-jest.mock('ladda', () => ({
-  // The factory function returns the mock implementation
-  create: jest.fn(() => ({
-    start: jest.fn(),
-    stop: jest.fn(),
-  })),
-}));
+jest.mock('ladda');
 
 const mockStore = configureStore([thunk]);
 const baseTagsState = {

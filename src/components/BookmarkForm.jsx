@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import Ladda from 'ladda';
+import * as Ladda from 'ladda';
 import { useSelector, useDispatch } from 'react-redux';
 import { getTimestampFormats } from '../utils/date'; // Import the utility function
 import { isLikelyTouchDevice } from '../utils/popupAffordances';

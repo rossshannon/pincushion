@@ -27,10 +27,7 @@ jest.mock('openai', () =>
   }))
 );
 
-jest.mock('ladda', () => ({
-  create: jest.fn(() => ({ start: jest.fn(), stop: jest.fn() })),
-  stopAll: jest.fn(),
-}));
+jest.mock('ladda');
 
 const mockedAxios = axios;
 
