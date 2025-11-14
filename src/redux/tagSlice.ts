@@ -54,7 +54,9 @@ export const fetchTags = createAsyncThunk<
       }
       return data;
     } catch (err) {
-      return rejectWithValue(err.message);
+      const message =
+        err instanceof Error ? err.message : 'Unable to fetch tags';
+      return rejectWithValue(message);
     }
   }
 );
@@ -148,7 +150,9 @@ export const fetchGptSuggestions = createAsyncThunk<
 
       return { suggestions: deduped, contextKey: payload?.contextKey ?? null };
     } catch (err) {
-      return rejectWithValue((err as Error).message);
+      const message =
+        err instanceof Error ? err.message : 'Unable to fetch GPT suggestions';
+      return rejectWithValue(message);
     }
   }
 );

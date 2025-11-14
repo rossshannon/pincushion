@@ -1,6 +1,13 @@
 import axios from 'axios';
 import OpenAI from 'openai';
 
+type ErrorWithStatus = Error & { status?: number };
+
+const isErrorWithStatus = (error: unknown): error is ErrorWithStatus =>
+  error instanceof Error &&
+  Object.prototype.hasOwnProperty.call(error, 'status') &&
+  typeof (error as { status?: unknown }).status === 'number';
+
 const PINBOARD_BASE_URL = 'https://pinboard-api.herokuapp.com';
 
 type PinboardCredentialInput = {
@@ -45,7 +52,7 @@ export async function verifyOpenAiToken(openAiToken: string): Promise<void> {
   try {
     await client.models.retrieve('gpt-4o-mini');
   } catch (error) {
-    if (error instanceof Error && 'status' in error && (error as any).status === 401) {
+    if (isErrorWithStatus(error) && error.status === 401) {
       throw new Error('OpenAI rejected that API token.');
     }
     const message =

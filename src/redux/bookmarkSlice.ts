@@ -26,7 +26,7 @@ type BookmarkErrors = {
 export type BookmarkState = {
   formData: BookmarkFormData;
   status: 'idle' | 'saving' | 'success' | 'error';
-  data: unknown;
+  data: PinboardAddResponse | null;
   errors: BookmarkErrors;
   initialLoading: boolean;
   existingBookmarkTime: string | null;
@@ -38,6 +38,22 @@ type BookmarkThunkState = {
   bookmark: BookmarkState;
 };
 
+type PinboardAddResponse = {
+  result_code: string;
+  [key: string]: unknown;
+};
+
+type PinboardPost = {
+  href?: string;
+  description?: string;
+  extended?: string;
+  tags?: string | string[];
+  shared?: 'yes' | 'no';
+  toread?: 'yes' | 'no';
+  time?: string;
+  dt?: string;
+};
+
 type SubmitRejectValue = {
   validationErrors?: BookmarkErrors;
   apiError?: string;
@@ -46,6 +62,10 @@ type SubmitRejectValue = {
 };
 
 const DESCRIPTION_CHAR_LIMIT = 65535;
+const BOOKMARK_ERROR_KEYS = ['url', 'title', 'description', 'generic'] as const;
+type BookmarkErrorKey = (typeof BOOKMARK_ERROR_KEYS)[number];
+const isBookmarkErrorKey = (value: string): value is BookmarkErrorKey =>
+  (BOOKMARK_ERROR_KEYS as readonly string[]).includes(value);
 
 const toTagArray = (value: unknown): string[] => {
   if (Array.isArray(value)) {
@@ -61,7 +81,7 @@ const toTagArray = (value: unknown): string[] => {
 };
 
 // Define specific error messages
-const ERROR_MESSAGES = {
+const ERROR_MESSAGES: Record<string, string> = {
   MISSING_URL: 'URL is required.',
   MISSING_TITLE: 'Title is required.',
   DESCRIPTION_TOO_LONG: 'Description is too long.', // Added for 414 errors
@@ -72,7 +92,7 @@ const ERROR_MESSAGES = {
 
 // Async thunk to submit bookmark via Pinboard API
 export const submitBookmark = createAsyncThunk<
-  any,
+  PinboardAddResponse,
   void,
   { state: BookmarkThunkState; rejectValue: SubmitRejectValue }
 >(
@@ -134,21 +154,25 @@ export const submitBookmark = createAsyncThunk<
         return rejectWithValue({ apiError: response.data.result_code });
       }
     } catch (err) {
-      // Check for specific HTTP status errors like 414
-      if (err.response && err.response.status === 414) {
-        return rejectWithValue({ descriptionTooLongError: true });
+      if (axios.isAxiosError(err)) {
+        if (err.response?.status === 414) {
+          return rejectWithValue({ descriptionTooLongError: true });
+        }
+        return rejectWithValue({
+          genericError: err.message || ERROR_MESSAGES.GENERIC_ERROR,
+        });
       }
-      // Reject with generic network/request error
-      return rejectWithValue({
-        genericError: err.message || ERROR_MESSAGES.GENERIC_ERROR,
-      });
+
+      const message =
+        err instanceof Error ? err.message : ERROR_MESSAGES.GENERIC_ERROR;
+      return rejectWithValue({ genericError: message });
     }
   }
 );
 
 // Fetch existing bookmark details if any
 export const fetchBookmarkDetails = createAsyncThunk<
-  any,
+  PinboardPost | null,
   string | undefined,
   { state: BookmarkThunkState; rejectValue: string }
 >(
@@ -174,7 +198,11 @@ export const fetchBookmarkDetails = createAsyncThunk<
       }
       return null;
     } catch (err) {
-      return rejectWithValue(err.message);
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Failed to load existing bookmark details.';
+      return rejectWithValue(message);
     }
   }
 );
@@ -211,13 +239,11 @@ const bookmarkSlice = createSlice({
         updates.tags = toTagArray(updates.tags);
       }
       state.formData = { ...state.formData, ...updates };
-      if (state.errors) {
-        Object.keys(updates).forEach((fieldName) => {
-          if (Object.prototype.hasOwnProperty.call(state.errors, fieldName)) {
-            state.errors[fieldName] = null;
-          }
-        });
-      }
+      Object.keys(updates).forEach((fieldName) => {
+        if (isBookmarkErrorKey(fieldName)) {
+          state.errors[fieldName] = null;
+        }
+      });
     },
     resetStatus(state) {
       state.status = 'idle';
