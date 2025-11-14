@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+// @ts-nocheck
+
 jest.mock('openai', () => jest.fn(() => ({
   chat: { completions: { create: jest.fn() } },
 })));
@@ -15,7 +18,7 @@ jest.mock('./redux/tagSlice', () => {
     __esModule: true,
     ...actual,
     default: actual.default,
-    fetchTags: jest.fn(() => () => {}),
+    fetchTags: jest.fn(() => () => undefined),
     fetchSuggestedTags: jest.fn(defaultSuggestedThunk),
     fetchGptSuggestions: jest.fn((payload) => (dispatch) => {
       dispatch({
@@ -32,7 +35,7 @@ jest.mock('./redux/bookmarkSlice', () => {
     __esModule: true,
     ...actual,
     default: actual.default,
-    fetchBookmarkDetails: jest.fn(() => () => {}),
+    fetchBookmarkDetails: jest.fn(() => () => undefined),
   };
 });
 
@@ -47,6 +50,16 @@ import tagReducer from './redux/tagSlice';
 import { fetchGptSuggestions, fetchSuggestedTags } from './redux/tagSlice';
 import { setAuth } from './redux/authSlice';
 import { persistStoredCredentials } from './utils/credentialStorage';
+
+const fetchGptSuggestionsMock = fetchGptSuggestions as jest.MockedFunction<
+  typeof fetchGptSuggestions
+>;
+const fetchSuggestedTagsMock = fetchSuggestedTags as jest.MockedFunction<
+  typeof fetchSuggestedTags
+>;
+const fetchBookmarkDetailsMock = fetchBookmarkDetails as jest.MockedFunction<
+  typeof fetchBookmarkDetails
+>;
 
 const renderWithStore = () => {
   const store = configureStore({
@@ -79,11 +92,11 @@ const seedCredentials = ({
 };
 
 const waitForStableCalls = async () => {
-  let previousCount = fetchGptSuggestions.mock.calls.length;
+  let previousCount = fetchGptSuggestionsMock.mock.calls.length;
   // Wait for two animation frames until the call count stops changing.
   for (let i = 0; i < 5; i += 1) {
     await new Promise((resolve) => setTimeout(resolve, 0));
-    const current = fetchGptSuggestions.mock.calls.length;
+    const current = fetchGptSuggestionsMock.mock.calls.length;
     if (current === previousCount) {
       return;
     }
@@ -102,13 +115,13 @@ const resolvePinboardSuggestions = (store, payload = []) => {
 
 describe('App GPT integration', () => {
   beforeEach(() => {
-    fetchGptSuggestions.mockClear();
-    fetchBookmarkDetails.mockClear();
-    fetchSuggestedTags.mockClear();
+    fetchGptSuggestionsMock.mockClear();
+    fetchBookmarkDetailsMock.mockClear();
+    fetchSuggestedTagsMock.mockClear();
     if (window.localStorage) {
       window.localStorage.clear();
     }
-    fetchSuggestedTags.mockImplementation(() => (dispatch) => {
+    fetchSuggestedTagsMock.mockImplementation(() => (dispatch) => {
       dispatch({ type: 'tags/fetchSuggested/pending' });
       dispatch({
         type: 'tags/fetchSuggested/fulfilled',
@@ -131,17 +144,17 @@ describe('App GPT integration', () => {
     });
 
     await waitFor(() => {
-      expect(fetchGptSuggestions).toHaveBeenCalled();
+      expect(fetchGptSuggestionsMock).toHaveBeenCalled();
     });
     await waitForStableCalls();
-    const initialCalls = fetchGptSuggestions.mock.calls.length;
+    const initialCalls = fetchGptSuggestionsMock.mock.calls.length;
 
     act(() => {
       store.dispatch(setFormData({ tags: ['foo'] }));
     });
 
     await waitForStableCalls();
-    expect(fetchGptSuggestions.mock.calls.length).toBe(initialCalls);
+    expect(fetchGptSuggestionsMock.mock.calls.length).toBe(initialCalls);
   });
 
   it('skips GPT dispatch when no token provided', async () => {
@@ -150,11 +163,11 @@ describe('App GPT integration', () => {
     const { store } = renderWithStore();
     resolvePinboardSuggestions(store);
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(fetchGptSuggestions).not.toHaveBeenCalled();
+    expect(fetchGptSuggestionsMock).not.toHaveBeenCalled();
   });
 
   it('still dispatches GPT when Pinboard suggestions are plentiful', async () => {
-    fetchSuggestedTags.mockImplementationOnce(() => (dispatch) => {
+    fetchSuggestedTagsMock.mockImplementationOnce(() => (dispatch) => {
       dispatch({ type: 'tags/fetchSuggested/pending' });
       dispatch({
         type: 'tags/fetchSuggested/fulfilled',
@@ -168,7 +181,7 @@ describe('App GPT integration', () => {
       expect(store.getState().tags.suggestedStatus).toBe('succeeded');
     });
     await waitFor(() => {
-      expect(fetchGptSuggestions).toHaveBeenCalled();
+      expect(fetchGptSuggestionsMock).toHaveBeenCalled();
     });
   });
 
@@ -177,7 +190,7 @@ describe('App GPT integration', () => {
     pushSearch('?url=https%3A%2F%2Fexample.com');
     renderWithStore();
     await waitFor(() => {
-      expect(fetchBookmarkDetails).toHaveBeenCalledWith('https://example.com');
+      expect(fetchBookmarkDetailsMock).toHaveBeenCalledWith('https://example.com');
     });
   });
 
@@ -206,7 +219,7 @@ describe('App GPT integration', () => {
   });
 
   it('binds Escape key to window.close', async () => {
-    const closeSpy = jest.spyOn(window, 'close').mockImplementation(() => {});
+    const closeSpy = jest.spyOn(window, 'close').mockImplementation(() => undefined);
     seedCredentials();
     pushSearch('');
     renderWithStore();
@@ -228,14 +241,14 @@ describe('App GPT integration', () => {
         })
       );
     });
-    expect(fetchGptSuggestions).not.toHaveBeenCalled();
+    expect(fetchGptSuggestionsMock).not.toHaveBeenCalled();
     act(() => {
       store.dispatch(setAuth({ user: 'test', token: 'abc', openAiToken: 'sk-123' }));
     });
     await waitFor(() => {
-      expect(fetchGptSuggestions).toHaveBeenCalled();
+      expect(fetchGptSuggestionsMock).toHaveBeenCalled();
     });
-    const context = fetchGptSuggestions.mock.calls[0][0].context;
+    const context = fetchGptSuggestionsMock.mock.calls[0][0].context;
     expect(context.existingTags).toBe('Alpha Tag beta-tag');
   });
 });

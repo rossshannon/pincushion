@@ -7,7 +7,7 @@ import axios from 'axios';
 import { cleanUrl } from '../utils/url';
 import type { AuthState } from './authSlice';
 
-type BookmarkFormData = {
+export type BookmarkFormData = {
   title: string;
   url: string;
   description: string;

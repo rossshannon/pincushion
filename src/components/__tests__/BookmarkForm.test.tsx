@@ -128,13 +128,13 @@ describe('BookmarkForm Component', () => {
   });
 
   test('scrolls to top when a field loses focus', async () => {
-    const originalScrollTo = window.scrollTo || (() => {});
+    const originalScrollTo = window.scrollTo || (() => undefined);
     if (!window.scrollTo) {
-      window.scrollTo = () => {};
+      window.scrollTo = () => undefined;
     }
     const scrollSpy = jest
       .spyOn(window, 'scrollTo')
-      .mockImplementation(() => {});
+      .mockImplementation(() => undefined);
     render(
       <Provider store={store}>
         <BookmarkForm />

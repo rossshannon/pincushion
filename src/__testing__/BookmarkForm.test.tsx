@@ -7,7 +7,7 @@ jest.mock('openai', () => jest.fn(() => ({
   chat: { completions: { create: jest.fn() } },
 })));
 
-import BookmarkForm from '../components/BookmarkForm.jsx';
+import BookmarkForm from '../components/BookmarkForm';
 import { setFormData } from '../redux/bookmarkSlice';
 
 const mockStore = configureStore([]);

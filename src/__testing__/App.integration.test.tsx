@@ -163,7 +163,7 @@ describe('App integration', () => {
 
   it('submits bookmark successfully and closes the window', async () => {
     jest.useFakeTimers();
-    const closeSpy = jest.spyOn(window, 'close').mockImplementation(() => {});
+    const closeSpy = jest.spyOn(window, 'close').mockImplementation(() => undefined);
     mockPinboardApi();
     seedCredentials();
     window.history.pushState({}, '', '?url=https%3A%2F%2Ftesting.com%2F');
