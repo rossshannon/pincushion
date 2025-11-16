@@ -74,6 +74,12 @@ describe('App Component', () => {
         gptError: null,
         gptContextKey: null,
       },
+      twitterCard: {
+        card: null,
+        status: 'idle',
+        error: null,
+        lastUrl: null,
+      },
       // Add other slices and their initial states if App depends on them
     });
   });
@@ -118,6 +124,12 @@ describe('App Component', () => {
         gptStatus: 'idle',
         gptError: null,
         gptContextKey: null,
+      },
+      twitterCard: {
+        card: null,
+        status: 'idle',
+        error: null,
+        lastUrl: null,
       },
     };
 

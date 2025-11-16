@@ -11,7 +11,12 @@ jest.mock('./redux/tagSlice', () => {
     dispatch({ type: 'tags/fetchSuggested/pending' });
     dispatch({
       type: 'tags/fetchSuggested/fulfilled',
-      payload: [],
+      payload: {
+        suggestions: [],
+        preview: null,
+        previewError: null,
+        targetUrl: null,
+      },
     });
   };
   return {
@@ -47,6 +52,7 @@ import App from './App';
 import authReducer from './redux/authSlice';
 import bookmarkReducer, { setFormData, fetchBookmarkDetails } from './redux/bookmarkSlice';
 import tagReducer from './redux/tagSlice';
+import twitterCardReducer from './redux/twitterCardSlice';
 import { fetchGptSuggestions, fetchSuggestedTags } from './redux/tagSlice';
 import { setAuth } from './redux/authSlice';
 import { persistStoredCredentials } from './utils/credentialStorage';
@@ -67,6 +73,7 @@ const renderWithStore = () => {
       auth: authReducer,
       bookmark: bookmarkReducer,
       tags: tagReducer,
+      twitterCard: twitterCardReducer,
     },
   });
 
@@ -108,7 +115,12 @@ const resolvePinboardSuggestions = (store, payload = []) => {
   act(() => {
     store.dispatch({
       type: 'tags/fetchSuggested/fulfilled',
-      payload,
+      payload: {
+        suggestions: payload,
+        preview: null,
+        previewError: null,
+        targetUrl: null,
+      },
     });
   });
 };
@@ -229,26 +241,35 @@ describe('App GPT integration', () => {
   });
 
   it('passes the existing tags snapshot into GPT context', async () => {
-    seedCredentials({ openAiToken: '' });
-    pushSearch('?url=https%3A%2F%2Fexample.com');
-    const { store } = renderWithStore();
-    act(() => {
-      store.dispatch(
-        setFormData({
-          tags: ['Alpha Tag', 'beta-tag'],
-          title: 'Example',
-          description: 'Desc',
-        })
-      );
-    });
-    expect(fetchGptSuggestionsMock).not.toHaveBeenCalled();
-    act(() => {
-      store.dispatch(setAuth({ user: 'test', token: 'abc', openAiToken: 'sk-123' }));
-    });
-    await waitFor(() => {
-      expect(fetchGptSuggestionsMock).toHaveBeenCalled();
-    });
-    const context = fetchGptSuggestionsMock.mock.calls[0][0].context;
-    expect(context.existingTags).toBe('Alpha Tag beta-tag');
+    jest.useFakeTimers();
+    try {
+      seedCredentials({ openAiToken: '' });
+      pushSearch('?url=https%3A%2F%2Fexample.com');
+      const { store } = renderWithStore();
+      await act(async () => {
+        jest.advanceTimersByTime(600);
+      });
+      act(() => {
+        store.dispatch(
+          setFormData({
+            tags: ['Alpha Tag', 'beta-tag'],
+            title: 'Example',
+            description: 'Desc',
+          })
+        );
+      });
+      expect(fetchGptSuggestionsMock).not.toHaveBeenCalled();
+      act(() => {
+        store.dispatch(setAuth({ user: 'test', token: 'abc', openAiToken: 'sk-123' }));
+      });
+      resolvePinboardSuggestions(store);
+      await waitFor(() => {
+        expect(fetchGptSuggestionsMock).toHaveBeenCalled();
+      });
+      const context = fetchGptSuggestionsMock.mock.calls[0][0].context;
+      expect(context.existingTags).toBe('Alpha Tag beta-tag');
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });

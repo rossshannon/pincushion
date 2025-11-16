@@ -1,8 +1,8 @@
-import BookmarkForm from './components/BookmarkForm';
-import './styles/popup.css';
-
 import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import BookmarkForm from './components/BookmarkForm';
+import TwitterCardPreview from './components/TwitterCardPreview';
+import './styles/popup.css';
 import { setAuth } from './redux/authSlice';
 import { setFormData, fetchBookmarkDetails } from './redux/bookmarkSlice';
 import {
@@ -14,6 +14,7 @@ import {
 } from './redux/tagSlice';
 import { enforceMinimumPopupSize } from './utils/popupAffordances';
 import Settings from './components/Settings';
+import { clearTwitterCard } from './redux/twitterCardSlice';
 import {
   readStoredCredentials,
   persistStoredCredentials,
@@ -27,6 +28,27 @@ const VIEW_FORM = 'form' as const;
 const VIEW_SETTINGS = 'settings' as const;
 type ViewMode = typeof VIEW_FORM | typeof VIEW_SETTINGS;
 type SettingsFormValues = Required<CredentialRecord>;
+const URL_DEBOUNCE_MS = 500;
+const LOCALHOST_PATTERN = /^(localhost|\d{1,3}(\.\d{1,3}){3})$/i;
+
+const isLikelyCompleteUrl = (value: string): boolean => {
+  try {
+    const parsed = new URL(value);
+    let hostname = parsed.hostname || '';
+    if (!hostname) return false;
+    hostname = hostname.replace(/\.$/, '');
+    if (!hostname) return false;
+    if (LOCALHOST_PATTERN.test(hostname)) return true;
+    if (!hostname.includes('.')) return false;
+    const segments = hostname.split('.').filter(Boolean);
+    if (segments.length < 2) return false;
+    const tld = segments.pop() || '';
+    if (tld.length < 2) return false;
+    return true;
+  } catch (_err) {
+    return false;
+  }
+};
 
 function App() {
   const dispatch = useDispatch<AppDispatch>();
@@ -44,6 +66,8 @@ function App() {
   const lastLookupUrlRef = useRef<string | null>(null);
   const [view, setView] = useState<ViewMode>(VIEW_FORM);
   const [credentialsMissing, setCredentialsMissing] = useState(false);
+  const [debouncedUrl, setDebouncedUrl] = useState('');
+  const urlDebounceTimerRef = useRef<number | null>(null);
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
@@ -137,33 +161,57 @@ function App() {
   }, [dispatch, user, token, openAiToken]);
 
   useEffect(() => {
+    if (urlDebounceTimerRef.current !== null) {
+      window.clearTimeout(urlDebounceTimerRef.current);
+      urlDebounceTimerRef.current = null;
+    }
+    const trimmedUrl = url?.trim() ?? '';
+    if (!trimmedUrl) {
+      setDebouncedUrl('');
+      dispatch(clearTwitterCard());
+      return;
+    }
+    if (!isLikelyCompleteUrl(trimmedUrl)) {
+      setDebouncedUrl('');
+      dispatch(clearTwitterCard());
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setDebouncedUrl(trimmedUrl);
+      urlDebounceTimerRef.current = null;
+    }, URL_DEBOUNCE_MS);
+    urlDebounceTimerRef.current = timer;
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [dispatch, url]);
+
+  useEffect(() => {
     if (!user || !token) return;
-    if (!url) return;
-    const trimmedUrl = url.trim();
-    if (!trimmedUrl) return;
-    if (lastLookupUrlRef.current === trimmedUrl) return;
-    lastLookupUrlRef.current = trimmedUrl;
-    dispatch(fetchBookmarkDetails(trimmedUrl));
+    if (!debouncedUrl) return;
+    if (lastLookupUrlRef.current === debouncedUrl) return;
+    lastLookupUrlRef.current = debouncedUrl;
+    dispatch(fetchBookmarkDetails(debouncedUrl));
     dispatch(fetchSuggestedTags());
-  }, [dispatch, user, token, url]);
+  }, [dispatch, user, token, debouncedUrl]);
 
   const initialTagSignatureRef = useRef<string | null>(null);
   const previousUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     initialTagSignatureRef.current = null;
-  }, [url]);
+  }, [debouncedUrl]);
 
   useEffect(() => {
-    if (previousUrlRef.current !== null && previousUrlRef.current !== url) {
+    if (previousUrlRef.current !== null && previousUrlRef.current !== debouncedUrl) {
       dispatch(resetGptSuggestions());
     }
-    previousUrlRef.current = url;
-  }, [dispatch, url]);
+    previousUrlRef.current = debouncedUrl;
+  }, [dispatch, debouncedUrl]);
 
   useEffect(() => {
     if (!openAiToken) return;
-    if (!url) return;
+    if (!debouncedUrl) return;
     if (initialLoading) return;
     const pinboardReady =
       suggestedStatus === 'succeeded' || suggestedStatus === 'failed';
@@ -177,7 +225,7 @@ function App() {
     const tagsSnapshot = existingTagsSnapshot ?? '';
 
     const contextKey = JSON.stringify({
-      url,
+      url: debouncedUrl,
       title,
       description,
       existingTags: tagsSnapshot,
@@ -190,7 +238,7 @@ function App() {
       fetchGptSuggestions({
         contextKey,
         context: {
-          url,
+          url: debouncedUrl,
           title,
           description,
           existingTags: tagsSnapshot,
@@ -199,7 +247,7 @@ function App() {
     );
   }, [
     dispatch,
-    url,
+    debouncedUrl,
     title,
     description,
     normalizedTagString,
@@ -252,6 +300,7 @@ function App() {
           </div>
         )}
         <BookmarkForm />
+        <TwitterCardPreview />
       </>
     );
   };

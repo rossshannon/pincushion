@@ -120,7 +120,7 @@ describe('bookmark slice', () => {
     // --- fetchBookmarkDetails ---
     describe('fetchBookmarkDetails', () => {
       const urlToFetch = 'http://example.com/fetch';
-      const expectedApiUrl = `https://pinboard-api.herokuapp.com/posts/get?format=json&auth_token=testUser:testToken&url=${encodeURIComponent(
+      const expectedApiUrl = `https://pinboard-api.herokuapp.com/v1/posts/get?format=json&url=${encodeURIComponent(
         urlToFetch
       )}`;
 
@@ -160,7 +160,12 @@ describe('bookmark slice', () => {
         expect(state.formData.toread).toBe(true);
         expect(state.existingBookmarkTime).toEqual(mockPost.time);
         expect(state.hasExistingBookmark).toBe(true);
-        expect(mockedAxios.get).toHaveBeenCalledWith(expectedApiUrl);
+        expect(mockedAxios.get).toHaveBeenCalledWith(
+          expectedApiUrl,
+          expect.objectContaining({
+            headers: { Authorization: 'Bearer testUser:testToken' },
+          })
+        );
       });
 
       it('should handle fulfilled state (bookmark not found)', async () => {
@@ -171,7 +176,12 @@ describe('bookmark slice', () => {
         expect(state.formData.title).toEqual('');
         expect(state.existingBookmarkTime).toBeNull();
         expect(state.hasExistingBookmark).toBe(false);
-        expect(mockedAxios.get).toHaveBeenCalledWith(expectedApiUrl);
+        expect(mockedAxios.get).toHaveBeenCalledWith(
+          expectedApiUrl,
+          expect.objectContaining({
+            headers: { Authorization: 'Bearer testUser:testToken' },
+          })
+        );
       });
 
       it('allows overriding the lookup URL', async () => {
@@ -179,9 +189,12 @@ describe('bookmark slice', () => {
         mockedAxios.get.mockResolvedValueOnce({ data: { posts: [] } });
         await store.dispatch(fetchBookmarkDetails(overrideUrl));
         expect(mockedAxios.get).toHaveBeenCalledWith(
-          `https://pinboard-api.herokuapp.com/posts/get?format=json&auth_token=testUser:testToken&url=${encodeURIComponent(
+          `https://pinboard-api.herokuapp.com/v1/posts/get?format=json&url=${encodeURIComponent(
             overrideUrl
-          )}`
+          )}`,
+          expect.objectContaining({
+            headers: { Authorization: 'Bearer testUser:testToken' },
+          })
         );
       });
 
@@ -206,7 +219,7 @@ describe('bookmark slice', () => {
         toread: false,
       };
       const expectedParams =
-        'format=json&auth_token=testUser%3AtestToken&url=http%3A%2F%2Fexample.com%2Fsubmit&description=Submit+Title&extended=Submit+Desc&shared=no&tags=submit+tag';
+        'format=json&url=http%3A%2F%2Fexample.com%2Fsubmit&description=Submit+Title&extended=Submit+Desc&shared=no&tags=submit+tag';
 
       beforeEach(() => {
         store.dispatch(setFormData(validFormData));
@@ -243,7 +256,10 @@ describe('bookmark slice', () => {
           generic: null,
         });
         expect(mockedAxios.get).toHaveBeenCalledWith(
-          `https://pinboard-api.herokuapp.com/posts/add?${expectedParams}`
+          `https://pinboard-api.herokuapp.com/v1/posts/add?${expectedParams}`,
+          expect.objectContaining({
+            headers: { Authorization: 'Bearer testUser:testToken' },
+          })
         );
       });
 

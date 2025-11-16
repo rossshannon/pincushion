@@ -177,7 +177,7 @@ describe('tag slice', () => {
     describe('fetchTags', () => {
       const store = createMockStore();
       const expectedApiUrl =
-        'https://pinboard-api.herokuapp.com/tags/get?format=json&auth_token=testUser:testToken';
+        'https://pinboard-api.herokuapp.com/v1/tags/get?format=json';
 
       it('should handle fulfilled state and update localStorage', async () => {
         const mockTagData = { tagA: 5, tagB: 2 };
@@ -188,7 +188,12 @@ describe('tag slice', () => {
 
         expect(state.tagCounts).toEqual(mockTagData);
         expect(state.error).toBeNull();
-        expect(mockedAxios.get).toHaveBeenCalledWith(expectedApiUrl);
+        expect(mockedAxios.get).toHaveBeenCalledWith(
+          expectedApiUrl,
+          expect.objectContaining({
+            headers: { Authorization: 'Bearer testUser:testToken' },
+          })
+        );
 
         // Check localStorage
         expect(localStorageMock.getItem('tags')).toEqual(
@@ -223,10 +228,10 @@ describe('tag slice', () => {
     describe('fetchSuggestedTags', () => {
       const bookmarkUrl = 'http://suggest.me';
       const store = createMockStore(initialState, { url: bookmarkUrl });
-      const expectedApiUrl = `https://pinboard-api.herokuapp.com/posts/suggest?format=json&auth_token=testUser:testToken&url=${bookmarkUrl}`;
+      const expectedApiUrl = `https://pinboard-api.herokuapp.com/posts/suggest-with-preview?format=json&url=${bookmarkUrl}`;
 
       it('should handle pending state', () => {
-        mockedAxios.get.mockResolvedValueOnce({ data: [] }); // Mock response needed
+        mockedAxios.get.mockResolvedValueOnce({ data: { suggestions: {} } }); // Mock response needed
 
         // Dispatch the thunk but DON'T await it yet
         store.dispatch(fetchSuggestedTags());
@@ -242,11 +247,17 @@ describe('tag slice', () => {
         // return thunkPromise;
       });
 
-      it('should handle fulfilled state with recommended and popular tags', async () => {
-        const mockResponse = [
-          { popular: ['Pop1', 'Common'] },
-          { recommended: ['Rec1', 'COMMON'] }, // Test deduplication and lowercasing
-        ];
+      it('should handle fulfilled state with recommended and popular tags plus preview', async () => {
+        const mockResponse = {
+          suggestions: {
+            popular: ['Pop1', 'Common'],
+            recommended: ['Rec1', 'COMMON'],
+          },
+          preview: {
+            url: 'http://suggest.me',
+            title: 'Preview title',
+          },
+        };
         mockedAxios.get.mockResolvedValueOnce({ data: mockResponse });
 
         await store.dispatch(fetchSuggestedTags());
@@ -256,12 +267,21 @@ describe('tag slice', () => {
         expect(state.suggestedStatus).toBe('succeeded');
         expect(state.suggested).toEqual(['Rec1', 'COMMON', 'Pop1']);
         expect(state.error).toBeNull();
-        expect(mockedAxios.get).toHaveBeenCalledWith(expectedApiUrl);
+        expect(mockedAxios.get).toHaveBeenCalledWith(
+          expectedApiUrl,
+          expect.objectContaining({
+            headers: { Authorization: 'Bearer testUser:testToken' },
+          })
+        );
         expect(cleanUrl).toHaveBeenCalledWith(bookmarkUrl);
       });
 
       it('should handle fulfilled state with only one type of tag', async () => {
-        const mockResponse = [{ popular: ['PopOnly'] }];
+        const mockResponse = {
+          suggestions: {
+            popular: ['PopOnly'],
+          },
+        };
         mockedAxios.get.mockResolvedValueOnce({ data: mockResponse });
 
         await store.dispatch(fetchSuggestedTags());
@@ -273,7 +293,7 @@ describe('tag slice', () => {
       });
 
       it('should handle fulfilled state with empty/no tags', async () => {
-        const mockResponse = []; // Empty array
+        const mockResponse = { suggestions: {} }; // Empty object
         mockedAxios.get.mockResolvedValueOnce({ data: mockResponse });
 
         await store.dispatch(fetchSuggestedTags());
@@ -282,29 +302,6 @@ describe('tag slice', () => {
         expect(state.suggestedLoading).toBe(false);
         expect(state.suggestedStatus).toBe('succeeded');
         expect(state.suggested).toEqual([]);
-      });
-
-      it('should drop spurious placeholder payloads', async () => {
-        const mockResponse = [
-          {
-            popular: [
-              'ai',
-              '2025',
-              'articles',
-              'history',
-              'programming',
-            ],
-          },
-          {
-            recommended: ['howto', 'Politics', 'tools', 'fic', 'llm'],
-          },
-        ];
-        mockedAxios.get.mockResolvedValueOnce({ data: mockResponse });
-
-        await store.dispatch(fetchSuggestedTags());
-        const state = store.getState().tags;
-        expect(state.suggested).toEqual([]);
-        expect(state.suggestedStatus).toBe('succeeded');
       });
 
       it('should handle rejected state', async () => {

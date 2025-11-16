@@ -39,20 +39,6 @@ const TagSuggestions: React.FC<TagSuggestionsProps> = ({
 
   return (
     <>
-      <CSSTransition
-        in={isLoading}
-        timeout={250}
-        classNames="tag-spinner"
-        unmountOnExit
-        nodeRef={spinnerRef}
-      >
-        <div className="tag-suggestions" ref={spinnerRef}>
-          <span className="spinner" id="tagspinner"></span>
-          <span className="tag-suggestions__text">
-            finding suggested tags&hellip;
-          </span>
-        </div>
-      </CSSTransition>
       {showSuggestions && (
         <TransitionGroup className="suggestions-list" component="div">
           {suggestions.map((tag, index) => {
@@ -89,6 +75,20 @@ const TagSuggestions: React.FC<TagSuggestionsProps> = ({
           })}
         </TransitionGroup>
       )}
+      <CSSTransition
+        in={isLoading}
+        timeout={250}
+        classNames="tag-spinner"
+        unmountOnExit
+        nodeRef={spinnerRef}
+      >
+        <div className="tag-suggestions" ref={spinnerRef}>
+          <span className="spinner" id="tagspinner"></span>
+          <span className="tag-suggestions__text">
+            finding suggested tags&hellip;
+          </span>
+        </div>
+      </CSSTransition>
     </>
   );
 };

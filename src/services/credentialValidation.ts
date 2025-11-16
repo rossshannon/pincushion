@@ -102,10 +102,15 @@ export async function verifyPinboardCredentials({
   if (!trimmedUser || !trimmedToken) {
     throw new Error('Pinboard username and token are required.');
   }
-  const authToken = encodeURIComponent(`${trimmedUser}:${trimmedToken}`);
-  const url = `${PINBOARD_BASE_URL}/tags/get?format=json&auth_token=${authToken}`;
+  const url = `${PINBOARD_BASE_URL}/v1/tags/get?format=json`;
+  const authHeader = `Bearer ${trimmedUser}:${trimmedToken}`;
   try {
-    await axios.get(url, { timeout: 8000 });
+    await axios.get(url, {
+      timeout: 8000,
+      headers: {
+        Authorization: authHeader,
+      },
+    });
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 401) {
       throw new Error('Pinboard rejected those credentials.');

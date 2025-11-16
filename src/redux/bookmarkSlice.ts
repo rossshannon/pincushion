@@ -152,7 +152,6 @@ export const submitBookmark = createAsyncThunk<
 
     const params = new URLSearchParams();
     params.append('format', 'json');
-    params.append('auth_token', `${user}:${token}`);
     params.append('url', formData.url);
     params.append('description', formData.title);
     params.append('extended', formData.description);
@@ -162,7 +161,12 @@ export const submitBookmark = createAsyncThunk<
 
     try {
       const response = await axios.get(
-        `https://pinboard-api.herokuapp.com/posts/add?${params.toString()}`
+        `https://pinboard-api.herokuapp.com/v1/posts/add?${params.toString()}`,
+        {
+          headers: {
+            Authorization: `Bearer ${user}:${token}`,
+          },
+        }
       );
       if (response.data.result_code === 'done') {
         return response.data;
@@ -206,9 +210,14 @@ export const fetchBookmarkDetails = createAsyncThunk<
     try {
       // Fetch details: strip fragment and encode URL parameter
       const response = await axios.get(
-        `https://pinboard-api.herokuapp.com/posts/get?format=json&auth_token=${user}:${token}&url=${cleanUrl(
+        `https://pinboard-api.herokuapp.com/v1/posts/get?format=json&url=${cleanUrl(
           targetUrl
-        )}`
+        )}`,
+        {
+          headers: {
+            Authorization: `Bearer ${user}:${token}`,
+          },
+        }
       );
       if (response.data.posts && response.data.posts.length === 1) {
         return response.data.posts[0];

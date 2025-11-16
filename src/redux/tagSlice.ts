@@ -7,6 +7,8 @@ import axios from 'axios';
 import { cleanUrl } from '../utils/url';
 import { fetchGptTagSuggestions } from '../services/gptSuggestions';
 import { postProcessPinboardSuggestions } from '../utils/tagSuggestionFilters';
+import type { TwitterCardData } from '../types/twitterCard';
+import { setTwitterCardPreview } from './twitterCardSlice';
 import type { AuthState } from './authSlice';
 import type { BookmarkState } from './bookmarkSlice';
 
@@ -41,7 +43,12 @@ export const fetchTags = createAsyncThunk<
     } = getState();
     try {
       const response = await axios.get(
-        `https://pinboard-api.herokuapp.com/tags/get?format=json&auth_token=${user}:${token}`
+        `https://pinboard-api.herokuapp.com/v1/tags/get?format=json`,
+        {
+          headers: {
+            Authorization: `Bearer ${user}:${token}`,
+          },
+        }
       );
       const data = response.data || {};
       if (typeof localStorage !== 'undefined') {
@@ -61,14 +68,22 @@ export const fetchTags = createAsyncThunk<
   }
 );
 
+type SuggestPreviewPayload = {
+  suggestions: string[];
+  preview: TwitterCardData | null;
+  previewError: string | null;
+  targetUrl: string | null;
+  previewStatus: string | null;
+};
+
 // Fetch suggested tags for current URL
 export const fetchSuggestedTags = createAsyncThunk<
-  string[],
+  SuggestPreviewPayload,
   void,
   { state: TagThunkState; rejectValue: string }
 >(
   'tags/fetchSuggested',
-  async (_, { getState, rejectWithValue }) => {
+  async (_, { getState, rejectWithValue, dispatch }) => {
     const {
       auth: { user, token },
       bookmark: {
@@ -77,21 +92,124 @@ export const fetchSuggestedTags = createAsyncThunk<
       tags: { tagCounts },
     } = getState();
     try {
-      // Use cleanUrl to strip fragment and encode URL
+      const trimmedUrl = typeof url === 'string' ? url.trim() : '';
+      if (trimmedUrl) {
+        dispatch(
+          setTwitterCardPreview({
+            card: null,
+            error: null,
+            url: trimmedUrl,
+            status: 'loading',
+            previewError: null,
+            previewStatus: null,
+          })
+        );
+      }
       const response = await axios.get(
-        `https://pinboard-api.herokuapp.com/posts/suggest?format=json&auth_token=${user}:${token}&url=${cleanUrl(
+        `https://pinboard-api.herokuapp.com/posts/suggest-with-preview?format=json&url=${cleanUrl(
           url
-        )}`
+        )}`,
+        {
+          headers: {
+            Authorization: `Bearer ${user}:${token}`,
+          },
+        }
       );
-      const rec = response.data[1]?.recommended || [];
-      const pop = response.data[0]?.popular || [];
+      const suggestionPayload = response.data?.suggestions || {};
+      const rec = Array.isArray(suggestionPayload.recommended)
+        ? suggestionPayload.recommended
+        : [];
+      const pop = Array.isArray(suggestionPayload.popular)
+        ? suggestionPayload.popular
+        : [];
       const combined = [...rec, ...pop]
         .map((tag: string) => (typeof tag === 'string' ? tag.trim() : ''))
         .filter(Boolean);
-      return postProcessPinboardSuggestions(combined, tagCounts);
+      const processed = postProcessPinboardSuggestions(combined, tagCounts);
+      const previewRaw = response.data?.preview;
+      const preview: TwitterCardData | null =
+        previewRaw && typeof previewRaw === 'object'
+          ? {
+              url: previewRaw.url ?? trimmedUrl,
+              title:
+                typeof previewRaw.title === 'string'
+                  ? previewRaw.title
+                  : null,
+              description:
+                typeof previewRaw.description === 'string'
+                  ? previewRaw.description
+                  : null,
+              imageUrl:
+                typeof previewRaw.imageUrl === 'string'
+                  ? previewRaw.imageUrl
+                  : null,
+              siteName:
+                typeof previewRaw.siteName === 'string'
+                  ? previewRaw.siteName
+                  : null,
+              siteHandle:
+                typeof previewRaw.siteHandle === 'string'
+                  ? previewRaw.siteHandle
+                  : null,
+              siteDomain:
+                typeof previewRaw.siteDomain === 'string'
+                  ? previewRaw.siteDomain
+                  : null,
+              cardType:
+                typeof previewRaw.cardType === 'string'
+                  ? previewRaw.cardType
+                  : null,
+              fetchedAt:
+                typeof previewRaw.fetchedAt === 'string'
+                  ? previewRaw.fetchedAt
+                  : null,
+              themeColor:
+                typeof previewRaw.themeColor === 'string'
+                  ? previewRaw.themeColor
+                  : null,
+              faviconUrl:
+                typeof previewRaw.faviconUrl === 'string'
+                  ? previewRaw.faviconUrl
+                  : null,
+            }
+          : null;
+      const previewError =
+        typeof response.data?.previewError === 'string'
+          ? response.data.previewError
+          : null;
+      const previewStatusRaw =
+        typeof response.data?.previewStatus === 'string'
+          ? response.data.previewStatus
+          : null;
+      const previewStatus = previewStatusRaw;
+      dispatch(
+        setTwitterCardPreview({
+          card: preview,
+          error: null,
+          url: trimmedUrl || null,
+          previewStatus,
+          previewError,
+        })
+      );
+      return {
+        suggestions: processed,
+        preview,
+        previewError,
+        targetUrl: trimmedUrl || null,
+        previewStatus,
+      };
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Unable to fetch suggested tags';
+      dispatch(
+        setTwitterCardPreview({
+          card: null,
+          error: message,
+          url: null,
+          previewStatus: 'error',
+          previewError: message,
+        })
+      );
       return rejectWithValue(message);
     }
   }
@@ -244,7 +362,7 @@ const tagSlice = createSlice({
       })
       .addCase(fetchSuggestedTags.fulfilled, (state, action) => {
         state.suggestedLoading = false;
-        state.suggested = action.payload;
+        state.suggested = action.payload.suggestions;
         state.suggestedStatus = 'succeeded';
         state.error = null; // Reset error on success
       })

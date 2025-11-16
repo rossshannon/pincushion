@@ -505,6 +505,7 @@ input#url.hash-detected {
 .tag-suggestions {
   gap: 0.4em;
   color: var(--pincushion-accent);
+  font-size: 0.95rem;
 }
 .tag-suggestions #tagspinner {
   margin-right: 0.3em;
@@ -770,6 +771,195 @@ footer {
 
 #pinboard-link {
   opacity: 0.8;
+}
+
+/* Twitter card preview */
+.twitter-card-panel {
+  margin: 2rem 0 1.75rem;
+}
+
+.twitter-card-panel__label {
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--pincushion-text-muted);
+  margin-bottom: 0.75rem;
+}
+
+.twitter-card-panel__message {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--pincushion-accent);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.twitter-card-panel__message--error {
+  color: var(--pincushion-error);
+}
+
+.twitter-card-panel__message + .twitter-card {
+  margin-top: 0.75rem;
+}
+
+.twitter-card-panel__spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(0, 0, 0, 0.15);
+  border-top-color: var(--pincushion-accent);
+  border-radius: 50%;
+  animation: twitter-spinner 0.75s linear infinite;
+}
+
+@keyframes twitter-spinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.twitter-card-panel-fade-enter,
+.twitter-card-panel-fade-exit {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.twitter-card-panel-fade-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+
+.twitter-card-panel-fade-exit-active {
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.twitter-card {
+  border: 1px solid var(--pincushion-border);
+  border-radius: 22px;
+  padding: 1.5rem;
+  display: flex;
+  gap: 1.5rem;
+  background: var(--pincushion-surface-bg);
+  box-shadow: 0 18px 36px rgba(15, 15, 40, 0.14);
+}
+
+.twitter-card-fade-enter,
+.twitter-card-fade-exit {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.twitter-card-fade-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.twitter-card-fade-exit-active {
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.twitter-card__image-wrapper {
+  flex: 0 0 220px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #f8f8fb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.twitter-card__image-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.twitter-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.twitter-card__domain {
+  font-size: 0.9rem;
+  color: var(--pincushion-text-muted);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.twitter-card__favicon {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.twitter-card__domain-pill {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: var(--pincushion-input-bg);
+  border: 1px solid var(--pincushion-border);
+  color: var(--pincushion-text-muted);
+}
+
+.twitter-card__handle {
+  font-weight: 600;
+  color: var(--pincushion-text-secondary);
+}
+
+.twitter-card__badge {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border: 1px solid var(--pincushion-border);
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+}
+
+.twitter-card__title {
+  margin: 0;
+  font-size: 1.15rem;
+  color: var(--pincushion-text-primary);
+  line-height: 1.35;
+}
+
+.twitter-card__description {
+  margin: 0;
+  color: var(--pincushion-text-secondary);
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
+.twitter-card__meta {
+  margin-top: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--pincushion-text-muted);
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 620px) {
+  .twitter-card {
+    flex-direction: column;
+  }
+
+  .twitter-card__image-wrapper {
+    flex: 0 0 auto;
+    width: 100%;
+    max-height: 240px;
+  }
 }
 
 /* Spinner styles ported from original popup.less */

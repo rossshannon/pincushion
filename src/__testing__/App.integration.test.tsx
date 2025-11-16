@@ -8,6 +8,7 @@ import App from '../App';
 import authReducer from '../redux/authSlice';
 import bookmarkReducer from '../redux/bookmarkSlice';
 import tagReducer from '../redux/tagSlice';
+import twitterCardReducer from '../redux/twitterCardSlice';
 
 jest.mock('openai', () =>
   jest.fn(() => ({
@@ -37,6 +38,7 @@ const createStore = () =>
       auth: authReducer,
       bookmark: bookmarkReducer,
       tags: tagReducer,
+      twitterCard: twitterCardReducer,
     },
   });
 
@@ -118,9 +120,21 @@ const mockPinboardApi = ({ submitResultCode = 'done', submitError } = {}) => {
         },
       });
     }
-    if (url.includes('posts/suggest')) {
+    if (url.includes('posts/suggest-with-preview')) {
       return Promise.resolve({
-        data: [{ popular: ['coding'] }, { recommended: ['server_tag'] }],
+        data: {
+          suggestions: {
+            popular: ['coding'],
+            recommended: ['server_tag'],
+          },
+          preview: {
+            url: 'https://testing.com/',
+            title: 'Testing Preview',
+            description: 'Preview text',
+            imageUrl: 'https://testing.com/preview.jpg',
+            siteName: 'Testing',
+          },
+        },
       });
     }
     if (url.includes('tags/get')) {
