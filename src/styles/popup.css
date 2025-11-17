@@ -950,7 +950,7 @@ footer {
   flex-wrap: wrap;
 }
 
-@media (max-width: 620px) {
+@media (max-width: 560px) {
   .twitter-card {
     flex-direction: column;
   }

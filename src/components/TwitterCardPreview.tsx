@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../redux/store';
 import { CSSTransition } from 'react-transition-group';
@@ -22,6 +22,16 @@ const TwitterCardPreview = () => {
   const panelRef = useRef<HTMLElement | null>(null);
   const cardRef = useRef<HTMLElement | null>(null);
   const displayCard = card;
+  const [showImage, setShowImage] = useState(true);
+  const [showFavicon, setShowFavicon] = useState(true);
+
+  useEffect(() => {
+    setShowImage(true);
+  }, [displayCard?.imageUrl]);
+
+  useEffect(() => {
+    setShowFavicon(true);
+  }, [displayCard?.faviconUrl]);
 
   const showPanel = status === 'loading' || !!displayCard;
 
@@ -76,24 +86,26 @@ const TwitterCardPreview = () => {
             aria-label="Detected page preview"
             style={accentStyle}
           >
-            {displayCard?.imageUrl && (
+            {displayCard?.imageUrl && showImage && (
               <div className="twitter-card__image-wrapper">
                 <img
                   src={displayCard.imageUrl}
                   alt={imageAlt}
                   aria-hidden={imageAriaHidden}
                   loading="lazy"
+                  onError={() => setShowImage(false)}
                 />
               </div>
             )}
             <div className="twitter-card__body">
               <div className="twitter-card__domain">
-                {displayCard?.faviconUrl && (
+                {displayCard?.faviconUrl && showFavicon && (
                   <img
                     src={displayCard.faviconUrl}
                     alt=""
                     aria-hidden="true"
                     className="twitter-card__favicon"
+                    onError={() => setShowFavicon(false)}
                   />
                 )}
                 <span>{displayCard?.siteName || displayCard?.siteDomain || 'Preview'}</span>

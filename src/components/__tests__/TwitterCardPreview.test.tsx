@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import TwitterCardPreview from '../TwitterCardPreview';
@@ -51,6 +51,50 @@ describe('TwitterCardPreview', () => {
     expect(screen.getAllByText('example.com').length).toBeGreaterThanOrEqual(1);
     const card = screen.getByLabelText('Detected page preview');
     expect(card).toHaveStyle({ borderColor: sampleCard.themeColor });
+  });
+
+  it('hides the image if it fails to load', () => {
+    const { container } = renderWithState({
+      card: sampleCard,
+      status: 'succeeded',
+      error: null,
+      lastUrl: sampleCard.url,
+      previewError: null,
+      previewStatus: 'fresh',
+    });
+
+    const image = container.querySelector(
+      '.twitter-card__image-wrapper img'
+    ) as HTMLImageElement | null;
+    expect(image).not.toBeNull();
+    if (!image) {
+      throw new Error('image not found');
+    }
+    fireEvent.error(image);
+    expect(
+      container.querySelector('.twitter-card__image-wrapper img')
+    ).toBeNull();
+  });
+
+  it('hides the favicon when it fails to load', () => {
+    const { container } = renderWithState({
+      card: sampleCard,
+      status: 'succeeded',
+      error: null,
+      lastUrl: sampleCard.url,
+      previewError: null,
+      previewStatus: 'fresh',
+    });
+
+    const favicon = container.querySelector(
+      '.twitter-card__favicon'
+    ) as HTMLImageElement | null;
+    expect(favicon).not.toBeNull();
+    if (!favicon) {
+      throw new Error('favicon not found');
+    }
+    fireEvent.error(favicon);
+    expect(container.querySelector('.twitter-card__favicon')).toBeNull();
   });
 
   it('renders nothing when idle and no card data', () => {
