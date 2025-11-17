@@ -234,6 +234,9 @@ export const fetchBookmarkDetails = createAsyncThunk<
       }
       return null;
     } catch (err) {
+      if (isUrlTooLongError(err)) {
+        return rejectWithValue(`${ERROR_MESSAGES.URL_TOO_LONG} (HTTP 414).`);
+      }
       const message =
         err instanceof Error
           ? err.message

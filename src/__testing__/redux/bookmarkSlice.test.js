@@ -206,6 +206,16 @@ describe('bookmark slice', () => {
         const state = store.getState().bookmark;
         expect(state.initialLoading).toBe(false);
         expect(state.hasExistingBookmark).toBe(false);
+        expect(state.errors.generic).toEqual(errorMessage);
+      });
+
+      it('surfaces friendly message for HTTP 414 errors', async () => {
+        const error = new Error('Request failed with status code 414');
+        error.response = { status: 414 };
+        mockedAxios.get.mockRejectedValueOnce(error);
+        await store.dispatch(fetchBookmarkDetails());
+        const state = store.getState().bookmark;
+        expect(state.errors.generic).toContain('URL is too long');
       });
     });
 
