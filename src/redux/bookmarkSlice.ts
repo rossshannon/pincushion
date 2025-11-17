@@ -31,6 +31,7 @@ export type BookmarkState = {
   initialLoading: boolean;
   existingBookmarkTime: string | null;
   hasExistingBookmark: boolean;
+  displayOriginalTimestamp: boolean;
 };
 
 type BookmarkThunkState = {
@@ -57,7 +58,7 @@ type PinboardPost = {
 type SubmitRejectValue = {
   validationErrors?: BookmarkErrors;
   apiError?: string;
-  descriptionTooLongError?: boolean;
+  urlTooLongError?: boolean;
   genericError?: string;
 };
 
@@ -101,7 +102,7 @@ const toTagArray = (value: unknown): string[] => {
 const ERROR_MESSAGES: Record<string, string> = {
   MISSING_URL: 'URL is required.',
   MISSING_TITLE: 'Title is required.',
-  DESCRIPTION_TOO_LONG: 'Description is too long.', // Added for 414 errors
+  URL_TOO_LONG: 'URL is too long.',
   GENERIC_ERROR: 'An unexpected error occurred. Please try again.',
   // Add more specific API error codes if needed, e.g.:
   // 'item already exists': 'This bookmark already exists.'
@@ -176,7 +177,7 @@ export const submitBookmark = createAsyncThunk<
       }
     } catch (err) {
       if (hasHttpStatus(err, 414)) {
-        return rejectWithValue({ descriptionTooLongError: true });
+        return rejectWithValue({ urlTooLongError: true });
       }
       if (axios.isAxiosError(err)) {
         return rejectWithValue({
@@ -253,6 +254,7 @@ const initialState: BookmarkState = {
   initialLoading: false,
   existingBookmarkTime: null,
   hasExistingBookmark: false,
+  displayOriginalTimestamp: false,
 };
 
 const bookmarkSlice = createSlice({
@@ -286,6 +288,7 @@ const bookmarkSlice = createSlice({
         state.initialLoading = true;
         state.existingBookmarkTime = null;
         state.hasExistingBookmark = false;
+        state.displayOriginalTimestamp = false;
         // Reset errors to the full initial structure
         state.errors = { ...initialState.errors };
       })
@@ -306,14 +309,17 @@ const bookmarkSlice = createSlice({
           state.existingBookmarkTime =
             (post.time as string) || (post.dt as string) || null;
           state.hasExistingBookmark = true;
+          state.displayOriginalTimestamp = true;
         } else {
           state.hasExistingBookmark = false;
           state.existingBookmarkTime = null;
+          state.displayOriginalTimestamp = false;
         }
       })
       .addCase(fetchBookmarkDetails.rejected, (state, action) => {
         state.initialLoading = false;
         state.hasExistingBookmark = false;
+        state.displayOriginalTimestamp = false;
         // Set generic error, ensure full errors object exists
         state.errors = {
           ...initialState.errors,
@@ -328,12 +334,14 @@ const bookmarkSlice = createSlice({
         state.errors = { ...initialState.errors };
       })
       .addCase(submitBookmark.fulfilled, (state, action) => {
+        const alreadyHadBookmark = state.displayOriginalTimestamp;
         state.status = 'success';
         state.data = action.payload;
         state.hasExistingBookmark = true;
         if (!state.existingBookmarkTime) {
           state.existingBookmarkTime = new Date().toISOString();
         }
+        state.displayOriginalTimestamp = alreadyHadBookmark;
         // Reset errors to the full initial structure
         state.errors = { ...initialState.errors };
       })
@@ -354,8 +362,9 @@ const bookmarkSlice = createSlice({
           } else {
             newErrors.generic = ERROR_MESSAGES[apiErrorCode] || apiErrorCode;
           }
-        } else if (payload?.descriptionTooLongError) {
-          newErrors.description = ERROR_MESSAGES.DESCRIPTION_TOO_LONG;
+        } else if (payload?.urlTooLongError) {
+          newErrors.url = ERROR_MESSAGES.URL_TOO_LONG;
+          newErrors.generic = `${ERROR_MESSAGES.URL_TOO_LONG} (HTTP 414).`;
         } else if (payload?.genericError) {
           newErrors.generic = payload.genericError;
         } else {

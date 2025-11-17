@@ -62,6 +62,7 @@ describe('App Component', () => {
         initialLoading: false,
         existingBookmarkTime: null,
         hasExistingBookmark: false,
+        displayOriginalTimestamp: false,
       },
       tags: {
         tagCounts: {},
@@ -113,6 +114,7 @@ describe('App Component', () => {
         initialLoading: false,
         existingBookmarkTime: null,
         hasExistingBookmark: false,
+        displayOriginalTimestamp: false,
       },
       tags: {
         tagCounts: {},

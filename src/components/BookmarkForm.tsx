@@ -36,6 +36,7 @@ function BookmarkForm() {
     initialLoading,
     existingBookmarkTime,
     hasExistingBookmark,
+    displayOriginalTimestamp,
   } = useSelector((state: RootState) => state.bookmark);
   const userTags = useSelector((state: RootState) => state.tags.tagCounts);
   const suggestions = useSelector((state: RootState) =>
@@ -254,6 +255,11 @@ function BookmarkForm() {
     return hasExistingBookmark ? 'Update bookmark' : 'Add bookmark';
   };
 
+  const shouldShowOriginalTimestamp =
+    Boolean(existingBookmarkTime) &&
+    displayOriginalTimestamp &&
+    status !== 'saving';
+
   return (
     <form
       ref={formRef}
@@ -287,7 +293,7 @@ function BookmarkForm() {
         </div>
       )}
 
-      {existingBookmarkTime && (
+      {shouldShowOriginalTimestamp && (
         <div className="timestamp-info" title={absoluteTimeStr}>
           Originally saved {relativeTimeStr}
         </div>

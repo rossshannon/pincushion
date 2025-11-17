@@ -32,6 +32,7 @@ describe('BookmarkForm Component', () => {
         initialLoading: false,
         existingBookmarkTime: null,
         hasExistingBookmark: false,
+        displayOriginalTimestamp: false,
       },
       tags: {
         tagCounts: {},

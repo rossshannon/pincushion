@@ -32,6 +32,7 @@ const initialState = {
   initialLoading: false,
   existingBookmarkTime: null,
   hasExistingBookmark: false,
+  displayOriginalTimestamp: false,
 };
 
 // Helper to create a mock store
@@ -338,7 +339,8 @@ describe('bookmark slice', () => {
         await store.dispatch(submitBookmark());
         const state = store.getState().bookmark;
         expect(state.status).toEqual('error');
-        expect(state.errors.description).toEqual('Description is too long.');
+        expect(state.errors.url).toEqual('URL is too long.');
+        expect(state.errors.generic).toContain('URL is too long');
       });
 
       it('should handle rejected state (generic network error)', async () => {

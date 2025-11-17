@@ -64,6 +64,9 @@ describe('BookmarkForm Component', () => {
         initialLoading: false,
         existingBookmarkTime: null,
         hasExistingBookmark: false,
+        displayOriginalTimestamp: false,
+        displayOriginalTimestamp: false,
+        displayOriginalTimestamp: false,
       },
       tags: {
         ...baseTagsState,
@@ -190,13 +193,14 @@ describe('BookmarkForm Component', () => {
         tags: ['test', 'tag1'],
         private: false,
         toread: false,
-      },
-      status: 'idle',
-      errors: {},
-      initialLoading: false,
-      existingBookmarkTime: null,
-      hasExistingBookmark: false,
-    };
+    },
+    status: 'idle',
+    errors: {},
+    initialLoading: false,
+    existingBookmarkTime: null,
+    hasExistingBookmark: false,
+    displayOriginalTimestamp: false,
+  };
 
     store = mockStore({
       bookmark: { ...baseBookmarkState, status: 'saving' },
@@ -247,6 +251,7 @@ describe('BookmarkForm Component', () => {
         initialLoading: false,
         existingBookmarkTime: null,
         hasExistingBookmark: true,
+        displayOriginalTimestamp: true,
       },
       tags: { ...baseTagsState },
     });
@@ -345,6 +350,7 @@ describe('BookmarkForm Component', () => {
         initialLoading: false,
         existingBookmarkTime: null,
         hasExistingBookmark: false,
+        displayOriginalTimestamp: false,
       },
       tags: { ...baseTagsState },
     });
@@ -486,6 +492,7 @@ describe('BookmarkForm Component', () => {
         initialLoading: false,
         existingBookmarkTime: null,
         hasExistingBookmark: false,
+        displayOriginalTimestamp: false,
       },
       tags: { ...baseTagsState },
     });
@@ -524,6 +531,7 @@ describe('BookmarkForm Component', () => {
         initialLoading: false,
         existingBookmarkTime: existingTime,
         hasExistingBookmark: true,
+        displayOriginalTimestamp: true,
       },
       tags: { ...baseTagsState },
     });
@@ -542,6 +550,41 @@ describe('BookmarkForm Component', () => {
     // Check that the timestamp info is displayed
     const timestampInfo = screen.getByText(/originally saved/i);
     expect(timestampInfo).toBeInTheDocument();
+  });
+
+  test('hides timestamp for newly created bookmarks', async () => {
+    const savedTime = new Date().toISOString();
+    store = mockStore({
+      bookmark: {
+        formData: {
+          title: 'New Bookmark',
+          url: 'https://example.com/new',
+          description: '',
+          tags: [],
+          private: false,
+          toread: false,
+        },
+        status: 'success',
+        errors: {},
+        initialLoading: false,
+        existingBookmarkTime: savedTime,
+        hasExistingBookmark: true,
+        displayOriginalTimestamp: false,
+      },
+      tags: { ...baseTagsState },
+    });
+
+    render(
+      <Provider store={store}>
+        <BookmarkForm />
+      </Provider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('form')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText(/originally saved/i)).not.toBeInTheDocument();
   });
 
   describe('Error Handling', () => {
@@ -565,6 +608,8 @@ describe('BookmarkForm Component', () => {
           initialLoading: false,
           existingBookmarkTime: null,
           hasExistingBookmark: false,
+          displayOriginalTimestamp: false,
+          displayOriginalTimestamp: false,
         },
       tags: { ...baseTagsState },
       });
@@ -609,6 +654,8 @@ describe('BookmarkForm Component', () => {
           initialLoading: false,
           existingBookmarkTime: null,
           hasExistingBookmark: false,
+          displayOriginalTimestamp: false,
+          displayOriginalTimestamp: false,
         },
         tags: { ...baseTagsState },
       });
