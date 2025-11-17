@@ -916,6 +916,13 @@ footer {
 .twitter-card__handle {
   font-weight: 600;
   color: var(--pincushion-text-secondary);
+  text-decoration: none;
+}
+
+.twitter-card__handle--link:hover,
+.twitter-card__handle--link:focus {
+  color: var(--pincushion-accent);
+  text-decoration: underline;
 }
 
 .twitter-card__badge {

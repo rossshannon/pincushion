@@ -151,6 +151,10 @@ export const fetchSuggestedTags = createAsyncThunk<
                 typeof previewRaw.siteHandle === 'string'
                   ? previewRaw.siteHandle
                   : null,
+              siteHandleUrl:
+                typeof previewRaw.siteHandleUrl === 'string'
+                  ? previewRaw.siteHandleUrl
+                  : null,
               siteDomain:
                 typeof previewRaw.siteDomain === 'string'
                   ? previewRaw.siteDomain

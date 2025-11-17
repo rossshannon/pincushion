@@ -27,6 +27,7 @@ const sampleCard = {
   imageUrl: 'https://example.com/image.jpg',
   siteName: 'Example',
   siteHandle: '@example',
+  siteHandleUrl: 'https://twitter.com/example',
   siteDomain: 'example.com',
   cardType: 'summary_large_image',
   fetchedAt: '2025-11-15T20:05:00.000Z',
@@ -47,7 +48,8 @@ describe('TwitterCardPreview', () => {
 
     expect(screen.getByText('Example Title')).toBeInTheDocument();
     expect(screen.getByText('Example description')).toBeInTheDocument();
-    expect(screen.getByText('@example')).toBeInTheDocument();
+    const handleLink = screen.getByRole('link', { name: '@example' });
+    expect(handleLink).toHaveAttribute('href', sampleCard.siteHandleUrl);
     expect(screen.getAllByText('example.com').length).toBeGreaterThanOrEqual(1);
     const card = screen.getByLabelText('Detected page preview');
     expect(card).toHaveStyle({ borderColor: sampleCard.themeColor });

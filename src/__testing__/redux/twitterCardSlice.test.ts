@@ -12,6 +12,7 @@ const sampleCard: TwitterCardData = {
   imageUrl: 'https://example.com/img.png',
   siteName: 'Example',
   siteHandle: '@example',
+  siteHandleUrl: 'https://twitter.com/example',
   siteDomain: 'example.com',
   cardType: 'summary',
   fetchedAt: '2025-01-01T00:00:00Z',

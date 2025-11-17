@@ -115,7 +115,18 @@ const TwitterCardPreview = () => {
                   </span>
                 )}
                 {displayCard?.siteHandle && (
-                  <span className="twitter-card__handle">{displayCard.siteHandle}</span>
+                  displayCard.siteHandleUrl ? (
+                    <a
+                      href={displayCard.siteHandleUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="twitter-card__handle twitter-card__handle--link"
+                    >
+                      {displayCard.siteHandle}
+                    </a>
+                  ) : (
+                    <span className="twitter-card__handle">{displayCard.siteHandle}</span>
+                  )
                 )}
               </div>
               {displayCard?.title && <h3 className="twitter-card__title">{displayCard.title}</h3>}
