@@ -85,6 +85,15 @@ const hasHttpStatus = (error: unknown, statusCode: number): boolean => {
   return false;
 };
 
+const isUrlTooLongError = (error: unknown): boolean => {
+  if (hasHttpStatus(error, 414)) return true;
+  const message =
+    (axios.isAxiosError(error) ? error.message : error instanceof Error ? error.message : '') ||
+    '';
+  const normalized = message.toLowerCase();
+  return normalized.includes('status code 414') || normalized.includes('uri too long');
+};
+
 const toTagArray = (value: unknown): string[] => {
   if (Array.isArray(value)) {
     return value;
@@ -176,7 +185,7 @@ export const submitBookmark = createAsyncThunk<
         return rejectWithValue({ apiError: response.data.result_code });
       }
     } catch (err) {
-      if (hasHttpStatus(err, 414)) {
+      if (isUrlTooLongError(err)) {
         return rejectWithValue({ urlTooLongError: true });
       }
       if (axios.isAxiosError(err)) {
