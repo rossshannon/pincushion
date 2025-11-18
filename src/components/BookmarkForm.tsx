@@ -10,7 +10,11 @@ import {
   clearStatus,
   type BookmarkFormData,
 } from '../redux/bookmarkSlice';
-import { addSuggestedTag, restoreSuggestedTag } from '../redux/tagSlice';
+import {
+  addSuggestedTag,
+  restoreSuggestedTag,
+  removeRecentTag,
+} from '../redux/tagSlice';
 import TagInput from './TagInput';
 import TagSuggestions from './TagSuggestions';
 import {
@@ -19,6 +23,7 @@ import {
   selectSuggestionsSpinnerVisible,
 } from '../redux/selectors';
 import type { RootState, AppDispatch } from '../redux/store';
+import { addRecentTags } from '../utils/recentTagStorage';
 
 const MIN_SPINNER_DURATION_MS = 400;
 export const __TEST_MIN_SPINNER_DURATION = MIN_SPINNER_DURATION_MS;
@@ -117,6 +122,11 @@ function BookmarkForm() {
 
   useEffect(() => {
     if (status === 'success') {
+      // Track recently used tags for quick re-selection
+      if (formData.tags.length > 0) {
+        addRecentTags(formData.tags);
+      }
+
       const btn = btnRef.current;
       btn?.classList.add('success');
       const closeTimer = setTimeout(() => {
@@ -132,7 +142,7 @@ function BookmarkForm() {
         btn?.classList.remove('success');
       };
     }
-  }, [status, dispatch]);
+  }, [status, dispatch, formData.tags]);
 
   useEffect(() => {
     if (status !== 'error') {
@@ -225,6 +235,7 @@ function BookmarkForm() {
       dispatch(setFormData({ tags: [...formData.tags, tagToAdd] }));
     }
     dispatch(addSuggestedTag(tagToAdd));
+    dispatch(removeRecentTag(tagToAdd));
   };
 
   const resizeTextarea = () => {

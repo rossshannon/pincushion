@@ -40,6 +40,14 @@ const baseTagsState = {
   gptStatus: 'idle',
   gptError: null,
   gptContextKey: null,
+  recentTags: [],
+  filteredRecentTags: [],
+};
+
+const baseAuthState = {
+  user: '',
+  token: '',
+  openAiToken: '',
 };
 
 describe('BookmarkForm Component', () => {
@@ -77,6 +85,7 @@ describe('BookmarkForm Component', () => {
         },
         suggested: ['suggestion1', 'suggestion2'],
       },
+      auth: baseAuthState,
     });
   });
 
@@ -205,6 +214,7 @@ describe('BookmarkForm Component', () => {
     store = mockStore({
       bookmark: { ...baseBookmarkState, status: 'saving' },
       tags: { ...baseTagsState },
+      auth: baseAuthState,
     });
 
     const { rerender } = render(
@@ -219,6 +229,7 @@ describe('BookmarkForm Component', () => {
     const successStore = mockStore({
       bookmark: { ...baseBookmarkState, status: 'success' },
       tags: { ...baseTagsState },
+      auth: baseAuthState,
     });
 
     rerender(
@@ -254,6 +265,7 @@ describe('BookmarkForm Component', () => {
         displayOriginalTimestamp: true,
       },
       tags: { ...baseTagsState },
+      auth: baseAuthState,
     });
 
     render(
@@ -353,6 +365,7 @@ describe('BookmarkForm Component', () => {
         displayOriginalTimestamp: false,
       },
       tags: { ...baseTagsState },
+      auth: baseAuthState,
     });
 
     render(
@@ -402,6 +415,7 @@ describe('BookmarkForm Component', () => {
         suggested: ['foo'],
         gptSuggestions: ['ai_tag'],
       },
+      auth: baseAuthState,
     });
 
     render(
@@ -453,6 +467,7 @@ describe('BookmarkForm Component', () => {
         ...baseTagsState,
         suggested: ['quality_assurance'],
       },
+      auth: baseAuthState,
     });
 
     render(
@@ -495,6 +510,7 @@ describe('BookmarkForm Component', () => {
         displayOriginalTimestamp: false,
       },
       tags: { ...baseTagsState },
+      auth: baseAuthState,
     });
 
     render(
@@ -534,6 +550,7 @@ describe('BookmarkForm Component', () => {
         displayOriginalTimestamp: true,
       },
       tags: { ...baseTagsState },
+      auth: baseAuthState,
     });
 
     render(
@@ -572,6 +589,7 @@ describe('BookmarkForm Component', () => {
         displayOriginalTimestamp: false,
       },
       tags: { ...baseTagsState },
+      auth: baseAuthState,
     });
 
     render(
@@ -612,6 +630,7 @@ describe('BookmarkForm Component', () => {
           displayOriginalTimestamp: false,
         },
       tags: { ...baseTagsState },
+      auth: baseAuthState,
       });
 
       render(
@@ -658,6 +677,7 @@ describe('BookmarkForm Component', () => {
           displayOriginalTimestamp: false,
         },
         tags: { ...baseTagsState },
+      auth: baseAuthState,
       });
 
       render(
@@ -701,6 +721,7 @@ describe('BookmarkForm Component', () => {
           hasExistingBookmark: false,
         },
         tags: { ...baseTagsState },
+      auth: baseAuthState,
       });
 
       render(
@@ -743,6 +764,7 @@ describe('BookmarkForm Component', () => {
           hasExistingBookmark: false,
         },
         tags: { ...baseTagsState },
+      auth: baseAuthState,
       });
 
       render(
@@ -788,6 +810,7 @@ describe('BookmarkForm Component', () => {
           hasExistingBookmark: false,
         },
         tags: { ...baseTagsState },
+      auth: baseAuthState,
       });
 
       render(
@@ -838,6 +861,7 @@ describe('BookmarkForm Component', () => {
         hasExistingBookmark: false,
       },
       tags: { ...baseTagsState },
+      auth: baseAuthState,
     });
 
     render(
@@ -880,6 +904,7 @@ describe('BookmarkForm Component', () => {
         hasExistingBookmark: false,
       },
       tags: { ...baseTagsState },
+      auth: baseAuthState,
     });
 
     render(

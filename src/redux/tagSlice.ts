@@ -5,7 +5,10 @@ import {
 } from '@reduxjs/toolkit';
 import axios from 'axios';
 import { cleanUrl } from '../utils/url';
-import { fetchGptTagSuggestions } from '../services/gptSuggestions';
+import {
+  fetchGptTagSuggestions,
+  filterRecentTagsForRelevance,
+} from '../services/gptSuggestions';
 import { postProcessPinboardSuggestions } from '../utils/tagSuggestionFilters';
 import type { TwitterCardData } from '../types/twitterCard';
 import { setTwitterCardPreview } from './twitterCardSlice';
@@ -22,6 +25,8 @@ export type TagState = {
   gptError: string | null;
   gptContextKey: string | null;
   error: string | null;
+  recentTags: string[];
+  filteredRecentTags: string[];
 };
 
 type TagThunkState = {
@@ -227,10 +232,15 @@ type GptPayload = {
     description?: string;
     existingTags?: string;
   };
+  recentTags?: string[];
 };
 
 export const fetchGptSuggestions = createAsyncThunk<
-  { suggestions: string[]; contextKey: string | null },
+  {
+    suggestions: string[];
+    contextKey: string | null;
+    filteredRecentTags: string[];
+  },
   GptPayload | undefined,
   { state: TagThunkState; rejectValue: string }
 >(
@@ -239,10 +249,15 @@ export const fetchGptSuggestions = createAsyncThunk<
     const {
       auth: { openAiToken },
       bookmark: { formData },
+      tags: { recentTags },
     } = getState();
 
     if (!openAiToken) {
-      return { suggestions: [], contextKey: payload?.contextKey || null };
+      return {
+        suggestions: [],
+        contextKey: payload?.contextKey || null,
+        filteredRecentTags: [],
+      };
     }
 
     const context = payload?.context || {
@@ -253,14 +268,30 @@ export const fetchGptSuggestions = createAsyncThunk<
     };
 
     if (!context.url) {
-      return { suggestions: [], contextKey: payload?.contextKey || null };
+      return {
+        suggestions: [],
+        contextKey: payload?.contextKey || null,
+        filteredRecentTags: [],
+      };
     }
 
+    const tagsToFilter = payload?.recentTags || recentTags;
+
     try {
-      const aiSuggestions = await fetchGptTagSuggestions({
-        token: openAiToken,
-        context,
-      });
+      // Fetch both new suggestions and filter recent tags in parallel
+      const [aiSuggestions, filteredRecent] = await Promise.all([
+        fetchGptTagSuggestions({
+          token: openAiToken,
+          context,
+        }),
+        tagsToFilter.length > 0
+          ? filterRecentTagsForRelevance({
+              token: openAiToken,
+              recentTags: tagsToFilter,
+              context,
+            })
+          : Promise.resolve([]),
+      ]);
 
       const selectedTags = new Set(
         (formData.tags || []).map((tag) => tag.toLowerCase())
@@ -270,7 +301,16 @@ export const fetchGptSuggestions = createAsyncThunk<
         .filter((tag) => tag && tag !== '[]')
         .filter((tag) => !selectedTags.has(tag.toLowerCase()));
 
-      return { suggestions: deduped, contextKey: payload?.contextKey ?? null };
+      // Also deduplicate filtered recent tags against selected tags
+      const dedupedRecent = filteredRecent.filter(
+        (tag) => !selectedTags.has(tag.toLowerCase())
+      );
+
+      return {
+        suggestions: deduped,
+        contextKey: payload?.contextKey ?? null,
+        filteredRecentTags: dedupedRecent,
+      };
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Unable to fetch GPT suggestions';
@@ -289,6 +329,8 @@ const initialState: TagState = {
   gptError: null,
   gptContextKey: null,
   error: null,
+  recentTags: [],
+  filteredRecentTags: [],
 };
 
 const tagSlice = createSlice({
@@ -344,6 +386,26 @@ const tagSlice = createSlice({
           ? action.payload
           : {};
     },
+    /**
+     * Load recent tags from localStorage
+     */
+    setRecentTags(state, action: PayloadAction<string[]>) {
+      state.recentTags = Array.isArray(action.payload) ? action.payload : [];
+    },
+    /**
+     * Set GPT-filtered recent tags (relevant to current page)
+     */
+    setFilteredRecentTags(state, action: PayloadAction<string[]>) {
+      state.filteredRecentTags = Array.isArray(action.payload) ? action.payload : [];
+    },
+    /**
+     * Remove a recent tag when it's selected
+     */
+    removeRecentTag(state, action: PayloadAction<string>) {
+      const tag = action.payload;
+      state.recentTags = state.recentTags.filter((t) => t !== tag);
+      state.filteredRecentTags = state.filteredRecentTags.filter((t) => t !== tag);
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -383,6 +445,7 @@ const tagSlice = createSlice({
         state.gptStatus = 'succeeded';
         state.gptSuggestions = action.payload?.suggestions || [];
         state.gptContextKey = action.payload?.contextKey || null;
+        state.filteredRecentTags = action.payload?.filteredRecentTags || [];
       })
       .addCase(fetchGptSuggestions.rejected, (state, action) => {
         state.gptStatus = 'failed';
@@ -396,5 +459,8 @@ export const {
   restoreSuggestedTag,
   setTagCounts,
   resetGptSuggestions,
+  setRecentTags,
+  setFilteredRecentTags,
+  removeRecentTag,
 } = tagSlice.actions; // Updated export
 export default tagSlice.reducer;

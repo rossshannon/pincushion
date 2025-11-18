@@ -18,6 +18,7 @@ const mockedAxios = axios;
 
 jest.mock('../../services/gptSuggestions', () => ({
   fetchGptTagSuggestions: jest.fn(),
+  filterRecentTagsForRelevance: jest.fn().mockResolvedValue([]),
 }));
 
 // Mock localStorage
@@ -79,6 +80,8 @@ describe('tag slice', () => {
     gptError: null,
     gptContextKey: null,
     error: null,
+    recentTags: [],
+    filteredRecentTags: [],
   };
 
   beforeEach(() => {

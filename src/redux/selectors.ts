@@ -9,6 +9,15 @@ const selectSuggestedTags = (state: RootState): TagList =>
 const selectGptSuggestions = (state: RootState): TagList =>
   state.tags.gptSuggestions || [];
 
+const selectFilteredRecentTags = (state: RootState): TagList =>
+  state.tags.filteredRecentTags || [];
+
+const selectRecentTags = (state: RootState): TagList =>
+  state.tags.recentTags || [];
+
+const selectHasOpenAiToken = (state: RootState): boolean =>
+  Boolean(state.auth.openAiToken);
+
 const selectCurrentTags = (state: RootState): TagList => {
   const tags = state.bookmark.formData.tags;
   return Array.isArray(tags) ? tags : [];
@@ -32,26 +41,54 @@ const buildUniqueList = (list: TagList, seen: Set<string>): TagList => {
 };
 
 export const selectDisplayableSuggestions = createSelector(
-  [selectSuggestedTags, selectGptSuggestions, selectCurrentTags],
-  (pinboard: TagList, gpt: TagList, currentTags: TagList): TagList => {
+  [
+    selectSuggestedTags,
+    selectGptSuggestions,
+    selectFilteredRecentTags,
+    selectRecentTags,
+    selectHasOpenAiToken,
+    selectCurrentTags,
+  ],
+  (
+    pinboard: TagList,
+    gpt: TagList,
+    filteredRecent: TagList,
+    recentTags: TagList,
+    hasOpenAiToken: boolean,
+    currentTags: TagList
+  ): TagList => {
     const seen = new Set(currentTags.map(normalize));
+
+    // Use filtered recent tags if GPT is available, otherwise show all recent tags
+    const recentToShow = hasOpenAiToken ? filteredRecent : recentTags;
+    const recentFiltered = buildUniqueList(recentToShow, seen);
     const pinboardFiltered = buildUniqueList(pinboard, seen);
     const gptFiltered = buildUniqueList(gpt, seen);
 
-    if (!pinboardFiltered.length && !gptFiltered.length) {
-      return [];
+    const result: TagList = [];
+
+    // Add recent tags first (they're already filtered/validated)
+    if (recentFiltered.length) {
+      result.push(...recentFiltered);
     }
 
-    if (pinboardFiltered.length && gptFiltered.length) {
-      return [...pinboardFiltered, '$separator', ...gptFiltered];
-    }
+    // Add pinboard suggestions
     if (pinboardFiltered.length) {
-      return pinboardFiltered;
+      if (result.length) {
+        result.push('$separator');
+      }
+      result.push(...pinboardFiltered);
     }
+
+    // Add GPT suggestions
     if (gptFiltered.length) {
-      return gptFiltered;
+      if (result.length) {
+        result.push('$separator');
+      }
+      result.push(...gptFiltered);
     }
-    return [];
+
+    return result;
   }
 );
 

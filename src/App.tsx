@@ -11,8 +11,10 @@ import {
   fetchGptSuggestions,
   setTagCounts,
   resetGptSuggestions,
+  setRecentTags,
 } from './redux/tagSlice';
 import { enforceMinimumPopupSize } from './utils/popupAffordances';
+import { getRecentTags } from './utils/recentTagStorage';
 import Settings from './components/Settings';
 import { clearTwitterCard } from './redux/twitterCardSlice';
 import {
@@ -130,6 +132,16 @@ function App() {
         }
       } catch (_e) {
         // Intentionally empty: Failed to load tags from cache, will fetch later.
+      }
+
+      // Load recent tags from localStorage
+      try {
+        const recentTags = getRecentTags();
+        if (recentTags.length > 0) {
+          dispatch(setRecentTags(recentTags));
+        }
+      } catch (_e) {
+        // Intentionally empty: Failed to load recent tags from cache.
       }
 
       if (shouldFetchTagsImmediately) {

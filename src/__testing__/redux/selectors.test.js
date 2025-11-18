@@ -12,6 +12,14 @@ const baseTagsState = {
   gptStatus: 'idle',
   gptError: null,
   gptContextKey: null,
+  recentTags: [],
+  filteredRecentTags: [],
+};
+
+const baseAuthState = {
+  user: '',
+  token: '',
+  openAiToken: '',
 };
 
 describe('Redux Selectors', () => {
@@ -21,18 +29,21 @@ describe('Redux Selectors', () => {
       const mockState1 = {
         tags: { ...baseTagsState, suggestedLoading: true },
         bookmark: { formData: { tags: [] } },
+        auth: baseAuthState,
       };
       expect(selectSuggestedLoading(mockState1)).toBe(true);
 
       const mockState2 = {
         tags: { ...baseTagsState, suggestedLoading: false },
         bookmark: { formData: { tags: [] } },
+        auth: baseAuthState,
       };
       expect(selectSuggestedLoading(mockState2)).toBe(false);
 
       const mockState3 = {
         tags: { ...baseTagsState, suggestedLoading: false, gptStatus: 'loading' },
         bookmark: { formData: { tags: [] } },
+        auth: baseAuthState,
       };
       expect(selectSuggestedLoading(mockState3)).toBe(false);
     });
@@ -43,18 +54,21 @@ describe('Redux Selectors', () => {
       const pinboardLoading = {
         tags: { ...baseTagsState, suggestedLoading: true },
         bookmark: { formData: { tags: [] } },
+        auth: baseAuthState,
       };
       expect(selectSuggestionsSpinnerVisible(pinboardLoading)).toBe(true);
 
       const gptLoading = {
         tags: { ...baseTagsState, gptStatus: 'loading' },
         bookmark: { formData: { tags: [] } },
+        auth: baseAuthState,
       };
       expect(selectSuggestionsSpinnerVisible(gptLoading)).toBe(true);
 
       const idleState = {
         tags: { ...baseTagsState },
         bookmark: { formData: { tags: [] } },
+        auth: baseAuthState,
       };
       expect(selectSuggestionsSpinnerVisible(idleState)).toBe(false);
     });
@@ -76,6 +90,7 @@ describe('Redux Selectors', () => {
           gptSuggestions: ['ai_tag'],
         },
         bookmark: { formData: { tags: ['current', 'common'] } },
+        auth: baseAuthState,
       };
       expect(selectDisplayableSuggestions(mockState)).toEqual([
         'suggest1',
@@ -93,6 +108,7 @@ describe('Redux Selectors', () => {
           suggested: ['suggest1', 'common'],
         },
         bookmark: { formData: { tags: [] } }, // Empty current tags
+        auth: baseAuthState,
       };
       expect(selectDisplayableSuggestions(mockState)).toEqual([
         'suggest1',
@@ -107,6 +123,7 @@ describe('Redux Selectors', () => {
           suggested: ['suggest1', 'common', '$separator'],
         },
         bookmark: { formData: { tags: ['common', 'suggest1'] } },
+        auth: baseAuthState,
       };
       expect(selectDisplayableSuggestions(mockState)).toEqual([]);
     });
@@ -115,6 +132,7 @@ describe('Redux Selectors', () => {
       const mockState = {
         tags: { ...baseTagsState, suggested: [] },
         bookmark: { formData: { tags: ['current'] } },
+        auth: baseAuthState,
       };
       expect(selectDisplayableSuggestions(mockState)).toEqual([]);
     });
@@ -127,6 +145,7 @@ describe('Redux Selectors', () => {
           gptSuggestions: ['right'],
         },
         bookmark: { formData: { tags: ['right'] } },
+        auth: baseAuthState,
       };
       expect(selectDisplayableSuggestions(mockState)).toEqual(['left']);
     });
@@ -139,6 +158,7 @@ describe('Redux Selectors', () => {
           gptSuggestions: ['foo', 'baz'],
         },
         bookmark: { formData: { tags: [] } },
+        auth: baseAuthState,
       };
       expect(selectDisplayableSuggestions(mockState)).toEqual([
         'Foo',
@@ -156,6 +176,7 @@ describe('Redux Selectors', () => {
           gptSuggestions: ['current'],
         },
         bookmark: { formData: { tags: ['current'] } },
+        auth: baseAuthState,
       };
       expect(selectDisplayableSuggestions(mockState)).toEqual([]);
     });
@@ -166,6 +187,7 @@ describe('Redux Selectors', () => {
       const mockState = {
         tags: { ...baseTagsState, suggested: [] }, // No suggestions
         bookmark: { formData: { tags: ['current'] } },
+        auth: baseAuthState,
       };
       expect(selectIsSuggestionsEmpty(mockState)).toBe(true);
     });
@@ -178,6 +200,7 @@ describe('Redux Selectors', () => {
           gptSuggestions: ['ai_tag'],
         },
         bookmark: { formData: { tags: ['current'] } },
+        auth: baseAuthState,
       };
       expect(selectIsSuggestionsEmpty(mockState)).toBe(false); // 'suggest1' remains
     });

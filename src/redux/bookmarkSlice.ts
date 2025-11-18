@@ -88,10 +88,16 @@ const hasHttpStatus = (error: unknown, statusCode: number): boolean => {
 const isUrlTooLongError = (error: unknown): boolean => {
   if (hasHttpStatus(error, 414)) return true;
   const message =
-    (axios.isAxiosError(error) ? error.message : error instanceof Error ? error.message : '') ||
-    '';
+    (axios.isAxiosError(error)
+      ? error.message
+      : error instanceof Error
+      ? error.message
+      : '') || '';
   const normalized = message.toLowerCase();
-  return normalized.includes('status code 414') || normalized.includes('uri too long');
+  return (
+    normalized.includes('status code 414') ||
+    normalized.includes('uri too long')
+  );
 };
 
 const toTagArray = (value: unknown): string[] => {
@@ -111,7 +117,7 @@ const toTagArray = (value: unknown): string[] => {
 const ERROR_MESSAGES: Record<string, string> = {
   MISSING_URL: 'URL is required.',
   MISSING_TITLE: 'Title is required.',
-  URL_TOO_LONG: 'URL is too long.',
+  URL_TOO_LONG: 'URL is too long',
   GENERIC_ERROR: 'An unexpected error occurred. Please try again.',
   // Add more specific API error codes if needed, e.g.:
   // 'item already exists': 'This bookmark already exists.'
@@ -122,84 +128,81 @@ export const submitBookmark = createAsyncThunk<
   PinboardAddResponse,
   void,
   { state: BookmarkThunkState; rejectValue: SubmitRejectValue }
->(
-  'bookmark/submit',
-  async (_, { getState, rejectWithValue }) => {
-    const {
-      auth: { user, token },
-      bookmark: { formData },
-    } = getState();
+>('bookmark/submit', async (_, { getState, rejectWithValue }) => {
+  const {
+    auth: { user, token },
+    bookmark: { formData },
+  } = getState();
 
-    // --- Client-side validation ---
-    const errors: BookmarkErrors = {
-      url: null,
-      title: null,
-      description: null,
-      generic: null,
-    };
-    let hasError = false;
-    if (!formData.url) {
-      errors.url = ERROR_MESSAGES.MISSING_URL;
-      hasError = true;
-    }
-    if (!formData.title) {
-      errors.title = ERROR_MESSAGES.MISSING_TITLE;
-      hasError = true;
-    }
-    if (
-      formData.description &&
-      formData.description.length > DESCRIPTION_CHAR_LIMIT
-    ) {
-      errors.description = `Description must be under ${DESCRIPTION_CHAR_LIMIT.toLocaleString()} characters.`;
-      hasError = true;
-    }
-
-    if (hasError) {
-      // Reject immediately with the validation errors object
-      return rejectWithValue({ validationErrors: errors });
-    }
-    // --- End client-side validation ---
-
-    const params = new URLSearchParams();
-    params.append('format', 'json');
-    params.append('url', formData.url);
-    params.append('description', formData.title);
-    params.append('extended', formData.description);
-    if (formData.private) params.append('shared', 'no');
-    if (formData.toread) params.append('toread', 'yes');
-    params.append('tags', (formData.tags || []).join(' '));
-
-    try {
-      const response = await axios.get(
-        `https://pinboard-api.herokuapp.com/v1/posts/add?${params.toString()}`,
-        {
-          headers: {
-            Authorization: `Bearer ${user}:${token}`,
-          },
-        }
-      );
-      if (response.data.result_code === 'done') {
-        return response.data;
-      } else {
-        // Reject with API error message (e.g., 'item already exists')
-        return rejectWithValue({ apiError: response.data.result_code });
-      }
-    } catch (err) {
-      if (isUrlTooLongError(err)) {
-        return rejectWithValue({ urlTooLongError: true });
-      }
-      if (axios.isAxiosError(err)) {
-        return rejectWithValue({
-          genericError: err.message || ERROR_MESSAGES.GENERIC_ERROR,
-        });
-      }
-
-      const message =
-        err instanceof Error ? err.message : ERROR_MESSAGES.GENERIC_ERROR;
-      return rejectWithValue({ genericError: message });
-    }
+  // --- Client-side validation ---
+  const errors: BookmarkErrors = {
+    url: null,
+    title: null,
+    description: null,
+    generic: null,
+  };
+  let hasError = false;
+  if (!formData.url) {
+    errors.url = ERROR_MESSAGES.MISSING_URL;
+    hasError = true;
   }
-);
+  if (!formData.title) {
+    errors.title = ERROR_MESSAGES.MISSING_TITLE;
+    hasError = true;
+  }
+  if (
+    formData.description &&
+    formData.description.length > DESCRIPTION_CHAR_LIMIT
+  ) {
+    errors.description = `Description must be under ${DESCRIPTION_CHAR_LIMIT.toLocaleString()} characters.`;
+    hasError = true;
+  }
+
+  if (hasError) {
+    // Reject immediately with the validation errors object
+    return rejectWithValue({ validationErrors: errors });
+  }
+  // --- End client-side validation ---
+
+  const params = new URLSearchParams();
+  params.append('format', 'json');
+  params.append('url', formData.url);
+  params.append('description', formData.title);
+  params.append('extended', formData.description);
+  if (formData.private) params.append('shared', 'no');
+  if (formData.toread) params.append('toread', 'yes');
+  params.append('tags', (formData.tags || []).join(' '));
+
+  try {
+    const response = await axios.get(
+      `https://pinboard-api.herokuapp.com/v1/posts/add?${params.toString()}`,
+      {
+        headers: {
+          Authorization: `Bearer ${user}:${token}`,
+        },
+      }
+    );
+    if (response.data.result_code === 'done') {
+      return response.data;
+    } else {
+      // Reject with API error message (e.g., 'item already exists')
+      return rejectWithValue({ apiError: response.data.result_code });
+    }
+  } catch (err) {
+    if (isUrlTooLongError(err)) {
+      return rejectWithValue({ urlTooLongError: true });
+    }
+    if (axios.isAxiosError(err)) {
+      return rejectWithValue({
+        genericError: err.message || ERROR_MESSAGES.GENERIC_ERROR,
+      });
+    }
+
+    const message =
+      err instanceof Error ? err.message : ERROR_MESSAGES.GENERIC_ERROR;
+    return rejectWithValue({ genericError: message });
+  }
+});
 
 // Fetch existing bookmark details if any
 export const fetchBookmarkDetails = createAsyncThunk<

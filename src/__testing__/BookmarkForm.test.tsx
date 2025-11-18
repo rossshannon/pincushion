@@ -42,6 +42,13 @@ describe('BookmarkForm Component', () => {
         gptStatus: 'idle',
         gptError: null,
         gptContextKey: null,
+        recentTags: [],
+        filteredRecentTags: [],
+      },
+      auth: {
+        user: '',
+        token: '',
+        openAiToken: '',
       },
     };
     store = mockStore(initialState);
