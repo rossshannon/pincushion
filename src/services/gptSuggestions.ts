@@ -1,4 +1,7 @@
-import OpenAI from 'openai';
+const OPENAI_CHAT_COMPLETIONS_URL = 'https://api.openai.com/v1/chat/completions';
+const OPENAI_CHAT_TIMEOUT_MS = 30_000;
+const OPENAI_RATE_LIMIT_RETRIES = 1;
+const OPENAI_RATE_LIMIT_DELAY_MS = 1_000;
 
 type GptContext = {
   url?: string;
@@ -24,6 +27,84 @@ const RECENT_TAGS_FILTER_PROMPT =
   'Return ONLY the tags from the recent tags list that are relevant to the current page. Do not add new tags. ' +
   'The format of your response should be a comma-separated list of the relevant tags, in lowercase. If none are relevant, return an empty string.';
 
+type ChatCompletionRole = 'system' | 'user' | 'assistant';
+
+type ChatCompletionMessage = {
+  role: ChatCompletionRole;
+  content: string;
+};
+
+type ChatCompletionRequest = {
+  model: string;
+  messages: ChatCompletionMessage[];
+  max_tokens?: number;
+  temperature?: number;
+};
+
+type ChatCompletionResponse = {
+  choices?: Array<{
+    message?: {
+      content?: string | null;
+    } | null;
+  }>;
+};
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const requestChatCompletion = async (
+  token: string,
+  payload: ChatCompletionRequest
+): Promise<ChatCompletionResponse> => {
+  let lastError: Error | undefined;
+
+  for (let attempt = 0; attempt <= OPENAI_RATE_LIMIT_RETRIES; attempt += 1) {
+    const controller = new AbortController();
+    const timeoutId: ReturnType<typeof setTimeout> = setTimeout(() => {
+      controller.abort();
+    }, OPENAI_CHAT_TIMEOUT_MS);
+
+    let shouldRetry = false;
+
+    try {
+      const response = await fetch(OPENAI_CHAT_COMPLETIONS_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        const error = new Error(
+          `OpenAI request failed (${response.status} ${response.statusText}): ${errorBody}`
+        );
+
+        const hitRateLimit = response.status === 429 && attempt < OPENAI_RATE_LIMIT_RETRIES;
+        if (hitRateLimit) {
+          shouldRetry = true;
+          lastError = error;
+        } else {
+          throw error;
+        }
+      } else {
+        return (await response.json()) as ChatCompletionResponse;
+      }
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
+    if (shouldRetry) {
+      await sleep(OPENAI_RATE_LIMIT_DELAY_MS);
+      continue;
+    }
+  }
+
+  throw lastError || new Error('OpenAI request failed.');
+};
+
 export async function fetchGptTagSuggestions({
   token,
   context,
@@ -34,12 +115,7 @@ export async function fetchGptTagSuggestions({
     return [];
   }
 
-  const openai = new OpenAI({
-    apiKey: token,
-    dangerouslyAllowBrowser: true,
-  });
-
-  const completion = await openai.chat.completions.create({
+  const completion = await requestChatCompletion(token, {
     model,
     max_tokens: 250,
     temperature,
@@ -86,17 +162,12 @@ export async function filterRecentTagsForRelevance({
     return [];
   }
 
-  const openai = new OpenAI({
-    apiKey: token,
-    dangerouslyAllowBrowser: true,
-  });
-
   const userContent = JSON.stringify({
     recentTags,
     currentPage: context,
   });
 
-  const completion = await openai.chat.completions.create({
+  const completion = await requestChatCompletion(token, {
     model,
     max_tokens: 150,
     temperature,

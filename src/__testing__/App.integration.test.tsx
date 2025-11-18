@@ -10,27 +10,32 @@ import bookmarkReducer from '../redux/bookmarkSlice';
 import tagReducer from '../redux/tagSlice';
 import twitterCardReducer from '../redux/twitterCardSlice';
 
-jest.mock('openai', () =>
-  jest.fn(() => ({
-    chat: {
-      completions: {
-        create: jest.fn(() =>
-          Promise.resolve({
-            choices: [
-              {
-                message: { content: 'ai_tools, ai_reference' },
-              },
-            ],
-          })
-        ),
-      },
-    },
-  }))
-);
-
 jest.mock('ladda');
 
 const mockedAxios = axios;
+const originalFetch = globalThis.fetch;
+const mockGptResponse = {
+  choices: [
+    {
+      message: { content: 'ai_tools, ai_reference' },
+    },
+  ],
+};
+
+beforeAll(() => {
+  globalThis.fetch = jest.fn(() =>
+    Promise.resolve({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: () => Promise.resolve(mockGptResponse),
+    })
+  ) as unknown as typeof fetch;
+});
+
+afterAll(() => {
+  globalThis.fetch = originalFetch;
+});
 
 const createStore = () =>
   configureStore({

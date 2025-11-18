@@ -1,10 +1,4 @@
 import axios from 'axios';
-import OpenAI, {
-  APIConnectionError,
-  APIConnectionTimeoutError,
-  AuthenticationError,
-  RateLimitError,
-} from 'openai';
 
 type ErrorWithStatus = Error & { status?: number };
 
@@ -25,6 +19,17 @@ const normalizeMessage = (message: string | undefined) => {
 
 const includes = (haystack: string, needle: string) =>
   haystack.toLowerCase().includes(needle.toLowerCase());
+
+const looksLikeNetworkError = (message: string) =>
+  includes(message, 'network') ||
+  includes(message, 'fetch failed') ||
+  includes(message, 'networkrequestfailed') ||
+  includes(message, 'socket hang up') ||
+  includes(message, 'dns') ||
+  includes(message, 'offline');
+
+const looksLikeTimeout = (message: string) =>
+  includes(message, 'timeout') || includes(message, 'timed out') || includes(message, 'etimedout');
 
 const formatOpenAiValidationError = (error: unknown): string => {
   const status =
@@ -52,7 +57,7 @@ const formatOpenAiValidationError = (error: unknown): string => {
     includes(combinedMessage, 'unauthorized') ||
     includes(combinedMessage, 'invalid api key');
 
-  if (error instanceof AuthenticationError || looksUnauthorized) {
+  if (looksUnauthorized) {
     return 'OpenAI rejected that API token.';
   }
 
@@ -61,7 +66,7 @@ const formatOpenAiValidationError = (error: unknown): string => {
     includes(combinedMessage, '429') ||
     includes(combinedMessage, 'rate limit');
 
-  if (error instanceof RateLimitError || looksRateLimited) {
+  if (looksRateLimited) {
     return 'OpenAI rate limit reached. Wait a moment and try again.';
   }
 
@@ -75,7 +80,7 @@ const formatOpenAiValidationError = (error: unknown): string => {
     return 'Browser blocked OpenAI\'s response (CORS). This typically means the API rejected the token; double-check the key and try again.';
   }
 
-  if (error instanceof APIConnectionTimeoutError || error instanceof APIConnectionError) {
+  if (looksLikeTimeout(combinedMessage) || looksLikeNetworkError(combinedMessage)) {
     return 'Unable to reach OpenAI. Check your network connection and try again.';
   }
 
@@ -128,13 +133,39 @@ export async function verifyOpenAiToken(openAiToken: string): Promise<void> {
   if (!trimmedToken) {
     return;
   }
-  const client = new OpenAI({
-    apiKey: trimmedToken,
-    dangerouslyAllowBrowser: true,
-  });
+  const controller = new AbortController();
+  const timeoutId: ReturnType<typeof setTimeout> = setTimeout(
+    () => controller.abort(),
+    10_000
+  );
   try {
-    await client.models.retrieve('gpt-4o-mini');
+    const response = await fetch('https://api.openai.com/v1/models/gpt-4o-mini', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${trimmedToken}`,
+      },
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const rawBody = await response.text().catch(() => '');
+      let message = DEFAULT_OPENAI_ERROR;
+      try {
+        const payload = JSON.parse(rawBody) as { error?: { message?: string } };
+        message = payload?.error?.message || message;
+      } catch {
+        if (rawBody.trim()) {
+          message = rawBody.trim();
+        }
+      }
+
+      const error = new Error(message) as ErrorWithStatus;
+      error.status = response.status;
+      throw error;
+    }
   } catch (error) {
     throw new Error(formatOpenAiValidationError(error));
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
