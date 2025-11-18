@@ -117,7 +117,7 @@ const toTagArray = (value: unknown): string[] => {
 const ERROR_MESSAGES: Record<string, string> = {
   MISSING_URL: 'URL is required.',
   MISSING_TITLE: 'Title is required.',
-  URL_TOO_LONG: 'URL is too long',
+  URL_TOO_LONG: 'URL is too long.',
   GENERIC_ERROR: 'An unexpected error occurred. Please try again.',
   // Add more specific API error codes if needed, e.g.:
   // 'item already exists': 'This bookmark already exists.'
