@@ -437,9 +437,12 @@ const tagSlice = createSlice({
         state.suggestedStatus = 'failed';
         state.error = (action.payload as string) || action.error.message || null;
       })
-      .addCase(fetchGptSuggestions.pending, (state) => {
+      .addCase(fetchGptSuggestions.pending, (state, action) => {
         state.gptStatus = 'loading';
         state.gptError = null;
+        if (action.meta.arg?.contextKey) {
+          state.gptContextKey = action.meta.arg.contextKey;
+        }
       })
       .addCase(fetchGptSuggestions.fulfilled, (state, action) => {
         state.gptStatus = 'succeeded';
@@ -450,6 +453,9 @@ const tagSlice = createSlice({
       .addCase(fetchGptSuggestions.rejected, (state, action) => {
         state.gptStatus = 'failed';
         state.gptError = (action.payload as string) || action.error.message || null;
+        if (action.meta.arg?.contextKey) {
+          state.gptContextKey = action.meta.arg.contextKey;
+        }
       });
   },
 });

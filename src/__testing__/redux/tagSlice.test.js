@@ -416,13 +416,13 @@ describe('tag slice', () => {
           tags: [],
         });
 
-        await store.dispatch(fetchGptSuggestions({ contextKey: 'ctx-err' }));
-        const state = store.getState().tags;
-        expect(state.gptStatus).toEqual('failed');
-        expect(state.gptError).toEqual('boom');
-        expect(state.gptSuggestions).toEqual([]);
-        expect(state.gptContextKey).toBeNull();
-      });
+      await store.dispatch(fetchGptSuggestions({ contextKey: 'ctx-err' }));
+      const state = store.getState().tags;
+      expect(state.gptStatus).toEqual('failed');
+      expect(state.gptError).toEqual('boom');
+      expect(state.gptSuggestions).toEqual([]);
+      expect(state.gptContextKey).toEqual('ctx-err');
+    });
 
       it('handles empty GPT responses gracefully', async () => {
         fetchGptTagSuggestions.mockResolvedValueOnce([]);
