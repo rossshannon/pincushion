@@ -48,8 +48,6 @@ When the popup opens you’ll now see a gear button in the footer. Click it to o
 
 Pincushion is designed for modern browsers like Chrome, Safari, Comet, Atlas, Edge, Firefox, and mobile varieties of Safari and Chrome.
 
-It supports Internet Explorer 10+, but earlier versions of Internet Explorer have problems with the cross-domain Ajax required.
-
 #### Running Locally
 
 - Clone the repository to your computer. `git clone https://github.com/rossshannon/pincushion.git`
