@@ -28,6 +28,8 @@ export type BookmarkState = {
   status: 'idle' | 'saving' | 'success' | 'error';
   data: PinboardAddResponse | null;
   errors: BookmarkErrors;
+  lastFetchRequestId: string | null;
+  lastFetchTargetUrl: string | null;
   initialLoading: boolean;
   existingBookmarkTime: string | null;
   hasExistingBookmark: boolean;
@@ -266,6 +268,8 @@ const initialState: BookmarkState = {
     description: null,
     generic: null,
   },
+  lastFetchRequestId: null,
+  lastFetchTargetUrl: null,
   initialLoading: false,
   existingBookmarkTime: null,
   hasExistingBookmark: false,
@@ -299,16 +303,43 @@ const bookmarkSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchBookmarkDetails.pending, (state) => {
+      .addCase(fetchBookmarkDetails.pending, (state, action) => {
         state.initialLoading = true;
         state.existingBookmarkTime = null;
         state.hasExistingBookmark = false;
         state.displayOriginalTimestamp = false;
         // Reset errors to the full initial structure
         state.errors = { ...initialState.errors };
+        state.lastFetchRequestId = action.meta.requestId;
+        const requestedUrl =
+          typeof action.meta.arg === 'string'
+            ? action.meta.arg.trim()
+            : state.formData.url.trim();
+        state.lastFetchTargetUrl = requestedUrl || null;
       })
       .addCase(fetchBookmarkDetails.fulfilled, (state, action) => {
+        if (
+          state.lastFetchRequestId &&
+          action.meta.requestId !== state.lastFetchRequestId
+        ) {
+          return;
+        }
+
         state.initialLoading = false;
+
+        const requestedUrl =
+          typeof action.meta.arg === 'string'
+            ? action.meta.arg.trim()
+            : state.lastFetchTargetUrl || '';
+        const normalizedUrl = requestedUrl.trim();
+        const currentUrl = state.formData.url.trim();
+
+        if (normalizedUrl && normalizedUrl !== currentUrl) {
+          state.lastFetchTargetUrl = null;
+          return;
+        }
+
+        state.lastFetchTargetUrl = null;
         // Reset errors on success
         state.errors = { ...initialState.errors };
         const post = action.payload;
@@ -332,9 +363,29 @@ const bookmarkSlice = createSlice({
         }
       })
       .addCase(fetchBookmarkDetails.rejected, (state, action) => {
+        if (
+          state.lastFetchRequestId &&
+          action.meta.requestId !== state.lastFetchRequestId
+        ) {
+          return;
+        }
+
+        const requestedUrl =
+          typeof action.meta.arg === 'string'
+            ? action.meta.arg.trim()
+            : state.lastFetchTargetUrl || '';
+        const normalizedUrl = requestedUrl.trim();
+        const currentUrl = state.formData.url.trim();
+
         state.initialLoading = false;
         state.hasExistingBookmark = false;
         state.displayOriginalTimestamp = false;
+        state.lastFetchTargetUrl = null;
+
+        if (normalizedUrl && normalizedUrl !== currentUrl) {
+          return;
+        }
+
         // Set generic error, ensure full errors object exists
         state.errors = {
           ...initialState.errors,

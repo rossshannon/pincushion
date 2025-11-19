@@ -29,6 +29,8 @@ const initialState = {
     description: null,
     generic: null,
   },
+  lastFetchRequestId: null,
+  lastFetchTargetUrl: null,
   initialLoading: false,
   existingBookmarkTime: null,
   hasExistingBookmark: false,
