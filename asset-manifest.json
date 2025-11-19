@@ -1,14 +1,14 @@
 {
   "files": {
     "main.css": "/pincushion/static/css/main.a7945a7b.css",
-    "main.js": "/pincushion/static/js/main.4a5a3f72.js",
+    "main.js": "/pincushion/static/js/main.e61a5019.js",
     "static/media/spinner_2x.gif": "/pincushion/static/media/spinner_2x.4eaba7f34a27d788cb47.gif",
     "index.html": "/pincushion/index.html",
     "main.a7945a7b.css.map": "/pincushion/static/css/main.a7945a7b.css.map",
-    "main.4a5a3f72.js.map": "/pincushion/static/js/main.4a5a3f72.js.map"
+    "main.e61a5019.js.map": "/pincushion/static/js/main.e61a5019.js.map"
   },
   "entrypoints": [
     "static/css/main.a7945a7b.css",
-    "static/js/main.4a5a3f72.js"
+    "static/js/main.e61a5019.js"
   ]
 }
