@@ -308,7 +308,7 @@ function App() {
       <>
         {shouldShowSettingsPrompt && (
           <div className="settings-banner" role="alert">
-            Please open Settings (⚙︎) to enter your Pinboard credentials.
+            Ready to supercharge your bookmarking? Open Settings (⚙︎) to connect your Pinboard account and start saving instantly!
           </div>
         )}
         <BookmarkForm />
@@ -322,7 +322,7 @@ function App() {
 
       <footer>
         <div id="pinboard-link">
-          Powered by <a href="https://pinboard.in/">Pinboard</a>
+          Seamlessly integrated with <a href="https://pinboard.in/">Pinboard</a>
         </div>
         {view !== VIEW_SETTINGS && (
           <button
@@ -330,7 +330,7 @@ function App() {
             className="settings-button"
             onClick={() => setView(VIEW_SETTINGS)}
             aria-pressed="false"
-            title="Configure your Pinboard and OpenAI access tokens."
+            title="Customize your experience and unlock AI-powered tag suggestions."
           >
             <span className="settings-button__icon" aria-hidden="true">
               ⚙︎

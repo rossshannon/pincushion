@@ -111,9 +111,9 @@ function Settings({ initialValues = fieldDefaults, onSave, onCancel }: SettingsP
       autoComplete="off"
       data-1p-ignore="true"
     >
-      <h2>Account Settings</h2>
+      <h2>Connect Your Accounts</h2>
       <p className="settings-form__helper">
-        Store your Pincushion credentials locally and securely in your browser.
+        Your credentials are stored securely in your browser — never on our servers. Set up once and enjoy lightning-fast bookmarking.
       </p>
 
       <label htmlFor="pinboardUser">Pinboard username</label>
@@ -161,8 +161,8 @@ function Settings({ initialValues = fieldDefaults, onSave, onCancel }: SettingsP
         data-1p-ignore="true"
       />
       <p className="settings-form__helper small">
-        GPT tag suggestions run only when a valid OpenAI token is stored here.
-        You can create a key at{' '}
+        Unlock smart AI-powered tag suggestions! Add your OpenAI key to get intelligent, automatic tagging for every bookmark.
+        Get your key at{' '}
         <strong>https://platform.openai.com/account/api-keys</strong>.
       </p>
       {errors.openAiToken && (
@@ -182,7 +182,7 @@ function Settings({ initialValues = fieldDefaults, onSave, onCancel }: SettingsP
           Cancel
         </button>
         <button type="submit" disabled={isValidating}>
-          {isValidating ? 'Validating…' : 'Save & return'}
+          {isValidating ? 'Validating…' : 'Get Started'}
         </button>
       </div>
     </form>

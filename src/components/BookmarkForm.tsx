@@ -261,9 +261,9 @@ function BookmarkForm() {
   const buttonText = () => {
     if (initialLoading) return 'Loading…';
     if (status === 'saving') return 'Saving…';
-    if (status === 'success') return 'Bookmark saved!';
+    if (status === 'success') return 'Saved!';
     if (status === 'error') return 'Save failed';
-    return hasExistingBookmark ? 'Update bookmark' : 'Add bookmark';
+    return hasExistingBookmark ? 'Update bookmark' : 'Save to Pinboard';
   };
 
   const shouldShowOriginalTimestamp =
