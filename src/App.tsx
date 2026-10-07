@@ -15,6 +15,7 @@ import {
 } from './redux/tagSlice';
 import { enforceMinimumPopupSize } from './utils/popupAffordances';
 import { getRecentTags } from './utils/recentTagStorage';
+import { readTagCache } from './utils/tagCache';
 import Settings from './components/Settings';
 import { clearTwitterCard } from './redux/twitterCardSlice';
 import {
@@ -24,14 +25,47 @@ import {
 } from './utils/credentialStorage';
 import type { AppDispatch, RootState } from './redux/store';
 
-const TAG_CACHE_TTL_MS = 10000;
-const TAG_REFRESH_DELAY_MS = 10000;
+/**
+ * How long the cached /tags/get payload is trusted before a background
+ * refresh. Saving a bookmark patches the cache locally, so a long TTL costs
+ * nothing in freshness for the user's own tags; it just avoids re-downloading
+ * the full tag list (hundreds of KB for a big account) on every popup.
+ */
+const TAG_CACHE_TTL_MS = 60 * 60 * 1000;
+/**
+ * Pinboard asks for at least three seconds between API calls per user. The
+ * background tag refresh waits this long after the popup's critical lookups
+ * have settled so it never competes with them.
+ */
+const TAG_REFRESH_GAP_MS = 3000;
+type TagRefreshPlan = 'none' | 'immediate' | 'after-lookups';
 const VIEW_FORM = 'form' as const;
 const VIEW_SETTINGS = 'settings' as const;
 type ViewMode = typeof VIEW_FORM | typeof VIEW_SETTINGS;
 type SettingsFormValues = Required<CredentialRecord>;
 const URL_DEBOUNCE_MS = 500;
 const LOCALHOST_PATTERN = /^(localhost|\d{1,3}(\.\d{1,3}){3})$/i;
+
+type InitialParams = {
+  url: string;
+  title: string;
+  description: string;
+  private: boolean;
+  toread: boolean;
+};
+
+const readInitialParams = (): InitialParams => {
+  const params = new URLSearchParams(
+    typeof window !== 'undefined' ? window.location.search : ''
+  );
+  return {
+    url: params.get('url') || '',
+    title: params.get('title') || '',
+    description: params.get('description') || '',
+    private: params.get('private') === 'true',
+    toread: params.get('toread') === 'true',
+  };
+};
 
 const isLikelyCompleteUrl = (value: string): boolean => {
   try {
@@ -69,7 +103,14 @@ function App() {
   const [view, setView] = useState<ViewMode>(VIEW_FORM);
   const [credentialsMissing, setCredentialsMissing] = useState(false);
   const [debouncedUrl, setDebouncedUrl] = useState('');
+  // The URL that has had fetchBookmarkDetails dispatched for it. Kept in
+  // state (not a ref) so the GPT effect re-evaluates once the lookup starts.
+  const [lookupStartedFor, setLookupStartedFor] = useState<string | null>(null);
+  const [tagRefreshPlan, setTagRefreshPlan] = useState<TagRefreshPlan>('none');
   const urlDebounceTimerRef = useRef<number | null>(null);
+  // The URL the bookmarklet opened us with. It is looked up straight away;
+  // the debounce only applies to URLs the user types afterwards.
+  const pendingInitialUrlRef = useRef<string | null>(null);
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
@@ -78,99 +119,78 @@ function App() {
       // Ignore resize errors in restricted environments.
     }
   }, []);
+
+  // One-time hydration: credentials from localStorage, form values from the
+  // bookmarklet's query string. This must not re-run when credentials change
+  // (e.g. after saving Settings) or it would wipe the user's edits.
   useEffect(() => {
-    // Parse URL parameters for auth and initial form data
-    const params = new URLSearchParams(window.location.search);
     const storedCredentials = readStoredCredentials();
     if (storedCredentials) {
-      if (
-        storedCredentials.user !== user ||
-        storedCredentials.token !== token ||
-        storedCredentials.openAiToken !== openAiToken
-      ) {
-        dispatch(setAuth(storedCredentials));
-      }
+      dispatch(setAuth(storedCredentials));
       setCredentialsMissing(false);
     } else {
       setCredentialsMissing(true);
     }
-    // Initial bookmark form values
-    const urlParam = params.get('url') || '';
-    const titleParam = params.get('title') || '';
-    const descParam = params.get('description') || '';
-    const privateParam = params.get('private') === 'true';
-    const toreadParam = params.get('toread') === 'true';
-    dispatch(
-      setFormData({
-        url: urlParam,
-        title: titleParam,
-        description: descParam,
-        private: privateParam,
-        toread: toreadParam,
-      })
-    );
-    // Only load tags/suggestions if we have auth credentials
-    if (user && token) {
-      let tagRefreshTimer: number | null = null;
-      // Load cached user tags from localStorage
-      let shouldFetchTagsImmediately = true;
-      let nextFetchDelay = TAG_REFRESH_DELAY_MS;
-      try {
-        const cached = localStorage.getItem('tags');
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (typeof parsed === 'object' && parsed !== null) {
-            dispatch(setTagCounts(parsed));
-            const timestampRaw = localStorage.getItem('tagTimestamp');
-            const timestamp = timestampRaw ? parseInt(timestampRaw, 10) : 0;
-            const age = timestamp ? Date.now() - timestamp : Number.POSITIVE_INFINITY;
-            if (age < TAG_CACHE_TTL_MS) {
-              shouldFetchTagsImmediately = false;
-              nextFetchDelay = Math.max(TAG_CACHE_TTL_MS - age, 0);
-            }
-          }
-        }
-      } catch (_e) {
-        // Intentionally empty: Failed to load tags from cache, will fetch later.
+    const initial = readInitialParams();
+    pendingInitialUrlRef.current = initial.url.trim() || null;
+    dispatch(setFormData(initial));
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        window.close();
       }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [dispatch]);
 
-      // Load recent tags from localStorage
-      try {
-        const recentTags = getRecentTags();
-        if (recentTags.length > 0) {
-          dispatch(setRecentTags(recentTags));
-        }
-      } catch (_e) {
-        // Intentionally empty: Failed to load recent tags from cache.
-      }
-
-      if (shouldFetchTagsImmediately) {
-        dispatch(fetchTags());
-      }
-
-      tagRefreshTimer = window.setTimeout(
-        () => dispatch(fetchTags()),
-        nextFetchDelay
-      );
-
-      // Add ESC key listener
-      const handleKeyDown = (event: KeyboardEvent) => {
-        if (event.key === 'Escape') {
-          window.close();
-        }
-      };
-
-      document.addEventListener('keydown', handleKeyDown);
-
-      // Cleanup listener on unmount
-      return () => {
-        document.removeEventListener('keydown', handleKeyDown);
-        if (tagRefreshTimer !== null) {
-          window.clearTimeout(tagRefreshTimer);
-        }
-      };
+  // Load the cached tag list for autocomplete and decide whether (and when)
+  // to refresh it from Pinboard.
+  useEffect(() => {
+    if (!user || !token) return;
+    const cached = readTagCache(user);
+    if (cached) {
+      dispatch(setTagCounts(cached.counts));
     }
-  }, [dispatch, user, token, openAiToken]);
+
+    try {
+      const recentTags = getRecentTags();
+      if (recentTags.length > 0) {
+        dispatch(setRecentTags(recentTags));
+      }
+    } catch {
+      // Intentionally empty: Failed to load recent tags from cache.
+    }
+
+    if (!cached) {
+      // Nothing to autocomplete from: fetch now, even at the cost of
+      // overlapping the bookmark lookup. This only happens on first use.
+      setTagRefreshPlan('immediate');
+    } else if (cached.ageMs >= TAG_CACHE_TTL_MS) {
+      setTagRefreshPlan('after-lookups');
+    } else {
+      setTagRefreshPlan('none');
+    }
+  }, [dispatch, user, token]);
+
+  // Background tag refresh. A stale cache is refreshed only once the
+  // bookmark lookup and suggestions have settled, plus a short gap, so the
+  // large /tags/get download never delays what the user is waiting on.
+  useEffect(() => {
+    if (tagRefreshPlan === 'none' || !user || !token) return;
+    const lookupsInFlight = initialLoading || suggestedStatus === 'loading';
+    if (tagRefreshPlan === 'after-lookups' && lookupsInFlight) return;
+    const delay = tagRefreshPlan === 'immediate' ? 0 : TAG_REFRESH_GAP_MS;
+    const timer = window.setTimeout(() => {
+      setTagRefreshPlan('none');
+      dispatch(fetchTags());
+    }, delay);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [dispatch, tagRefreshPlan, user, token, initialLoading, suggestedStatus]);
 
   useEffect(() => {
     if (urlDebounceTimerRef.current !== null) {
@@ -188,6 +208,15 @@ function App() {
       dispatch(clearTwitterCard());
       return;
     }
+    if (
+      pendingInitialUrlRef.current !== null &&
+      trimmedUrl === pendingInitialUrlRef.current
+    ) {
+      // The bookmarklet gave us this URL: no need to wait for typing to stop.
+      pendingInitialUrlRef.current = null;
+      setDebouncedUrl(trimmedUrl);
+      return;
+    }
     const timer = window.setTimeout(() => {
       setDebouncedUrl(trimmedUrl);
       urlDebounceTimerRef.current = null;
@@ -203,6 +232,7 @@ function App() {
     if (!debouncedUrl) return;
     if (lastLookupUrlRef.current === debouncedUrl) return;
     lastLookupUrlRef.current = debouncedUrl;
+    setLookupStartedFor(debouncedUrl);
     dispatch(fetchBookmarkDetails(debouncedUrl));
     dispatch(fetchSuggestedTags());
   }, [dispatch, user, token, debouncedUrl]);
@@ -224,10 +254,12 @@ function App() {
   useEffect(() => {
     if (!openAiToken) return;
     if (!debouncedUrl) return;
+    // Wait for the existing-bookmark lookup (it supplies the tags, title and
+    // notes that form the prompt), but not for Pinboard's own suggestions:
+    // those include a page scrape that can take several seconds and the GPT
+    // request doesn't depend on them.
+    if (lookupStartedFor !== debouncedUrl) return;
     if (initialLoading) return;
-    const pinboardReady =
-      suggestedStatus === 'succeeded' || suggestedStatus === 'failed';
-    if (!pinboardReady) return;
 
     let existingTagsSnapshot = initialTagSignatureRef.current;
     if (existingTagsSnapshot === null) {
@@ -265,9 +297,9 @@ function App() {
     normalizedTagString,
     openAiToken,
     initialLoading,
+    lookupStartedFor,
     gptStatus,
     gptContextKey,
-    suggestedStatus,
   ]);
 
   const handleSettingsSave = (creds: SettingsFormValues): void => {

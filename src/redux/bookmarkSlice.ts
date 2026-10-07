@@ -5,6 +5,14 @@ import {
 } from '@reduxjs/toolkit';
 import axios from 'axios';
 import { cleanUrl } from '../utils/url';
+import {
+  bridgeRequestConfig,
+  bridgeUrl,
+  isTimeoutError,
+  REQUEST_TIMEOUTS_MS,
+} from '../services/pinboardApi';
+import { bumpTagCache } from '../utils/tagCache';
+import { recordSavedTags } from './tagSlice';
 import type { AuthState } from './authSlice';
 
 export type BookmarkFormData = {
@@ -121,6 +129,9 @@ const ERROR_MESSAGES: Record<string, string> = {
   MISSING_TITLE: 'Title is required.',
   URL_TOO_LONG: 'URL is too long.',
   GENERIC_ERROR: 'An unexpected error occurred. Please try again.',
+  LOOKUP_TIMEOUT:
+    'Pinboard didn’t respond in time, so we couldn’t check for an existing bookmark. You can still save.',
+  SAVE_TIMEOUT: 'Pinboard didn’t respond in time. Please try saving again.',
   // Add more specific API error codes if needed, e.g.:
   // 'item already exists': 'This bookmark already exists.'
 };
@@ -130,7 +141,7 @@ export const submitBookmark = createAsyncThunk<
   PinboardAddResponse,
   void,
   { state: BookmarkThunkState; rejectValue: SubmitRejectValue }
->('bookmark/submit', async (_, { getState, rejectWithValue }) => {
+>('bookmark/submit', async (_, { getState, dispatch, rejectWithValue }) => {
   const {
     auth: { user, token },
     bookmark: { formData },
@@ -177,14 +188,17 @@ export const submitBookmark = createAsyncThunk<
 
   try {
     const response = await axios.get(
-      `https://pinboard-api.herokuapp.com/v1/posts/add?${params.toString()}`,
-      {
-        headers: {
-          Authorization: `Bearer ${user}:${token}`,
-        },
-      }
+      bridgeUrl(`/v1/posts/add?${params.toString()}`),
+      bridgeRequestConfig(user, token, REQUEST_TIMEOUTS_MS.save)
     );
     if (response.data.result_code === 'done') {
+      // Fold the saved tags into the local tag counts so the next popup's
+      // autocomplete already knows about them without refetching /tags/get.
+      const savedTags = formData.tags || [];
+      if (savedTags.length > 0) {
+        dispatch(recordSavedTags(savedTags));
+        bumpTagCache(user, savedTags);
+      }
       return response.data;
     } else {
       // Reject with API error message (e.g., 'item already exists')
@@ -193,6 +207,9 @@ export const submitBookmark = createAsyncThunk<
   } catch (err) {
     if (isUrlTooLongError(err)) {
       return rejectWithValue({ urlTooLongError: true });
+    }
+    if (isTimeoutError(err)) {
+      return rejectWithValue({ genericError: ERROR_MESSAGES.SAVE_TIMEOUT });
     }
     if (axios.isAxiosError(err)) {
       return rejectWithValue({
@@ -225,14 +242,8 @@ export const fetchBookmarkDetails = createAsyncThunk<
     try {
       // Fetch details: strip fragment and encode URL parameter
       const response = await axios.get(
-        `https://pinboard-api.herokuapp.com/v1/posts/get?format=json&url=${cleanUrl(
-          targetUrl
-        )}`,
-        {
-          headers: {
-            Authorization: `Bearer ${user}:${token}`,
-          },
-        }
+        bridgeUrl(`/v1/posts/get?format=json&url=${cleanUrl(targetUrl)}`),
+        bridgeRequestConfig(user, token, REQUEST_TIMEOUTS_MS.lookup)
       );
       if (response.data.posts && response.data.posts.length === 1) {
         return response.data.posts[0];
@@ -241,6 +252,9 @@ export const fetchBookmarkDetails = createAsyncThunk<
     } catch (err) {
       if (isUrlTooLongError(err)) {
         return rejectWithValue(`${ERROR_MESSAGES.URL_TOO_LONG} (HTTP 414).`);
+      }
+      if (isTimeoutError(err)) {
+        return rejectWithValue(ERROR_MESSAGES.LOOKUP_TIMEOUT);
       }
       const message =
         err instanceof Error

@@ -6,3 +6,5 @@ build/
 coverage/
 .licenses/
 .plan
+.env.local
+.env.*.local

@@ -212,6 +212,21 @@ describe('bookmark slice', () => {
         expect(state.errors.generic).toEqual(errorMessage);
       });
 
+      it('sends the lookup with a timeout and tells the user they can still save on timeout', async () => {
+        const timeoutError = Object.assign(new Error('timeout of 20000ms exceeded'), {
+          code: 'ECONNABORTED',
+        });
+        mockedAxios.get.mockRejectedValueOnce(timeoutError);
+        await store.dispatch(fetchBookmarkDetails());
+        const state = store.getState().bookmark;
+        expect(state.initialLoading).toBe(false);
+        expect(state.errors.generic).toMatch(/You can still save/);
+        expect(mockedAxios.get).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({ timeout: 20000 })
+        );
+      });
+
       it('surfaces friendly message for HTTP 414 errors', async () => {
         const error = new Error('Request failed with status code 414');
         error.response = { status: 414 };
@@ -354,6 +369,56 @@ describe('bookmark slice', () => {
         expect(state.status).toEqual('error');
         expect(state.errors.url).toEqual('URL is too long.');
         expect(state.errors.generic).toContain('URL is too long');
+      });
+
+      it('folds the saved tags into the tag cache and store on success', async () => {
+        window.localStorage.setItem('tags', JSON.stringify({ submit: 1 }));
+        window.localStorage.setItem('tagTimestamp', `${Date.now()}`);
+        window.localStorage.setItem('tagCacheUser', 'testUser');
+        mockedAxios.get.mockResolvedValueOnce({ data: { result_code: 'done' } });
+
+        // Record every tags/* action the thunk dispatches.
+        const recordingStore = configureStore({
+          reducer: {
+            auth: (state = { user: 'testUser', token: 'testToken' }) => state,
+            bookmark: bookmarkReducer,
+            tags: (state = [], action) =>
+              action.type.startsWith('tags/') ? [...state, action] : state,
+          },
+          preloadedState: {
+            bookmark: { ...initialState, formData: validFormData },
+            auth: { user: 'testUser', token: 'testToken' },
+            tags: [],
+          },
+        });
+        await recordingStore.dispatch(submitBookmark());
+
+        expect(recordingStore.getState().tags).toEqual([
+          expect.objectContaining({
+            type: 'tags/recordSavedTags',
+            payload: ['submit', 'tag'],
+          }),
+        ]);
+        expect(JSON.parse(window.localStorage.getItem('tags'))).toEqual({
+          submit: 2,
+          tag: 1,
+        });
+        window.localStorage.clear();
+      });
+
+      it('sends the save with a timeout and explains a timeout in plain words', async () => {
+        const timeoutError = Object.assign(new Error('timeout of 30000ms exceeded'), {
+          code: 'ECONNABORTED',
+        });
+        mockedAxios.get.mockRejectedValueOnce(timeoutError);
+        await store.dispatch(submitBookmark());
+        const state = store.getState().bookmark;
+        expect(state.status).toEqual('error');
+        expect(state.errors.generic).toMatch(/didn’t respond in time/);
+        expect(mockedAxios.get).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({ timeout: 30000 })
+        );
       });
 
       it('should handle rejected state (generic network error)', async () => {

@@ -155,20 +155,25 @@ describe('App Component', () => {
       window.history.replaceState({}, '', '/');
     });
 
-    test('rehydrates cached tags immediately when cache is fresh', () => {
-      seedCredentials();
-      window.history.replaceState(
-        {},
-        '',
-        '/?url=https%3A%2F%2Fexample.com'
-      );
+    const seedTagCache = ({ ageMs = 0, user = 'testUser' } = {}) => {
       window.localStorage.setItem('tags', JSON.stringify({ react: 5 }));
-      window.localStorage.setItem('tagTimestamp', `${Date.now()}`);
+      window.localStorage.setItem('tagTimestamp', `${Date.now() - ageMs}`);
+      window.localStorage.setItem('tagCacheUser', user);
+    };
+
+    const fetchTagActions = (hydratedStore) =>
+      hydratedStore
+        .getActions()
+        .filter((action) => action.type === 'tags/fetchTags');
+
+    test('rehydrates cached tags immediately and does not refetch while the cache is fresh', () => {
+      seedCredentials();
+      window.history.replaceState({}, '', '/?url=https%3A%2F%2Fexample.com');
+      seedTagCache({ ageMs: 5 * 60 * 1000 });
 
       const hydratedStore = renderWithSearch();
 
-      const actions = hydratedStore.getActions();
-      expect(actions).toEqual(
+      expect(hydratedStore.getActions()).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             type: 'tags/setTagCounts',
@@ -176,49 +181,96 @@ describe('App Component', () => {
           }),
         ])
       );
-      expect(
-        actions.filter((action) => action.type === 'tags/fetchTags')
-      ).toHaveLength(0);
+      expect(fetchTagActions(hydratedStore)).toHaveLength(0);
 
       act(() => {
-        vi.advanceTimersByTime(10000);
+        vi.advanceTimersByTime(60 * 1000);
       });
-
-      expect(
-        hydratedStore
-          .getActions()
-          .filter((action) => action.type === 'tags/fetchTags')
-      ).toHaveLength(1);
+      expect(fetchTagActions(hydratedStore)).toHaveLength(0);
     });
 
-    test('fetches tags immediately when cache is stale or missing', () => {
+    test('fetches tags immediately when there is no cache at all', () => {
       seedCredentials();
-      window.history.replaceState(
-        {},
-        '',
-        '/?url=https%3A%2F%2Fexample.com'
-      );
-      window.localStorage.setItem('tags', JSON.stringify({ react: 2 }));
-      window.localStorage.setItem(
-        'tagTimestamp',
-        `${Date.now() - 30000}`
-      );
+      window.history.replaceState({}, '', '/?url=https%3A%2F%2Fexample.com');
 
       const hydratedStore = renderWithSearch();
-      const immediateFetches = hydratedStore
-        .getActions()
-        .filter((action) => action.type === 'tags/fetchTags');
-      expect(immediateFetches).toHaveLength(1);
+      act(() => {
+        vi.advanceTimersByTime(0);
+      });
+      expect(fetchTagActions(hydratedStore)).toHaveLength(1);
 
       act(() => {
-        vi.advanceTimersByTime(10000);
+        vi.advanceTimersByTime(60 * 1000);
       });
+      expect(fetchTagActions(hydratedStore)).toHaveLength(1);
+    });
 
+    test('ignores a cache that belongs to a different Pinboard user', () => {
+      seedCredentials();
+      window.history.replaceState({}, '', '/?url=https%3A%2F%2Fexample.com');
+      seedTagCache({ user: 'someoneElse' });
+
+      const hydratedStore = renderWithSearch();
       expect(
         hydratedStore
           .getActions()
-          .filter((action) => action.type === 'tags/fetchTags')
-      ).toHaveLength(2);
+          .filter((action) => action.type === 'tags/setTagCounts')
+      ).toHaveLength(0);
+      act(() => {
+        vi.advanceTimersByTime(0);
+      });
+      expect(fetchTagActions(hydratedStore)).toHaveLength(1);
+    });
+
+    test('refreshes a stale cache in the background, only after the lookups have settled', () => {
+      seedCredentials();
+      window.history.replaceState({}, '', '/?url=https%3A%2F%2Fexample.com');
+      seedTagCache({ ageMs: 2 * 60 * 60 * 1000 });
+
+      // Simulate the bookmark lookup being in flight when the popup opens.
+      const loadingStore = mockStore({
+        ...baseState,
+        bookmark: { ...baseState.bookmark, initialLoading: true },
+      });
+      render(
+        <Provider store={loadingStore}>
+          <App />
+        </Provider>
+      );
+
+      // The cached tags are available straight away...
+      expect(loadingStore.getActions()).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ type: 'tags/setTagCounts' }),
+        ])
+      );
+      // ...but nothing is refetched while the lookup is still running.
+      act(() => {
+        vi.advanceTimersByTime(30 * 1000);
+      });
+      expect(fetchTagActions(loadingStore)).toHaveLength(0);
+    });
+
+    test('refreshes a stale cache a few seconds after the popup settles', () => {
+      seedCredentials();
+      window.history.replaceState({}, '', '/?url=https%3A%2F%2Fexample.com');
+      seedTagCache({ ageMs: 2 * 60 * 60 * 1000 });
+
+      const hydratedStore = renderWithSearch();
+      act(() => {
+        vi.advanceTimersByTime(2000);
+      });
+      expect(fetchTagActions(hydratedStore)).toHaveLength(0);
+
+      act(() => {
+        vi.advanceTimersByTime(1500);
+      });
+      expect(fetchTagActions(hydratedStore)).toHaveLength(1);
+
+      act(() => {
+        vi.advanceTimersByTime(60 * 1000);
+      });
+      expect(fetchTagActions(hydratedStore)).toHaveLength(1);
     });
   });
 });
