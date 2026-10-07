@@ -6,6 +6,12 @@ import {
 import axios from 'axios';
 import { cleanUrl } from '../utils/url';
 import {
+  bridgeRequestConfig,
+  bridgeUrl,
+  REQUEST_TIMEOUTS_MS,
+} from '../services/pinboardApi';
+import { applyTagDelta, writeTagCache, type TagDelta } from '../utils/tagCache';
+import {
   fetchGptTagSuggestions,
   filterRecentTagsForRelevance,
 } from '../services/gptSuggestions';
@@ -48,22 +54,11 @@ export const fetchTags = createAsyncThunk<
     } = getState();
     try {
       const response = await axios.get(
-        `https://pinboard-api.herokuapp.com/v1/tags/get?format=json`,
-        {
-          headers: {
-            Authorization: `Bearer ${user}:${token}`,
-          },
-        }
+        bridgeUrl('/v1/tags/get?format=json'),
+        bridgeRequestConfig(user, token, REQUEST_TIMEOUTS_MS.tags)
       );
       const data = response.data || {};
-      if (typeof localStorage !== 'undefined') {
-        try {
-          localStorage.setItem('tags', JSON.stringify(data));
-          localStorage.setItem('tagTimestamp', Date.now().toString());
-        } catch (_) {
-          // If localStorage is unavailable (SSR/tests), ignore persistence errors.
-        }
-      }
+      writeTagCache(user, data);
       return data;
     } catch (err) {
       const message =
@@ -111,14 +106,10 @@ export const fetchSuggestedTags = createAsyncThunk<
         );
       }
       const response = await axios.get(
-        `https://pinboard-api.herokuapp.com/posts/suggest-with-preview?format=json&url=${cleanUrl(
-          url
-        )}`,
-        {
-          headers: {
-            Authorization: `Bearer ${user}:${token}`,
-          },
-        }
+        bridgeUrl(
+          `/posts/suggest-with-preview?format=json&url=${cleanUrl(url)}`
+        ),
+        bridgeRequestConfig(user, token, REQUEST_TIMEOUTS_MS.suggest)
       );
       const suggestionPayload = response.data?.suggestions || {};
       const rec = Array.isArray(suggestionPayload.recommended)
@@ -387,6 +378,16 @@ const tagSlice = createSlice({
           : {};
     },
     /**
+     * Apply the tag delta of a bookmark that was just saved (tags it gained
+     * and tags it lost) to the in-memory counts, so autocomplete ranks them
+     * correctly without waiting for a refetch.
+     */
+    recordSavedTags(state, action: PayloadAction<TagDelta>) {
+      const delta = action.payload;
+      if (!delta || !Array.isArray(delta.added) || !Array.isArray(delta.removed)) return;
+      state.tagCounts = applyTagDelta(state.tagCounts, delta);
+    },
+    /**
      * Load recent tags from localStorage
      */
     setRecentTags(state, action: PayloadAction<string[]>) {
@@ -464,9 +465,10 @@ export const {
   addSuggestedTag,
   restoreSuggestedTag,
   setTagCounts,
+  recordSavedTags,
   resetGptSuggestions,
   setRecentTags,
   setFilteredRecentTags,
   removeRecentTag,
-} = tagSlice.actions; // Updated export
+} = tagSlice.actions;
 export default tagSlice.reducer;

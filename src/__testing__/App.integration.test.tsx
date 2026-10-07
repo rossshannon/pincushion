@@ -217,4 +217,82 @@ describe('App integration', () => {
     await waitFor(() => expect(store.getState().bookmark.status).toBe('error'));
     expect(screen.getByRole('alert')).toHaveTextContent('submit failed');
   });
+
+  it('fires the lookup and suggestions immediately, and refreshes a stale tag cache only after they settle', async () => {
+    vi.useFakeTimers();
+    try {
+      seedCredentials();
+      // A tag cache that is older than the TTL: usable right away, but due a refresh.
+      window.localStorage.setItem('tags', JSON.stringify({ cached_tag: 7 }));
+      window.localStorage.setItem('tagTimestamp', `${Date.now() - 2 * 60 * 60 * 1000}`);
+      window.localStorage.setItem('tagCacheUser', 'ross');
+
+      const calls = [];
+      const deferred = {};
+      const defer = (key) =>
+        new Promise((resolve) => {
+          deferred[key] = resolve;
+        });
+      mockedAxios.get.mockImplementation((url) => {
+        if (url.includes('posts/get')) {
+          calls.push('lookup');
+          return defer('lookup');
+        }
+        if (url.includes('posts/suggest-with-preview')) {
+          calls.push('suggest');
+          return defer('suggest');
+        }
+        if (url.includes('tags/get')) {
+          calls.push('tags');
+          return Promise.resolve({ data: { cached_tag: 8, fresh_tag: 1 } });
+        }
+        return Promise.reject(new Error(`Unhandled url ${url}`));
+      });
+
+      window.history.pushState({}, '', '?url=https%3A%2F%2Ftesting.com%2F&title=T');
+      const store = await renderAppWithStore();
+
+      // No timers have been advanced: the two user-facing requests are already
+      // out, the big tag download is not, and autocomplete has the cached tags.
+      expect(calls).toEqual(['lookup', 'suggest']);
+      expect(store.getState().tags.tagCounts).toEqual({ cached_tag: 7 });
+      expect(store.getState().bookmark.initialLoading).toBe(true);
+
+      // Suggestions come back first; the lookup is still pending, so still no tags/get.
+      await act(async () => {
+        deferred.suggest({
+          data: { suggestions: { popular: [], recommended: ['server_tag'] }, preview: null },
+        });
+      });
+      await act(async () => {
+        vi.advanceTimersByTime(10_000);
+      });
+      expect(calls).toEqual(['lookup', 'suggest']);
+
+      // The lookup settles. The refresh waits out the courtesy gap, then fires once.
+      await act(async () => {
+        deferred.lookup({ data: { posts: [] } });
+      });
+      await waitFor(() => expect(store.getState().bookmark.initialLoading).toBe(false));
+      await act(async () => {
+        vi.advanceTimersByTime(2_000);
+      });
+      expect(calls).toEqual(['lookup', 'suggest']);
+
+      await act(async () => {
+        vi.advanceTimersByTime(1_500);
+      });
+      expect(calls).toEqual(['lookup', 'suggest', 'tags']);
+      await waitFor(() =>
+        expect(store.getState().tags.tagCounts).toEqual({ cached_tag: 8, fresh_tag: 1 })
+      );
+
+      await act(async () => {
+        vi.advanceTimersByTime(60_000);
+      });
+      expect(calls).toEqual(['lookup', 'suggest', 'tags']);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

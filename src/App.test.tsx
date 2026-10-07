@@ -228,6 +228,103 @@ describe('App GPT integration', () => {
     );
   });
 
+  it('looks up the bookmarklet URL immediately, without the typing debounce', async () => {
+    vi.useFakeTimers();
+    try {
+      seedCredentials();
+      pushSearch('?url=https%3A%2F%2Fexample.com%2Fimmediate');
+      renderWithStore();
+      // No timers advanced: the lookup for the opening URL must already be out.
+      expect(fetchBookmarkDetailsMock).toHaveBeenCalledWith(
+        'https://example.com/immediate'
+      );
+      expect(fetchSuggestedTagsMock).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('still debounces URLs the user types after opening', async () => {
+    vi.useFakeTimers();
+    try {
+      seedCredentials();
+      pushSearch('?url=https%3A%2F%2Fexample.com%2Ffirst');
+      const { store } = renderWithStore();
+      expect(fetchBookmarkDetailsMock).toHaveBeenCalledTimes(1);
+
+      act(() => {
+        store.dispatch(setFormData({ url: 'https://example.com/second' }));
+      });
+      act(() => {
+        vi.advanceTimersByTime(400);
+      });
+      expect(fetchBookmarkDetailsMock).toHaveBeenCalledTimes(1);
+
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+      expect(fetchBookmarkDetailsMock).toHaveBeenCalledTimes(2);
+      expect(fetchBookmarkDetailsMock).toHaveBeenLastCalledWith(
+        'https://example.com/second'
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('dispatches GPT once the bookmark lookup settles, without waiting for Pinboard suggestions', async () => {
+    // Pinboard suggestions never resolve in this test.
+    fetchSuggestedTagsMock.mockImplementation(() => (dispatch) => {
+      dispatch({ type: 'tags/fetchSuggested/pending' });
+    });
+    // The lookup starts but does not finish until we say so.
+    fetchBookmarkDetailsMock.mockImplementationOnce(() => (dispatch) => {
+      dispatch({
+        type: 'bookmark/fetchDetails/pending',
+        meta: { requestId: 'req-1', arg: 'https://example.com' },
+      });
+    });
+    seedCredentials();
+    pushSearch('?url=https%3A%2F%2Fexample.com');
+    const { store } = renderWithStore();
+
+    await waitFor(() => {
+      expect(store.getState().bookmark.initialLoading).toBe(true);
+    });
+    await waitForStableCalls();
+    expect(fetchGptSuggestionsMock).not.toHaveBeenCalled();
+
+    act(() => {
+      store.dispatch({
+        type: 'bookmark/fetchDetails/fulfilled',
+        payload: null,
+        meta: { requestId: 'req-1', arg: 'https://example.com' },
+      });
+    });
+    await waitFor(() => {
+      expect(fetchGptSuggestionsMock).toHaveBeenCalledTimes(1);
+    });
+    expect(store.getState().tags.suggestedStatus).toBe('loading');
+  });
+
+  it('keeps the user’s edits when credentials change after opening', async () => {
+    seedCredentials();
+    pushSearch('?url=https%3A%2F%2Fexample.com&title=Original');
+    const { store } = renderWithStore();
+    await waitFor(() => {
+      expect(store.getState().bookmark.formData.title).toBe('Original');
+    });
+
+    act(() => {
+      store.dispatch(setFormData({ title: 'Edited by hand' }));
+    });
+    act(() => {
+      store.dispatch(setAuth({ user: 'other', token: 'zzz', openAiToken: '' }));
+    });
+    await waitForStableCalls();
+    expect(store.getState().bookmark.formData.title).toBe('Edited by hand');
+  });
+
   it('binds Escape key to window.close', async () => {
     const closeSpy = vi.spyOn(window, 'close').mockImplementation(() => undefined);
     seedCredentials();

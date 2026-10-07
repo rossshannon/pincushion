@@ -52,9 +52,23 @@ Pincushion is designed for modern browsers like Chrome, Safari, Comet, Atlas, Ed
 
 - Clone the repository to your computer. `git clone https://github.com/rossshannon/pincushion.git`
 - Switch into the new directory and run `yarn install` or `npm install`
-- Run `npm start` to start the development server. A web server will be booted to run Pincushion on localhost port 3000 (http://localhost:3000).
+- Run `npm start` to start the development server. A web server will be booted to run Pincushion on localhost port 5173 (http://localhost:5173).
+- To use a local [pinboard-bridge](https://github.com/rossshannon/pinboard-bridge) instead of the hosted one, create a `.env.local` file containing `VITE_PINBOARD_BRIDGE_URL=http://localhost:1337`.
 
 ## Changelog
+
+### 2.3 (2026-10-07)
+
+- Make the popup faster to open and more honest while it waits:
+  - Look up the bookmarklet's URL the instant the popup opens instead of after the half-second typing debounce.
+  - Stop re-downloading the full tag list on every open (and again ten seconds later). The cached copy is trusted for an hour, refreshed in the background only after the bookmark lookup and suggestions have settled, and patched locally with the tags of each bookmark you save.
+  - Start the AI tag suggestions as soon as the existing-bookmark lookup finishes, rather than also waiting for Pinboard's suggestions and the page-preview scrape.
+  - Add request timeouts with plain-language messages, so a stalled bridge no longer leaves the Save button disabled for half a minute.
+  - Preconnect to the API bridge and ping it from the HTML head, before the JavaScript bundle has even loaded, to warm the connection and wake a sleeping dyno.
+  - Load the web font asynchronously (and only the one weight that is used) so it never blocks first paint.
+- Fix: saving Settings no longer resets the form to the bookmarklet's original values.
+- The bridge URL is configurable via `VITE_PINBOARD_BRIDGE_URL` (see `.env`), handy for pointing a dev build at a local `pinboard-bridge`.
+- Pairs with pinboard-bridge 2.1.0, which gzips responses, caches CORS preflights, and stops counting them against the rate limit.
 
 ### 2.2 (2025-11-14)
 

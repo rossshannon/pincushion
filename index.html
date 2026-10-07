@@ -15,13 +15,56 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
 
+    <!--
+      Open the TCP+TLS connection to the API bridge while the JS bundle is
+      still downloading, so the first real request doesn't pay for the
+      handshake. `crossorigin` matters: our API calls are anonymous CORS
+      requests and browsers keep a separate connection pool for those.
+      %VITE_PINBOARD_BRIDGE_URL% is substituted by Vite from .env.
+    -->
+    <link rel="preconnect" href="%VITE_PINBOARD_BRIDGE_URL%" crossorigin />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!--
+      Wake the bridge up as early as possible. A Heroku dyno that has gone to
+      sleep takes several seconds to boot, and nothing but a real HTTP request
+      starts that clock. This fires before React has even been parsed. It is a
+      no-cors, fire-and-forget ping: the response is deliberately ignored.
+    -->
+    <script>
+      try {
+        fetch('%VITE_PINBOARD_BRIDGE_URL%/health', {
+          mode: 'no-cors',
+          cache: 'no-store',
+          credentials: 'omit',
+        }).catch(function () {});
+      } catch (err) {
+        /* fetch unavailable: nothing to warm up with */
+      }
+    </script>
+
+    <!--
+      Open Sans 300 is only used for the tag counts inside the autocomplete
+      menu, so it must never block first paint: load it asynchronously via
+      the media-swap trick and let text render in the fallback font meanwhile.
+    -->
     <link
       rel="stylesheet"
-      type="text/css"
-      href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700"
+      href="https://fonts.googleapis.com/css?family=Open+Sans:300&display=swap"
+      media="print"
+      onload="this.media='all'"
       referrerpolicy="no-referrer"
       crossorigin="anonymous"
     />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css?family=Open+Sans:300&display=swap"
+        referrerpolicy="no-referrer"
+        crossorigin="anonymous"
+      />
+    </noscript>
 
     <link
       rel="shortcut icon"

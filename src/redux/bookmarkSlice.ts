@@ -5,6 +5,14 @@ import {
 } from '@reduxjs/toolkit';
 import axios from 'axios';
 import { cleanUrl } from '../utils/url';
+import {
+  bridgeRequestConfig,
+  bridgeUrl,
+  isTimeoutError,
+  REQUEST_TIMEOUTS_MS,
+} from '../services/pinboardApi';
+import { bumpTagCache, diffTagLists, isEmptyDelta } from '../utils/tagCache';
+import { recordSavedTags } from './tagSlice';
 import type { AuthState } from './authSlice';
 
 export type BookmarkFormData = {
@@ -34,6 +42,8 @@ export type BookmarkState = {
   existingBookmarkTime: string | null;
   hasExistingBookmark: boolean;
   displayOriginalTimestamp: boolean;
+  /** Tags the bookmark had on Pinboard when it was loaded; [] if new. */
+  existingBookmarkTags: string[];
 };
 
 type BookmarkThunkState = {
@@ -121,6 +131,9 @@ const ERROR_MESSAGES: Record<string, string> = {
   MISSING_TITLE: 'Title is required.',
   URL_TOO_LONG: 'URL is too long.',
   GENERIC_ERROR: 'An unexpected error occurred. Please try again.',
+  LOOKUP_TIMEOUT:
+    'Pinboard didn’t respond in time, so we couldn’t check for an existing bookmark. You can still save.',
+  SAVE_TIMEOUT: 'Pinboard didn’t respond in time. Please try saving again.',
   // Add more specific API error codes if needed, e.g.:
   // 'item already exists': 'This bookmark already exists.'
 };
@@ -130,10 +143,10 @@ export const submitBookmark = createAsyncThunk<
   PinboardAddResponse,
   void,
   { state: BookmarkThunkState; rejectValue: SubmitRejectValue }
->('bookmark/submit', async (_, { getState, rejectWithValue }) => {
+>('bookmark/submit', async (_, { getState, dispatch, rejectWithValue }) => {
   const {
     auth: { user, token },
-    bookmark: { formData },
+    bookmark: { formData, existingBookmarkTags },
   } = getState();
 
   // --- Client-side validation ---
@@ -177,14 +190,20 @@ export const submitBookmark = createAsyncThunk<
 
   try {
     const response = await axios.get(
-      `https://pinboard-api.herokuapp.com/v1/posts/add?${params.toString()}`,
-      {
-        headers: {
-          Authorization: `Bearer ${user}:${token}`,
-        },
-      }
+      bridgeUrl(`/v1/posts/add?${params.toString()}`),
+      bridgeRequestConfig(user, token, REQUEST_TIMEOUTS_MS.save)
     );
     if (response.data.result_code === 'done') {
+      // Fold the change in tags into the local tag counts so the next
+      // popup's autocomplete already reflects it without refetching
+      // /tags/get. Only the delta counts: re-saving an existing bookmark
+      // with the same tags must not inflate them, and a tag removed from
+      // its last bookmark must drop out.
+      const delta = diffTagLists(existingBookmarkTags || [], formData.tags || []);
+      if (!isEmptyDelta(delta)) {
+        dispatch(recordSavedTags(delta));
+        bumpTagCache(user, delta);
+      }
       return response.data;
     } else {
       // Reject with API error message (e.g., 'item already exists')
@@ -193,6 +212,9 @@ export const submitBookmark = createAsyncThunk<
   } catch (err) {
     if (isUrlTooLongError(err)) {
       return rejectWithValue({ urlTooLongError: true });
+    }
+    if (isTimeoutError(err)) {
+      return rejectWithValue({ genericError: ERROR_MESSAGES.SAVE_TIMEOUT });
     }
     if (axios.isAxiosError(err)) {
       return rejectWithValue({
@@ -225,14 +247,8 @@ export const fetchBookmarkDetails = createAsyncThunk<
     try {
       // Fetch details: strip fragment and encode URL parameter
       const response = await axios.get(
-        `https://pinboard-api.herokuapp.com/v1/posts/get?format=json&url=${cleanUrl(
-          targetUrl
-        )}`,
-        {
-          headers: {
-            Authorization: `Bearer ${user}:${token}`,
-          },
-        }
+        bridgeUrl(`/v1/posts/get?format=json&url=${cleanUrl(targetUrl)}`),
+        bridgeRequestConfig(user, token, REQUEST_TIMEOUTS_MS.lookup)
       );
       if (response.data.posts && response.data.posts.length === 1) {
         return response.data.posts[0];
@@ -241,6 +257,9 @@ export const fetchBookmarkDetails = createAsyncThunk<
     } catch (err) {
       if (isUrlTooLongError(err)) {
         return rejectWithValue(`${ERROR_MESSAGES.URL_TOO_LONG} (HTTP 414).`);
+      }
+      if (isTimeoutError(err)) {
+        return rejectWithValue(ERROR_MESSAGES.LOOKUP_TIMEOUT);
       }
       const message =
         err instanceof Error
@@ -274,6 +293,7 @@ const initialState: BookmarkState = {
   existingBookmarkTime: null,
   hasExistingBookmark: false,
   displayOriginalTimestamp: false,
+  existingBookmarkTags: [],
 };
 
 const bookmarkSlice = createSlice({
@@ -308,6 +328,7 @@ const bookmarkSlice = createSlice({
         state.existingBookmarkTime = null;
         state.hasExistingBookmark = false;
         state.displayOriginalTimestamp = false;
+        state.existingBookmarkTags = [];
         // Reset errors to the full initial structure
         state.errors = { ...initialState.errors };
         state.lastFetchRequestId = action.meta.requestId;
@@ -350,6 +371,7 @@ const bookmarkSlice = createSlice({
           state.formData.description =
             post.extended || state.formData.description;
           state.formData.tags = toTagArray(post.tags);
+          state.existingBookmarkTags = [...state.formData.tags];
           state.formData.private = post.shared === 'no';
           state.formData.toread = post.toread === 'yes';
           state.existingBookmarkTime =
@@ -360,6 +382,7 @@ const bookmarkSlice = createSlice({
           state.hasExistingBookmark = false;
           state.existingBookmarkTime = null;
           state.displayOriginalTimestamp = false;
+          state.existingBookmarkTags = [];
         }
       })
       .addCase(fetchBookmarkDetails.rejected, (state, action) => {
@@ -408,6 +431,9 @@ const bookmarkSlice = createSlice({
           state.existingBookmarkTime = new Date().toISOString();
         }
         state.displayOriginalTimestamp = alreadyHadBookmark;
+        // Whatever was just saved is now the bookmark's baseline for the
+        // next delta.
+        state.existingBookmarkTags = [...state.formData.tags];
         // Reset errors to the full initial structure
         state.errors = { ...initialState.errors };
       })

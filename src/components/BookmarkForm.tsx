@@ -268,7 +268,7 @@ function BookmarkForm() {
     getTimestampFormats(existingBookmarkTime);
 
   const buttonText = () => {
-    if (initialLoading) return 'Loading…';
+    if (initialLoading) return 'Checking Pinboard…';
     if (status === 'saving') return 'Saving…';
     if (status === 'success') return 'Bookmark saved!';
     if (status === 'error') return 'Save failed';
