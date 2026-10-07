@@ -10,7 +10,7 @@ import {
   bridgeUrl,
   REQUEST_TIMEOUTS_MS,
 } from '../services/pinboardApi';
-import { incrementTagCounts, writeTagCache } from '../utils/tagCache';
+import { applyTagDelta, writeTagCache, type TagDelta } from '../utils/tagCache';
 import {
   fetchGptTagSuggestions,
   filterRecentTagsForRelevance,
@@ -378,12 +378,14 @@ const tagSlice = createSlice({
           : {};
     },
     /**
-     * Bump the in-memory counts for tags that were just saved on a bookmark,
-     * so autocomplete ranks them correctly without waiting for a refetch.
+     * Apply the tag delta of a bookmark that was just saved (tags it gained
+     * and tags it lost) to the in-memory counts, so autocomplete ranks them
+     * correctly without waiting for a refetch.
      */
-    recordSavedTags(state, action: PayloadAction<string[]>) {
-      if (!Array.isArray(action.payload) || action.payload.length === 0) return;
-      state.tagCounts = incrementTagCounts(state.tagCounts, action.payload);
+    recordSavedTags(state, action: PayloadAction<TagDelta>) {
+      const delta = action.payload;
+      if (!delta || !Array.isArray(delta.added) || !Array.isArray(delta.removed)) return;
+      state.tagCounts = applyTagDelta(state.tagCounts, delta);
     },
     /**
      * Load recent tags from localStorage

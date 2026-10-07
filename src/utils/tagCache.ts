@@ -66,17 +66,49 @@ export const writeTagCache = (user: string, counts: TagCounts): boolean => {
   }
 };
 
+export type TagDelta = {
+  /** Tags the saved bookmark gained (or all of them for a new bookmark). */
+  added: string[];
+  /** Tags the saved bookmark lost compared to its previous state. */
+  removed: string[];
+};
+
+const normalizeTagList = (tags: string[]): string[] =>
+  tags
+    .map((tag) => (typeof tag === 'string' ? tag.trim() : ''))
+    .filter(Boolean);
+
 /**
- * Apply a just-saved bookmark's tags to the cached counts so the next popup
- * sees them in autocomplete without another /v1/tags/get round trip.
+ * Work out which tags a save actually added or removed, relative to the
+ * tags the bookmark had before (empty for a brand-new bookmark). Saving an
+ * unchanged bookmark yields an empty delta.
+ */
+export const diffTagLists = (
+  previousTags: string[],
+  nextTags: string[]
+): TagDelta => {
+  const previous = new Set(normalizeTagList(previousTags));
+  const next = new Set(normalizeTagList(nextTags));
+  return {
+    added: [...next].filter((tag) => !previous.has(tag)),
+    removed: [...previous].filter((tag) => !next.has(tag)),
+  };
+};
+
+export const isEmptyDelta = (delta: TagDelta): boolean =>
+  delta.added.length === 0 && delta.removed.length === 0;
+
+/**
+ * Apply a just-saved bookmark's tag delta to the cached counts so the next
+ * popup sees them in autocomplete without another /v1/tags/get round trip.
  * Leaves the timestamp alone: this is a local patch, not a refresh.
  */
-export const bumpTagCache = (user: string, tags: string[]): boolean => {
+export const bumpTagCache = (user: string, delta: TagDelta): boolean => {
   const storage = getStorage();
-  if (!storage || tags.length === 0) return false;
+  if (!storage || isEmptyDelta(delta)) return false;
   const entry = readTagCache(user);
   if (!entry) return false;
-  const counts = incrementTagCounts(entry.counts, tags);
+  const counts = applyTagDelta(entry.counts, delta);
   try {
     storage.setItem(TAGS_KEY, JSON.stringify(counts));
     storage.setItem(USER_KEY, user);
@@ -86,15 +118,23 @@ export const bumpTagCache = (user: string, tags: string[]): boolean => {
   }
 };
 
-export const incrementTagCounts = (
-  counts: TagCounts,
-  tags: string[]
-): TagCounts => {
+/**
+ * Pure: returns new counts with added tags incremented and removed tags
+ * decremented. A tag whose count reaches zero disappears, matching what
+ * Pinboard's /tags/get would report once the bookmark no longer uses it.
+ */
+export const applyTagDelta = (counts: TagCounts, delta: TagDelta): TagCounts => {
   const next: TagCounts = { ...counts };
-  tags.forEach((tag) => {
-    const trimmed = typeof tag === 'string' ? tag.trim() : '';
-    if (!trimmed) return;
-    next[trimmed] = (next[trimmed] || 0) + 1;
+  normalizeTagList(delta.added).forEach((tag) => {
+    next[tag] = (next[tag] || 0) + 1;
+  });
+  normalizeTagList(delta.removed).forEach((tag) => {
+    const remaining = (next[tag] || 0) - 1;
+    if (remaining > 0) {
+      next[tag] = remaining;
+    } else {
+      delete next[tag];
+    }
   });
   return next;
 };

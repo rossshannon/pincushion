@@ -36,6 +36,7 @@ const initialState = {
   existingBookmarkTime: null,
   hasExistingBookmark: false,
   displayOriginalTimestamp: false,
+  existingBookmarkTags: [],
 };
 
 // Helper to create a mock store
@@ -396,12 +397,92 @@ describe('bookmark slice', () => {
         expect(recordingStore.getState().tags).toEqual([
           expect.objectContaining({
             type: 'tags/recordSavedTags',
-            payload: ['submit', 'tag'],
+            payload: { added: ['submit', 'tag'], removed: [] },
           }),
         ]);
         expect(JSON.parse(window.localStorage.getItem('tags'))).toEqual({
           submit: 2,
           tag: 1,
+        });
+        expect(recordingStore.getState().bookmark.existingBookmarkTags).toEqual([
+          'submit',
+          'tag',
+        ]);
+        window.localStorage.clear();
+      });
+
+      it('applies only the tag delta when updating an existing bookmark', async () => {
+        window.localStorage.setItem('tags', JSON.stringify({ submit: 4, old: 1 }));
+        window.localStorage.setItem('tagTimestamp', `${Date.now()}`);
+        window.localStorage.setItem('tagCacheUser', 'testUser');
+        mockedAxios.get.mockResolvedValueOnce({ data: { result_code: 'done' } });
+
+        const recordingStore = configureStore({
+          reducer: {
+            auth: (state = { user: 'testUser', token: 'testToken' }) => state,
+            bookmark: bookmarkReducer,
+            tags: (state = [], action) =>
+              action.type.startsWith('tags/') ? [...state, action] : state,
+          },
+          preloadedState: {
+            // The bookmark was loaded with tags ['submit', 'old']; the user
+            // removed 'old' and added 'tag', keeping 'submit'.
+            bookmark: {
+              ...initialState,
+              formData: validFormData,
+              hasExistingBookmark: true,
+              existingBookmarkTags: ['submit', 'old'],
+            },
+            auth: { user: 'testUser', token: 'testToken' },
+            tags: [],
+          },
+        });
+        await recordingStore.dispatch(submitBookmark());
+
+        expect(recordingStore.getState().tags).toEqual([
+          expect.objectContaining({
+            type: 'tags/recordSavedTags',
+            payload: { added: ['tag'], removed: ['old'] },
+          }),
+        ]);
+        // 'submit' is unchanged, 'old' hit zero and vanished, 'tag' is new.
+        expect(JSON.parse(window.localStorage.getItem('tags'))).toEqual({
+          submit: 4,
+          tag: 1,
+        });
+        window.localStorage.clear();
+      });
+
+      it('leaves the tag counts alone when re-saving an unchanged bookmark', async () => {
+        window.localStorage.setItem('tags', JSON.stringify({ submit: 4, tag: 2 }));
+        window.localStorage.setItem('tagTimestamp', `${Date.now()}`);
+        window.localStorage.setItem('tagCacheUser', 'testUser');
+        mockedAxios.get.mockResolvedValueOnce({ data: { result_code: 'done' } });
+
+        const recordingStore = configureStore({
+          reducer: {
+            auth: (state = { user: 'testUser', token: 'testToken' }) => state,
+            bookmark: bookmarkReducer,
+            tags: (state = [], action) =>
+              action.type.startsWith('tags/') ? [...state, action] : state,
+          },
+          preloadedState: {
+            bookmark: {
+              ...initialState,
+              formData: validFormData,
+              hasExistingBookmark: true,
+              existingBookmarkTags: ['tag', 'submit'],
+            },
+            auth: { user: 'testUser', token: 'testToken' },
+            tags: [],
+          },
+        });
+        await recordingStore.dispatch(submitBookmark());
+
+        expect(recordingStore.getState().tags).toEqual([]);
+        expect(JSON.parse(window.localStorage.getItem('tags'))).toEqual({
+          submit: 4,
+          tag: 2,
         });
         window.localStorage.clear();
       });

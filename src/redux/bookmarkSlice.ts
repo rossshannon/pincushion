@@ -11,7 +11,7 @@ import {
   isTimeoutError,
   REQUEST_TIMEOUTS_MS,
 } from '../services/pinboardApi';
-import { bumpTagCache } from '../utils/tagCache';
+import { bumpTagCache, diffTagLists, isEmptyDelta } from '../utils/tagCache';
 import { recordSavedTags } from './tagSlice';
 import type { AuthState } from './authSlice';
 
@@ -42,6 +42,8 @@ export type BookmarkState = {
   existingBookmarkTime: string | null;
   hasExistingBookmark: boolean;
   displayOriginalTimestamp: boolean;
+  /** Tags the bookmark had on Pinboard when it was loaded; [] if new. */
+  existingBookmarkTags: string[];
 };
 
 type BookmarkThunkState = {
@@ -144,7 +146,7 @@ export const submitBookmark = createAsyncThunk<
 >('bookmark/submit', async (_, { getState, dispatch, rejectWithValue }) => {
   const {
     auth: { user, token },
-    bookmark: { formData },
+    bookmark: { formData, existingBookmarkTags },
   } = getState();
 
   // --- Client-side validation ---
@@ -192,12 +194,15 @@ export const submitBookmark = createAsyncThunk<
       bridgeRequestConfig(user, token, REQUEST_TIMEOUTS_MS.save)
     );
     if (response.data.result_code === 'done') {
-      // Fold the saved tags into the local tag counts so the next popup's
-      // autocomplete already knows about them without refetching /tags/get.
-      const savedTags = formData.tags || [];
-      if (savedTags.length > 0) {
-        dispatch(recordSavedTags(savedTags));
-        bumpTagCache(user, savedTags);
+      // Fold the change in tags into the local tag counts so the next
+      // popup's autocomplete already reflects it without refetching
+      // /tags/get. Only the delta counts: re-saving an existing bookmark
+      // with the same tags must not inflate them, and a tag removed from
+      // its last bookmark must drop out.
+      const delta = diffTagLists(existingBookmarkTags || [], formData.tags || []);
+      if (!isEmptyDelta(delta)) {
+        dispatch(recordSavedTags(delta));
+        bumpTagCache(user, delta);
       }
       return response.data;
     } else {
@@ -288,6 +293,7 @@ const initialState: BookmarkState = {
   existingBookmarkTime: null,
   hasExistingBookmark: false,
   displayOriginalTimestamp: false,
+  existingBookmarkTags: [],
 };
 
 const bookmarkSlice = createSlice({
@@ -322,6 +328,7 @@ const bookmarkSlice = createSlice({
         state.existingBookmarkTime = null;
         state.hasExistingBookmark = false;
         state.displayOriginalTimestamp = false;
+        state.existingBookmarkTags = [];
         // Reset errors to the full initial structure
         state.errors = { ...initialState.errors };
         state.lastFetchRequestId = action.meta.requestId;
@@ -364,6 +371,7 @@ const bookmarkSlice = createSlice({
           state.formData.description =
             post.extended || state.formData.description;
           state.formData.tags = toTagArray(post.tags);
+          state.existingBookmarkTags = [...state.formData.tags];
           state.formData.private = post.shared === 'no';
           state.formData.toread = post.toread === 'yes';
           state.existingBookmarkTime =
@@ -374,6 +382,7 @@ const bookmarkSlice = createSlice({
           state.hasExistingBookmark = false;
           state.existingBookmarkTime = null;
           state.displayOriginalTimestamp = false;
+          state.existingBookmarkTags = [];
         }
       })
       .addCase(fetchBookmarkDetails.rejected, (state, action) => {
@@ -422,6 +431,9 @@ const bookmarkSlice = createSlice({
           state.existingBookmarkTime = new Date().toISOString();
         }
         state.displayOriginalTimestamp = alreadyHadBookmark;
+        // Whatever was just saved is now the bookmark's baseline for the
+        // next delta.
+        state.existingBookmarkTags = [...state.formData.tags];
         // Reset errors to the full initial structure
         state.errors = { ...initialState.errors };
       })
