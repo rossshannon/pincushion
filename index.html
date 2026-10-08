@@ -8,7 +8,6 @@
       name="description"
       content="Pincushion — Enhanced Pinboard Bookmarklet"
     />
-    <meta http-equiv="cache-control" content="no-cache" />
     <title>Pincushion — Save a Bookmark</title>
 
     <meta name="apple-touch-fullscreen" content="yes" />
@@ -48,6 +47,9 @@
       Open Sans 300 is only used for the tag counts inside the autocomplete
       menu, so it must never block first paint: load it asynchronously via
       the media-swap trick and let text render in the fallback font meanwhile.
+      No `crossorigin` on the stylesheet: a plain (non-CORS) stylesheet fetch
+      reuses the plain preconnect above, whereas the font files it references
+      are CORS fetches and use the `crossorigin` preconnect to fonts.gstatic.
     -->
     <link
       rel="stylesheet"
@@ -55,14 +57,12 @@
       media="print"
       onload="this.media='all'"
       referrerpolicy="no-referrer"
-      crossorigin="anonymous"
     />
     <noscript>
       <link
         rel="stylesheet"
         href="https://fonts.googleapis.com/css?family=Open+Sans:300&display=swap"
         referrerpolicy="no-referrer"
-        crossorigin="anonymous"
       />
     </noscript>
 

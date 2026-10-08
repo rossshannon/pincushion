@@ -57,6 +57,12 @@ Pincushion is designed for modern browsers like Chrome, Safari, Comet, Atlas, Ed
 
 ## Changelog
 
+### 2.3.1 (2026-10-08)
+
+- Load the Google Fonts stylesheet without `crossorigin`, so it actually reuses the preconnected connection.
+- Drop the `http-equiv="cache-control"` meta tag, which browsers ignore.
+- Keep previous builds' hashed assets on the Pages branch, so a browser holding a ten-minute-old `index.html` after a deploy still gets a working popup.
+
 ### 2.3 (2026-10-07)
 
 - Make the popup faster to open and more honest while it waits:
