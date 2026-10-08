@@ -35,3 +35,8 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./build
+          # GitHub Pages serves index.html with max-age=600, so for up to ten
+          # minutes after a deploy a browser may still hold the previous
+          # index.html and request the previous build's hashed assets. Keep
+          # them on the branch so that window never produces a blank popup.
+          keep_files: true
