@@ -56,6 +56,7 @@ const TagSuggestions: React.FC<TagSuggestionsProps> = ({
                   <span
                     ref={nodeRef as React.RefObject<HTMLSpanElement>}
                     className="separator"
+                    role="separator"
                     aria-label="AI tag suggestions"
                   >
                     &bull;

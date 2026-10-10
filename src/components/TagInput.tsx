@@ -105,10 +105,6 @@ const TagInput: React.FC<TagInputProps> = ({
         paddingLeft: 0,
         paddingRight: 0,
         borderRadius: 0,
-        ':hover': {
-          backgroundColor: 'var(--pincushion-tag-chip-remove-hover)',
-          color: 'inherit',
-        },
       }),
     }),
     []
@@ -193,7 +189,7 @@ const TagInput: React.FC<TagInputProps> = ({
 
       return (
         <div className="item">
-          {labelElement}
+          <span className="item__label">{labelElement}</span>
           <span className={`optioncount ${weightClass}`}>
             <span className="tag-count">{numericCount}</span>
           </span>
