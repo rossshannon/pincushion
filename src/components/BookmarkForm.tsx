@@ -26,6 +26,10 @@ import type { RootState, AppDispatch } from '../redux/store';
 import { addRecentTags } from '../utils/recentTagStorage';
 
 const MIN_SPINNER_DURATION_MS = 400;
+const supportsFieldSizing =
+  typeof CSS !== 'undefined' &&
+  typeof CSS.supports === 'function' &&
+  CSS.supports('field-sizing', 'content');
 export const __TEST_MIN_SPINNER_DURATION = MIN_SPINNER_DURATION_MS;
 
 type ErrorField = keyof Pick<BookmarkFormData, 'url' | 'title' | 'description'>;
@@ -247,12 +251,13 @@ function BookmarkForm() {
     dispatch(removeRecentTag(tagToAdd));
   };
 
+  // CSS `field-sizing: content` grows the textarea on its own. Only browsers
+  // without it need the height measured by hand.
   const resizeTextarea = () => {
     const el = descRef.current;
-    if (el) {
-      el.style.height = 'auto';
-      el.style.height = `${el.scrollHeight}px`;
-    }
+    if (!el || supportsFieldSizing) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
   };
 
   useEffect(() => {
@@ -288,9 +293,6 @@ function BookmarkForm() {
       role="form"
     >
       <div id="bookmark-save" className="bookmark-save">
-        {initialLoading && (
-          <i id="mainspinner" className="fa fa-spinner fa-spin" />
-        )}
         <button
           ref={btnRef}
           id="submit"
@@ -376,7 +378,6 @@ function BookmarkForm() {
         value={formData.description}
         onChange={handleChange}
         onInput={resizeTextarea}
-        style={{ overflow: 'hidden', resize: 'vertical' }}
         tabIndex={3}
       />
       {errors?.description && (

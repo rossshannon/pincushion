@@ -3,7 +3,17 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="color-scheme" content="light dark" />
+    <meta
+      name="theme-color"
+      content="#fdfdfd"
+      media="(prefers-color-scheme: light)"
+    />
+    <meta
+      name="theme-color"
+      content="#11121a"
+      media="(prefers-color-scheme: dark)"
+    />
     <meta
       name="description"
       content="Pincushion — Enhanced Pinboard Bookmarklet"
@@ -44,8 +54,11 @@
     </script>
 
     <!--
-      Open Sans 300 is only used for the tag counts inside the autocomplete
-      menu, so it must never block first paint: load it asynchronously via
+      Open Sans is only used for the tag counts inside the autocomplete menu
+      (300, plus 600 and 700 for heavily used tags; the stylesheet sets
+      font-synthesis: none, so every weight it uses must be loaded). Browsers
+      only download the faces that are actually rendered. It must never block
+      first paint: load it asynchronously via
       the media-swap trick and let text render in the fallback font meanwhile.
       No `crossorigin` on the stylesheet: a plain (non-CORS) stylesheet fetch
       reuses the plain preconnect above, whereas the font files it references
@@ -53,7 +66,7 @@
     -->
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css?family=Open+Sans:300&display=swap"
+      href="https://fonts.googleapis.com/css?family=Open+Sans:300,600,700&display=swap"
       media="print"
       onload="this.media='all'"
       referrerpolicy="no-referrer"
@@ -61,7 +74,7 @@
     <noscript>
       <link
         rel="stylesheet"
-        href="https://fonts.googleapis.com/css?family=Open+Sans:300&display=swap"
+        href="https://fonts.googleapis.com/css?family=Open+Sans:300,600,700&display=swap"
         referrerpolicy="no-referrer"
       />
     </noscript>

@@ -74,13 +74,15 @@
     "test:watch": "vitest",
     "lint": "eslint \"src/**/*.{js,jsx,ts,tsx}\" \"**/*.test.{js,jsx,ts,tsx}\"",
     "lint:fix": "npm run lint -- --fix",
+    "lint:css": "stylelint \"src/**/*.css\"",
     "prepare": "husky",
     "typecheck": "tsc --noEmit",
     "analyze": "npx source-map-explorer 'build/assets/*.js'"
   },
   "lint-staged": {
     "src/**/*.{js,jsx,ts,tsx}": "eslint --fix",
-    "**/*.test.{js,jsx,ts,tsx}": "eslint --fix"
+    "**/*.test.{js,jsx,ts,tsx}": "eslint --fix",
+    "src/**/*.css": "stylelint --fix"
   },
   "browserslist": {
     "production": [

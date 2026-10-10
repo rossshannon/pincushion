@@ -1,9 +1,14 @@
+/*
+ * react-select injects its own emotion styles after this sheet at the same
+ * specificity, so the overrides below still need !important.
+ */
+
 .pincushion-tag-select__control {
   background: var(--pincushion-surface-bg) !important;
   border: 1px solid var(--pincushion-border) !important;
   color: var(--pincushion-text-primary) !important;
   border-radius: 6px !important;
-  min-height: 46px;
+  min-block-size: 46px;
   box-shadow: none !important;
 }
 
@@ -12,13 +17,20 @@
   box-shadow: 0 0 0 1px var(--pincushion-accent) !important;
 }
 
+/* The control draws the focus ring with box-shadow; a transparent outline on
+   the inner input keeps a ring in forced-colours mode. */
+.pincushion-tag-select__input-container input:focus-visible {
+  outline: 2px solid transparent;
+}
+
 .pincushion-tag-select__value-container {
-  padding: 4px 8px !important;
+  padding-block: 4px !important;
+  padding-inline: 8px !important;
   color: var(--pincushion-text-primary);
 }
 
 .pincushion-tag-select__placeholder {
-  margin-left: 7px !important;
+  margin-inline-start: 7px !important;
   color: var(--pincushion-text-muted) !important;
 }
 
@@ -26,6 +38,13 @@
 .pincushion-tag-select__input-container,
 .pincushion-tag-select__input input {
   color: var(--pincushion-text-primary) !important;
+}
+
+/* iOS Safari zooms the page into any field set below 16px. */
+@media (pointer: coarse) {
+  .pincushion-tag-select__control {
+    font-size: max(16px, 1rem);
+  }
 }
 
 .pincushion-tag-select__indicator-separator {
@@ -41,8 +60,8 @@
   background: var(--pincushion-card-bg) !important;
   border: 1px solid var(--pincushion-border) !important;
   border-radius: 8px !important;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
-  margin-top: 4px !important;
+  box-shadow: 0 12px 32px oklch(0% 0 none / 0.4);
+  margin-block-start: 4px !important;
   color: var(--pincushion-text-primary);
 }
 
@@ -50,23 +69,27 @@
   padding: 0 !important;
 }
 
-
 .pincushion-tag-select__option {
   color: var(--pincushion-text-primary) !important;
   background: transparent !important;
-  padding: 0.45rem 1rem !important;
+  padding-block: 0.45rem !important;
+  padding-inline: 1rem !important;
 }
 
-.pincushion-tag-select__option:nth-child(even) {
-  background-color: color-mix(in srgb, var(--pincushion-card-bg) 85%, white) !important;
+/* Every option sits alone in its own virtualised row, so the stripe is keyed
+   off the row (see VirtualizedMenuList) rather than :nth-child. */
+.pincushion-tag-select__row--even .pincushion-tag-select__option {
+  background-color: color-mix(in oklch, var(--pincushion-card-bg) 85%, white) !important;
 }
 
-.pincushion-tag-select__option--is-focused {
-  background-color: rgba(132, 173, 255, 0.25) !important;
+.pincushion-tag-select__option--is-focused,
+.pincushion-tag-select__row--even .pincushion-tag-select__option--is-focused {
+  background-color: color-mix(in oklch, var(--pincushion-option-highlight) 25%, transparent) !important;
 }
 
-.pincushion-tag-select__option--is-selected {
-  background-color: rgba(132, 173, 255, 0.4) !important;
+.pincushion-tag-select__option--is-selected,
+.pincushion-tag-select__row--even .pincushion-tag-select__option--is-selected {
+  background-color: color-mix(in oklch, var(--pincushion-option-highlight) 40%, transparent) !important;
   color: var(--pincushion-text-primary) !important;
 }
 
@@ -74,9 +97,25 @@
   font-weight: 600;
 }
 
+/* Tag name on the left, count pushed to the far end. */
+.pincushion-tag-select__option .item {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+}
 
-.pincushion-tag-select__option
-  .optioncount:not(.tw10):not(.tw50):not(.tw100) {
+.pincushion-tag-select__option .item__label {
+  overflow: clip;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pincushion-tag-select__option .optioncount {
+  flex: none;
+  padding-inline-end: 10px;
+}
+
+.pincushion-tag-select__option .optioncount:not(.tw10, .tw50, .tw100) {
   color: var(--pincushion-optioncount-text) !important;
 }
 
@@ -90,38 +129,52 @@
   color: var(--pincushion-tag-chip-text);
   border-radius: 4px;
   background-color: var(--pincushion-tag-chip-bg);
-  background-image: var(--pincushion-tag-chip-gradient);
+  background-image: linear-gradient(to bottom, var(--pincushion-tag-chip-start), var(--pincushion-tag-chip-end));
   border: 1px solid var(--pincushion-tag-chip-border);
-  text-shadow: var(--pincushion-tag-chip-text-shadow);
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.18), inset 0 1px rgba(255, 255, 255, 0.05);
+  text-shadow: 0 1px 0 var(--pincushion-tag-chip-text-shadow);
+  box-shadow: 0 1px 0 oklch(0% 0 none / 0.18), inset 0 1px oklch(100% 0 none / 0.05);
   cursor: pointer !important;
 }
 
 .pincushion-tag-select__multi-value__label {
   color: inherit !important;
-  padding: 2px 6px !important;
+  padding-block: 2px !important;
+  padding-inline: 6px !important;
   letter-spacing: 0.4px;
 }
 
+/*
+ * The remove button is always shown on touch screens, where there is no
+ * hover to reveal it. With a fine pointer it slides out on hover, or when
+ * the tag is selected with the arrow keys.
+ */
 .pincushion-tag-select__multi-value__remove {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 0;
-  padding: 0 !important;
+  inline-size: 30px;
+  padding-block: 0 !important;
+  padding-inline: 4px !important;
   color: inherit;
-  border-left: 1px solid transparent;
-  transition: width 0.2s ease, padding 0.2s ease;
+  border-inline-start: 1px solid var(--pincushion-tag-chip-border);
 }
 
-.pincushion-tag-select__multi-value:hover .pincushion-tag-select__multi-value__remove {
-  width: 22px;
-  padding: 0 4px !important;
-  border-left-color: var(--pincushion-tag-chip-border);
+@media (hover: hover) and (pointer: fine) {
+  .pincushion-tag-select__multi-value:not(:hover, .pincushion-tag-select__multi-value--is-focused) .pincushion-tag-select__multi-value__remove {
+    inline-size: 0;
+    padding-inline: 0 !important;
+    border-inline-start-color: transparent;
+  }
+
+  .pincushion-tag-select__multi-value__remove:hover {
+    background-color: var(--pincushion-tag-chip-remove-hover) !important;
+  }
 }
 
-.pincushion-tag-select__multi-value__remove:hover {
-  background-color: var(--pincushion-tag-chip-remove-hover) !important;
+@media (prefers-reduced-motion: no-preference) {
+  .pincushion-tag-select__multi-value__remove {
+    transition: inline-size 0.2s var(--ease-out), padding 0.2s var(--ease-out);
+  }
 }
 
 .pincushion-tag-select__control input[type="text"],
@@ -129,7 +182,7 @@
 .pincushion-tag-select__control textarea {
   box-shadow: none !important;
   border: none !important;
-  max-width: none;
+  max-inline-size: none;
   padding: 0;
   background: transparent !important;
 }

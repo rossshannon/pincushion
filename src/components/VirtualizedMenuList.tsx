@@ -9,7 +9,13 @@ const Row = ({ data, index, style }: ListChildComponentProps<DataType>) => {
   const optionArray = React.Children.toArray(data.children);
   const OptionComponent = optionArray[index];
   const combinedStyle: CSSProperties = { ...style, overflow: 'hidden' };
-  return <div style={combinedStyle}>{OptionComponent}</div>;
+  // Options each sit alone in a row, so zebra striping can't use :nth-child.
+  const className = index % 2 === 1 ? 'pincushion-tag-select__row--even' : undefined;
+  return (
+    <div style={combinedStyle} className={className}>
+      {OptionComponent}
+    </div>
+  );
 };
 
 const VirtualizedMenuList = (

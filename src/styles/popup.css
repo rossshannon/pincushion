@@ -1,171 +1,196 @@
-html {
-  -ms-touch-action: manipulation;
-  touch-action: manipulation;
+/*
+ * Pincushion popup styles.
+ *
+ * Conventions (after https://github.com/vojtaholik/good-css):
+ * - Colours are OKLCH. Each token holds its light and dark value in one
+ *   light-dark() pair, so the theme follows `color-scheme` alone.
+ * - Translucent and tinted variants are derived with color-mix(in oklch, …)
+ *   rather than written out as a second colour.
+ * - Logical properties (inline/block) instead of left/right/top/bottom.
+ * - :hover lives inside a (hover: hover) and (pointer: fine) query; anything
+ *   that moves or scales lives inside (prefers-reduced-motion: no-preference).
+ * - Focus is drawn by :focus-visible outlines, never removed.
+ */
+
+/* ---------------------------------------------------------------- Reset */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
+
+h1,
+h2,
+h3,
+h4 {
+  text-wrap: balance;
+}
+
+img,
+svg {
+  display: block;
+  max-inline-size: 100%;
+  block-size: auto;
+}
+
+/* --------------------------------------------------------------- Tokens */
 
 :root {
-  color-scheme: light;
-  --pincushion-body-bg: #fdfdfd;
-  --pincushion-card-bg: #fdfdfd;
-  --pincushion-private-bg: #f2f2f4;
-  --pincushion-surface-bg: #ffffff;
-  --pincushion-text-primary: #333333;
-  --pincushion-text-secondary: #444444;
-  --pincushion-text-muted: #99a;
-  --pincushion-info-text: #aac;
-  --pincushion-link-color: #00d;
-  --pincushion-border: #c8c8c8;
-  --pincushion-border-strong: #bbbbbb;
-  --pincushion-border-muted: #dddddd;
-  --pincushion-border-hover: #aaa;
-  --pincushion-border-focus: #ccc;
-  --pincushion-input-bg: #fefefe;
-  --pincushion-input-hover-bg: #f3f3f3;
-  --pincushion-input-focus-bg: #fffffc;
-  --pincushion-input-shadow: #ddf;
-  --pincushion-accent: #047bff;
-  --pincushion-button-primary-bg: #007bff;
-  --pincushion-button-primary-hover-bg: #0056b3;
-  --pincushion-button-secondary-bg: #e0e4e8;
-  --pincushion-button-secondary-text: #333333;
-  --pincushion-disabled-bg: #988;
-  --pincushion-success: #4adc76;
-  --pincushion-error: #ff6868;
-  --pincushion-error-highlight: #ff7868;
-  --pincushion-footer-border: #dddddd;
-  --pincushion-settings-button-text: #2b3a4f;
-  --pincushion-settings-button-border: #b9c5d6;
-  --pincushion-settings-button-bg-start: #f9fbff;
-  --pincushion-settings-button-bg-end: #e1e6f1;
-  --pincushion-settings-button-hover-start: #eef3ff;
-  --pincushion-settings-button-hover-end: #d4dce9;
-  --pincushion-settings-button-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8),
-    0 2px 4px rgba(15, 30, 50, 0.1);
-  --pincushion-settings-button-hover-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8),
-    0 3px 6px rgba(15, 30, 50, 0.2);
-  --pincushion-settings-banner-bg: #fff6e5;
-  --pincushion-settings-banner-border: #f2c46d;
-  --pincushion-settings-banner-text: #7a540a;
-  --pincushion-settings-form-border: #d4d8dd;
-  --pincushion-settings-helper-text: #444444;
-  --pincushion-optioncount-text: #bbb;
-  --pincushion-chip-separator: #a9a9c4;
-  --pincushion-chip-text-shadow: rgba(51, 51, 51, 0.35);
-  --pincushion-chip-hover-shadow: rgba(15, 30, 50, 0.25);
-  --pincushion-tag-chip-bg: #1b9dec;
-  --pincushion-tag-chip-gradient: linear-gradient(to bottom, #1da7ee, #178ee9);
-  --pincushion-tag-chip-text: #ffffff;
-  --pincushion-tag-chip-text-shadow: 0 1px 0 rgba(0, 51, 83, 0.3);
-  --pincushion-tag-chip-border: #0073bb;
-  --pincushion-tag-chip-remove-hover: rgba(0, 0, 0, 0.1);
-  --pincushion-tagweight-10: #99b;
-  --pincushion-tagweight-50: #aaf;
-  --pincushion-tagweight-100: #89f;
+  color-scheme: light dark;
+  scrollbar-gutter: stable;
+  text-wrap: pretty;
+  overflow-wrap: break-word;
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* stylelint-disable-next-line property-no-vendor-prefix -- Safari still needs the prefix */
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+
+  --pincushion-font: "Helvetica Neue", helvetica, "Arial Unicode", arial, "Nimbus Sans L", "Liberation Sans", freesans, sans-serif;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+
+  /* Surfaces */
+  --pincushion-body-bg: light-dark(oklch(99.4% 0 none), oklch(18.5% 0.016 279.1));
+  --pincushion-card-bg: light-dark(oklch(99.4% 0 none), oklch(21.7% 0.02 280.2));
+  --pincushion-private-bg: light-dark(oklch(96.2% 0.003 286.3), oklch(24.4% 0.023 280.8));
+  --pincushion-surface-bg: light-dark(oklch(100% 0 none), oklch(25.3% 0.028 278.3));
+  --pincushion-surface-muted: light-dark(oklch(98% 0.004 286.3), oklch(18.1% 0.023 275.9));
+
+  /* Text */
+  --pincushion-text-primary: light-dark(oklch(32.1% 0 none), oklch(97.5% 0.012 281.1));
+  --pincushion-text-secondary: light-dark(oklch(38.7% 0 none), oklch(87.4% 0.038 277.3));
+  --pincushion-text-muted: light-dark(oklch(68.8% 0.025 285.7), oklch(72.3% 0.049 273.1));
+  --pincushion-info-text: light-dark(oklch(74.9% 0.049 285.2), oklch(79.2% 0.052 276.5));
+  --pincushion-link-color: light-dark(oklch(40.6% 0.281 264.1), oklch(82.3% 0.088 264.5));
+
+  /* Borders */
+  --pincushion-border: light-dark(oklch(83.3% 0 none), oklch(36.6% 0.036 278.1));
+  --pincushion-border-strong: light-dark(oklch(79.2% 0 none), oklch(44.2% 0.053 279.9));
+  --pincushion-border-muted: light-dark(oklch(89.8% 0 none), oklch(29.7% 0.026 278.4));
+  --pincushion-border-hover: light-dark(oklch(73.8% 0 none), oklch(45.3% 0.052 279.9));
+  --pincushion-border-focus: light-dark(oklch(84.5% 0 none), oklch(51.3% 0.063 279.5));
+  --pincushion-footer-border: light-dark(oklch(89.8% 0 none), oklch(31% 0.029 279));
+
+  /* Fields */
+  --pincushion-input-bg: light-dark(oklch(99.7% 0 none), oklch(18.1% 0.023 275.9));
+  --pincushion-input-hover-bg: light-dark(oklch(96.4% 0 none), oklch(21.5% 0.03 277.7));
+  --pincushion-input-focus-bg: light-dark(oklch(99.9% 0.004 106.5), oklch(24.9% 0.033 276.1));
+  --pincushion-input-shadow: light-dark(oklch(90.8% 0.046 285.4), oklch(0% 0 none / 0.7));
+
+  /* Accent and buttons */
+  --pincushion-accent: light-dark(oklch(60.5% 0.216 257.4), oklch(77.2% 0.115 263.8));
+  --pincushion-on-accent: light-dark(oklch(100% 0 none), oklch(17.5% 0.036 272.2));
+  --pincushion-button-primary-bg: light-dark(oklch(60.5% 0.217 257.2), oklch(70% 0.158 258));
+  --pincushion-button-primary-hover-bg: light-dark(oklch(46.8% 0.164 256.7), oklch(75.5% 0.126 257.9));
+  --pincushion-button-secondary-bg: light-dark(oklch(91.7% 0.007 247.9), oklch(31.7% 0.039 271.8));
+  --pincushion-button-secondary-text: light-dark(oklch(32.1% 0 none), oklch(97.5% 0.012 281.1));
+  --pincushion-disabled-bg: light-dark(oklch(64.2% 0.021 17.7), oklch(48.1% 0.035 280.9));
+  --pincushion-submit-glow: oklch(70.2% 0.119 235.8);
+
+  /* Status */
+  --pincushion-success: light-dark(oklch(79.4% 0.188 149.7), oklch(80.6% 0.163 160.3));
+  --pincushion-success-shadow: oklch(47.1% 0.102 137.7);
+  --pincushion-error: light-dark(oklch(70.7% 0.185 23), oklch(77.9% 0.132 11.8));
+  --pincushion-error-highlight: light-dark(oklch(72.8% 0.168 28.7), oklch(77.9% 0.132 11.8));
+
+  /* Settings */
+  --pincushion-settings-button-text: light-dark(oklch(34.5% 0.042 256.9), oklch(97.1% 0.014 272.7));
+  --pincushion-settings-button-border: light-dark(oklch(81.9% 0.027 257), oklch(40.1% 0.052 273.8));
+  --pincushion-settings-button-bg-start: light-dark(oklch(98.8% 0.006 264.5), oklch(31.6% 0.047 273.5));
+  --pincushion-settings-button-bg-end: light-dark(oklch(92.4% 0.016 266.3), oklch(26.2% 0.036 274.5));
+  --pincushion-settings-button-hover-start: light-dark(oklch(96.4% 0.017 267.8), oklch(35.8% 0.048 272.6));
+  --pincushion-settings-button-hover-end: light-dark(oklch(89.2% 0.02 260.2), oklch(29.1% 0.041 273.8));
+  --pincushion-settings-button-highlight: light-dark(oklch(100% 0 none / 0.8), oklch(100% 0 none / 0.05));
+  --pincushion-settings-button-highlight-hover: light-dark(oklch(100% 0 none / 0.8), oklch(100% 0 none / 0.08));
+  --pincushion-settings-button-drop: light-dark(oklch(23.3% 0.044 256.1 / 0.1), oklch(0% 0 none / 0.6));
+  --pincushion-settings-button-drop-hover: light-dark(oklch(23.3% 0.044 256.1 / 0.2), oklch(0% 0 none / 0.7));
+  --pincushion-settings-banner-bg: light-dark(oklch(97.6% 0.024 83.4), oklch(26.9% 0.03 311.5));
+  --pincushion-settings-banner-border: light-dark(oklch(84.3% 0.118 81.9), oklch(69.6% 0.096 76.6));
+  --pincushion-settings-banner-text: light-dark(oklch(47.5% 0.095 77), oklch(89.3% 0.078 80.5));
+  --pincushion-settings-form-border: light-dark(oklch(88.1% 0.008 253.9), oklch(38.9% 0.043 275.5));
+  --pincushion-settings-helper-text: light-dark(oklch(38.7% 0 none), oklch(87.7% 0.032 277.9));
+
+  /* Tag chips (selected tags) */
+  --pincushion-tag-chip-bg: light-dark(oklch(66.9% 0.156 243.2), oklch(25.5% 0.048 264.5));
+  --pincushion-tag-chip-start: light-dark(oklch(69.3% 0.149 238.9), oklch(31.8% 0.064 265));
+  --pincushion-tag-chip-end: light-dark(oklch(63.3% 0.167 248.8), oklch(17.5% 0.036 272.2));
+  --pincushion-tag-chip-text: light-dark(oklch(100% 0 none), oklch(98% 0.009 279.7));
+  --pincushion-tag-chip-text-shadow: light-dark(oklch(30.9% 0.076 243.7 / 0.3), oklch(0% 0 none / 0.75));
+  --pincushion-tag-chip-border: light-dark(oklch(54% 0.141 246.7), oklch(40% 0.065 264.4));
+  --pincushion-tag-chip-remove-hover: light-dark(oklch(0% 0 none / 0.1), oklch(100% 0 none / 0.12));
+
+  /* Suggestion chips (same in both themes) */
+  --pincushion-suggestion-bg: oklch(55.5% 0.105 294.2);
+  --pincushion-suggestion-border: oklch(39.3% 0.029 285);
+  --pincushion-suggestion-border-bottom: oklch(33.8% 0.059 282.8);
+  --pincushion-suggestion-glow: oklch(48.2% 0.108 281.6);
+  --pincushion-suggestion-hover-bg: oklch(68.4% 0.14 236.3);
+  --pincushion-suggestion-hover-start: oklch(69.3% 0.149 238.9);
+  --pincushion-suggestion-hover-end: oklch(63.3% 0.167 248.8);
+  --pincushion-suggestion-hover-border: oklch(54.1% 0.139 247.8);
+  --pincushion-suggestion-hover-text-shadow: oklch(25.2% 0 none);
+  --pincushion-chip-separator: light-dark(oklch(74.4% 0.039 285.4), oklch(49.3% 0.047 276.9));
+  --pincushion-chip-text-shadow: light-dark(oklch(32.1% 0 none / 0.35), oklch(0% 0 none / 0.65));
+  --pincushion-chip-hover-shadow: light-dark(oklch(23.3% 0.044 256.1 / 0.25), oklch(0% 0 none / 0.55));
+
+  /* Tag autocomplete menu */
+  --pincushion-option-highlight: oklch(75.1% 0.127 263.4);
+  --pincushion-optioncount-text: light-dark(oklch(79.2% 0 none), oklch(62.3% 0.054 274.7));
+  --pincushion-tagweight-10: light-dark(oklch(69.5% 0.05 285), oklch(75.9% 0.125 278.5));
+  --pincushion-tagweight-50: light-dark(oklch(77.1% 0.121 283.2), oklch(84.8% 0.077 281.4));
+  --pincushion-tagweight-100: light-dark(oklch(71.4% 0.149 274.8), oklch(91.1% 0.044 281.2));
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --pincushion-body-bg: #11121a;
-    --pincushion-card-bg: #181923;
-    --pincushion-private-bg: #1e1f2b;
-    --pincushion-surface-bg: #1f2130;
-    --pincushion-text-primary: #f5f6ff;
-    --pincushion-text-secondary: #cfd4ef;
-    --pincushion-text-muted: #9ba4c5;
-    --pincushion-info-text: #b2b9dd;
-    --pincushion-link-color: #a9c5ff;
-    --pincushion-border: #3a3d52;
-    --pincushion-border-strong: #4d5070;
-    --pincushion-border-muted: #2a2c3a;
-    --pincushion-border-hover: #505373;
-    --pincushion-border-focus: #5f638b;
-    --pincushion-input-bg: #0f111c;
-    --pincushion-input-hover-bg: #161827;
-    --pincushion-input-focus-bg: #1d2031;
-    --pincushion-input-shadow: rgba(0, 0, 0, 0.7);
-    --pincushion-accent: #8fb4ff;
-    --pincushion-button-primary-bg: #5c9eff;
-    --pincushion-button-primary-hover-bg: #7cb1ff;
-    --pincushion-button-secondary-bg: #2b3146;
-    --pincushion-button-secondary-text: #f5f6ff;
-    --pincushion-disabled-bg: #5a5c72;
-    --pincushion-success: #3fdf9b;
-    --pincushion-error: #ff92a1;
-    --pincushion-error-highlight: #ff92a1;
-    --pincushion-footer-border: #2d2f3f;
-    --pincushion-settings-button-text: #f2f5ff;
-    --pincushion-settings-button-border: #3f4664;
-    --pincushion-settings-button-bg-start: #2a304a;
-    --pincushion-settings-button-bg-end: #1f2336;
-    --pincushion-settings-button-hover-start: #343b56;
-    --pincushion-settings-button-hover-end: #252a40;
-    --pincushion-settings-button-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05),
-      0 2px 6px rgba(0, 0, 0, 0.6);
-    --pincushion-settings-button-hover-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08),
-      0 4px 10px rgba(0, 0, 0, 0.7);
-    --pincushion-settings-banner-bg: #2b2231;
-    --pincushion-settings-banner-border: #bf9555;
-    --pincushion-settings-banner-text: #f7d7a1;
-    --pincushion-settings-form-border: #3e435c;
-    --pincushion-settings-helper-text: #d1d5ec;
-    --pincushion-optioncount-text: #7d85a8;
-    --pincushion-chip-separator: #5a5f7c;
-    --pincushion-chip-text-shadow: rgba(0, 0, 0, 0.65);
-    --pincushion-chip-hover-shadow: rgba(0, 0, 0, 0.55);
-    --pincushion-tag-chip-bg: #17223a;
-    --pincushion-tag-chip-gradient: linear-gradient(180deg, #223153 0%, #0b0f20 100%);
-    --pincushion-tag-chip-text: #f7f8ff;
-    --pincushion-tag-chip-text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75);
-    --pincushion-tag-chip-border: #36476b;
-    --pincushion-tag-chip-remove-hover: rgba(255, 255, 255, 0.12);
-    --pincushion-tagweight-10: #9fa8ff;
-    --pincushion-tagweight-50: #c4c8ff;
-    --pincushion-tagweight-100: #dcdfff;
-  }
-}
+/* ----------------------------------------------------------------- Base */
 
 body {
-  min-height: 1100px;
+  min-block-size: 1100px;
   margin: 0;
-  padding: 0.2em 0.6em 0 0.6em;
+  padding-block: 0.2em 0;
+  padding-inline: 0.6em;
   background: var(--pincushion-body-bg);
   color: var(--pincushion-text-primary);
-  transition: background-color 0.6s ease;
-  font-family: "Helvetica Neue", Helvetica, "Arial Unicode", Arial, "Nimbus Sans L", "Liberation Sans", FreeSans, sans-serif;
+  transition: background-color 0.6s var(--ease-out);
 
-  @media only screen and (min-width: 480px) {
-    min-height: 1400px;
+  @media (width >= 480px) {
+    min-block-size: 1400px;
   }
-
 }
 
 body,
 input,
 textarea,
 button {
-  font:
-    15px/1.5 "Helvetica Neue",
-    Helvetica,
-    "Arial Unicode",
-    Arial,
-    "Nimbus Sans L",
-    "Liberation Sans",
-    FreeSans,
-    sans-serif;
-  text-rendering: optimizeLegibility;
+  font: 0.9375rem/1.5 var(--pincushion-font);
+}
+
+:focus-visible {
+  outline: max(2px, 0.08em) solid var(--pincushion-accent);
+  outline-offset: 2px;
+}
+
+a {
+  text-decoration: none;
+  font-weight: bold;
+  color: var(--pincushion-link-color);
+}
+
+label,
+input[type="checkbox"] {
+  cursor: pointer;
 }
 
 /* Container */
 .pincushion-popup {
-  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-  max-width: 740px;
-  margin: 0 auto;
+  max-inline-size: 740px;
+  margin-inline: auto;
   padding: 2px;
   background-repeat: no-repeat;
   background-position: 50% 8px;
   background-size: 55px 55px;
-  background-image: none;
 }
 
 .private {
@@ -175,17 +200,15 @@ button {
 .private .pincushion-popup {
   background-image: url(../assets/images/padlock.png);
 }
-/* Ensure pointer cursor on labels and checkboxes */
-label, input[type=checkbox] {
-  cursor: pointer;
-}
 
-/* Keyframe animations from legacy CSS */
+/* ---------------------------------------------------------- Keyframes */
+
 @keyframes pop {
   0% { transform: scale(0.98); }
   50% { transform: scale(1.05); }
- 100% { transform: scale(1.0); }
+  100% { transform: scale(1); }
 }
+
 @keyframes non {
   20% { transform: translateX(0); }
   45% { transform: translateX(-5px); }
@@ -193,54 +216,72 @@ label, input[type=checkbox] {
   75% { transform: translateX(-7px); }
   90% { transform: translateX(6px); }
 }
+
 @keyframes ahem {
   30% { text-shadow: 0 0 2px var(--pincushion-error-highlight); }
 }
-/* Override Ladda default for main submit button */
-.ladda-button {
-  transition: all 0.3s ease;
-}
+
+/* ------------------------------------------------------- Submit button */
+
+/* The ID is needed to outrank Ladda's [data-*] attribute selectors. */
 #submit {
-  min-width: 177px;
-  font-size: 16px;
+  min-inline-size: 177px;
+  font-size: 1rem;
   border-radius: 4px;
-  box-shadow: inset 0 0 13px #48aadf;
-  transition: transform 1s ease, text-shadow 0.1s linear, border-radius 0.1s linear;
+  box-shadow: inset 0 0 13px var(--pincushion-submit-glow);
+  transition: text-shadow 0.1s linear, border-radius 0.1s linear;
 }
-#submit:focus {
-  animation: pop 0.3s ease 0.5s;
+
+#submit:focus-visible {
   box-shadow: 2px 2px 7px var(--pincushion-border-muted);
-  outline: none;
 }
+
 #submit:active {
   transform: translate(1px, 3px);
 }
+
 #submit[disabled] {
   box-shadow: none;
 }
+
 #submit.success {
   background-color: var(--pincushion-success);
   box-shadow: none;
-  text-shadow: 1px 1px 1px #3d682c;
-  animation: pop 0.3s ease 0.5s;
+  text-shadow: 1px 1px 1px var(--pincushion-success-shadow);
 }
+
 #submit.fail {
   background-color: var(--pincushion-error);
   box-shadow: none;
-  animation: non 0.8s ease 0;
 }
+
 #submit.fail[disabled] {
   background-color: var(--pincushion-disabled-bg);
   opacity: 0.7;
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  #submit {
+    transition: transform 160ms var(--ease-out), text-shadow 0.1s linear, border-radius 0.1s linear;
+  }
 
-/* Error message animation */
-.error {
+  #submit:focus-visible,
+  #submit.success {
+    animation: pop 0.3s var(--ease-out) 0.5s;
+  }
+
+  #submit.fail {
+    animation: non 0.8s var(--ease-out);
+  }
+}
+
+/* ------------------------------------------------------ Errors and help */
+
+label.error {
   display: block;
   color: var(--pincushion-error);
   text-shadow: 1px 1px 1px var(--pincushion-surface-bg);
-  animation: ahem 0.8s ease 0;
+  animation: ahem 0.8s var(--ease-out);
 }
 
 .error-message {
@@ -248,10 +289,10 @@ label, input[type=checkbox] {
   color: var(--pincushion-error);
   text-shadow: 1px 1px 1px var(--pincushion-surface-bg);
   padding: 0.5em;
-  margin: 0.5em 0;
+  margin-block: 0.5em;
   text-align: center;
   font-weight: 500;
-  background: rgba(255, 104, 104, 0.1);
+  background: color-mix(in oklch, var(--pincushion-error) 10%, transparent);
   border-radius: 4px;
 }
 
@@ -259,455 +300,580 @@ label, input[type=checkbox] {
   display: block;
   color: var(--pincushion-error);
   font-size: 0.85rem;
-  margin: 4px 0 8px;
+  margin-block: 4px 8px;
 }
 
-/* Animations for tag suggestion enter/exit */
-/* Container for suggestion, handles layout shrink */
-.suggestion-item {
-  display: inline-block;
-  vertical-align: top;
-  margin: 0 0.3em 0 0;
-  /* Shrink towards top-left corner */
-  transform-origin: top left;
-  flex: 0 0 auto;
-  overflow: hidden;
-  /* Animate collapse via max-width, max-height and fade */
-  transition: max-width 300ms ease-in, max-height 300ms ease-in, opacity 100ms ease-out, margin-right 300ms ease-in;
-}
-/* Allow buttons on hover to extend outside their container */
-.suggestion-item:hover {
-  overflow: visible;
-  z-index: 1;
-}
-/* Suggestion enter/exit animations */
-.suggestion-enter {
-  opacity: 0;
-  transform: scale(0);
-}
-.suggestion-enter-active {
-  opacity: 1;
-  transform: scale(1);
-  transition: transform 300ms ease-out, opacity 300ms ease-out;
-}
-.suggestion-exit {
-  opacity: 1;
-  transform: scale(1);
-  /* Ensure collapse hides content even if hovered */
-  overflow: hidden !important;
-}
-.suggestion-exit-active {
-  /* Fade out and collapse width/height */
-  opacity: 0;
-  max-width: 0 !important;
-  max-height: 0 !important;
-  margin-right: 0 !important;
-  /* Override hover overflow to prevent visibility during exit */
-  overflow: hidden !important;
-}
+/* ------------------------------------------------------------ The form */
+
 form.bookmark-form {
   margin: 0;
   padding: 0;
 }
-/* Input field labels styling */
+
 label {
   display: block;
   color: var(--pincushion-accent);
-  padding: 4px 0 0 3px;
+  padding-block-start: 4px;
+  padding-inline-start: 3px;
   font-weight: normal;
-  -webkit-font-smoothing: antialiased;
-  transition: color 0.3s ease;
-}
-/* Bookmark save area */
- .bookmark-save {
-  text-align: right;
-  margin-bottom: 0.4em;
+  transition: color 0.3s var(--ease-out);
 }
 
-/* Timestamp Info */
+.bookmark-save {
+  text-align: end;
+  margin-block-end: 0.4em;
+}
+
 .timestamp-info {
-  text-align: right;
-  font-size: 12px;
+  text-align: end;
+  font-size: 0.75rem;
   color: var(--pincushion-info-text);
-  margin: 0 0 0.5em;
-  padding: 3px 4px 0 0;
+  margin-block: 0 0.5em;
+  padding-block-start: 3px;
+  padding-inline-end: 4px;
 }
-
 
 input[type="text"],
 input[type="url"],
 input[type="password"],
 textarea {
-  box-sizing: border-box;
-  width: 100%;
-  max-width: 740px;
-  padding: 10px 1px 10px 7px;
+  inline-size: 100%;
+  padding-block: 10px;
+  padding-inline: 7px 1px;
   line-height: 1;
   border: 1px solid var(--pincushion-border);
-  border-bottom-color: var(--pincushion-border-strong);
+  border-block-end-color: var(--pincushion-border-strong);
   border-radius: 2px;
   box-shadow: 0 1px 4px var(--pincushion-input-shadow);
   background: var(--pincushion-input-bg);
   appearance: none;
-  -webkit-appearance: none;
-  transition: border-color 0.1s ease, background-color 0.1s ease, max-width 0.4s ease;
-  overflow: hidden;
-  resize: none;
+  transition: border-color 0.1s var(--ease-out), background-color 0.1s var(--ease-out);
+}
+
+input[type="text"],
+input[type="url"],
+input[type="password"] {
+  overflow: clip;
 }
 
 input[type="text"] {
   font-size: 120%;
-  -webkit-font-smoothing: antialiased;
 }
+
 input[type="url"] {
   font-size: 100%;
 }
+
+/*
+ * Grows with its content via field-sizing; BookmarkForm only falls back to
+ * measuring scrollHeight in browsers without it. Past max-height it scrolls.
+ */
 textarea {
   font-size: 85%;
   line-height: 1.7;
   padding: 6px;
   text-indent: 1.8em;
-  transition: height 0.4s ease;
-  form-sizing: content;
-  min-height: 2lh;
-  max-height: 10lh;
+  field-sizing: content;
+  min-block-size: 2.5lh;
+  max-block-size: 10lh;
+  overflow-y: auto;
+  resize: vertical;
+  text-wrap: stable;
 }
-input[type="text"]:hover,
-input[type="url"]:hover,
-input[type="password"]:hover,
-textarea:hover {
-  border-color: var(--pincushion-border-hover);
-  background-color: var(--pincushion-input-hover-bg);
-}
+
 input[type="text"]:focus,
 input[type="url"]:focus,
 input[type="password"]:focus,
 textarea:focus {
   border-color: var(--pincushion-border-focus);
-  background-color: var(--pincushion-input-focus-bg) !important;
+  background-color: var(--pincushion-input-focus-bg);
 }
+
+input[type="text"]:focus-visible,
+input[type="url"]:focus-visible,
+input[type="password"]:focus-visible,
+textarea:focus-visible {
+  outline-offset: -1px;
+}
+
+/* iOS Safari zooms the page into any field set below 16px. */
+@media (pointer: coarse) {
+  input[type="url"],
+  input[type="password"],
+  textarea {
+    font-size: max(16px, 1rem);
+  }
+}
+
 button {
-  padding: 8px 16px;
+  user-select: none;
+  padding-block: 8px;
+  padding-inline: 16px;
   background-color: var(--pincushion-button-primary-bg);
-  color: white;
+  color: var(--pincushion-on-accent);
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-button:hover { background-color: var(--pincushion-button-primary-hover-bg); }
-
-/* URL field with hash remove */
-.url-field {
-  position: relative;
+  transition: background-color 0.2s var(--ease-out);
 }
 
-input#url.hash-detected {
-  max-width: 92%;
-}
+@media (hover: hover) and (pointer: fine) {
+  button:hover {
+    background-color: var(--pincushion-button-primary-hover-bg);
+  }
 
-.remove-hash {
-  position: relative;
-  top: 1px;
-  margin: 0 0 0 10px;
-  padding: 0.1em 0.4em 0.1em 0.5em;
-  border: none;
-  border-radius: 4px;
-  border: 1px solid var(--pincushion-border);
-  background-color: var(--pincushion-surface-bg);
-  box-shadow: inset 0 0 4px var(--pincushion-input-shadow);
-  transform: translateY(0) skew(0deg);
-  animation: bounceIn ease-in 0.8s 1 0.4s forwards;
-  opacity: 0;
-  cursor: pointer;
-  color: var(--pincushion-text-primary);
-  font-style: italic;
-  font-weight: 600;
-  font-size: 18px;
-
-  &:hover {
+  input[type="text"]:hover,
+  input[type="url"]:hover,
+  input[type="password"]:hover,
+  textarea:hover {
     border-color: var(--pincushion-border-hover);
     background-color: var(--pincushion-input-hover-bg);
   }
 
-  &:after { /* Expand click area. */
-    position: absolute;
-    left: -45%;
-    top: -14px;
-    height: 200%;
-    width: 190%;
-    content: "";
+  /* A focused field keeps its focus background under the pointer. */
+  input[type="text"]:focus:hover,
+  input[type="url"]:focus:hover,
+  input[type="password"]:focus:hover,
+  textarea:focus:hover {
+    background-color: var(--pincushion-input-focus-bg);
   }
 }
 
-@keyframes bounceIn {
+input[aria-invalid="true"],
+input[aria-invalid="true"]:focus,
+textarea[aria-invalid="true"],
+textarea[aria-invalid="true"]:focus {
+  border-color: var(--pincushion-error);
+}
+
+/* URL field: the input shares its row with the "remove #hash" button. */
+.url-field {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+
+.url-field > :not(input, .remove-hash) {
+  grid-column: 1 / -1;
+}
+
+.remove-hash {
+  position: relative;
+  inset-block-start: 1px;
+  margin-inline-start: 10px;
+  padding-block: 0.1em;
+  padding-inline: 0.4em 0.5em;
+  border: 1px solid var(--pincushion-border);
+  border-radius: 4px;
+  background-color: var(--pincushion-surface-bg);
+  box-shadow: inset 0 0 4px var(--pincushion-input-shadow);
+  transform: skew(-15deg);
+  cursor: pointer;
+  color: var(--pincushion-text-primary);
+  font-style: italic;
+  font-weight: 600;
+  font-size: 1.125rem;
+
+  /* At least 44px to press, whatever the drawn size. */
+  &::after {
+    content: "";
+    position: absolute;
+    inset: min(0px, (100% - 44px) / 2);
+  }
+
+  &:active {
+    transform: skew(-15deg) scale(0.95);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .remove-hash:hover {
+    border-color: var(--pincushion-border-hover);
+    background-color: var(--pincushion-input-hover-bg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .remove-hash {
+    opacity: 0;
+    animation: bounce-in 0.8s var(--ease-out) 0.4s forwards;
+  }
+}
+
+@keyframes bounce-in {
   0% {
     transform: translateY(0) skew(0deg);
   }
-  40%,
-  60%,
-  80%,
-  100% {
-    transform: translateY(0) skew(-15deg);
-    opacity: 1;
-  }
+
   20% {
     transform: translateY(-15px) skew(-15deg) rotate(-10deg);
     opacity: 0.8;
   }
+
+  40% {
+    transform: skew(-15deg);
+    opacity: 1;
+  }
+
   60% {
     transform: translateY(-9px) skew(-15deg) rotate(5deg);
+    opacity: 1;
+  }
+
+  80%,
+  100% {
+    transform: skew(-15deg);
+    opacity: 1;
   }
 }
 
-
-/* Checkbox button modifiers */
+/* Private / read later toggles */
 #modifiers {
-  margin: 0.4em 0 0.6em;
+  margin-block: 0.4em 0.6em;
   padding: 0.2em;
 }
+
 #modifiers label {
   display: inline-block;
-  min-width: 105px;
+  min-inline-size: 121px;
   font-size: 110%;
   color: var(--pincushion-text-primary);
-  margin: 0 15px 0 0;
-  padding: 10px 14px 10px 0;
+  margin-inline-end: 15px;
+  padding-block: 10px;
+  padding-inline: 0 14px;
   border: 1px solid var(--pincushion-border);
   border-radius: 10px;
   background-color: var(--pincushion-surface-bg);
   text-transform: capitalize;
   box-shadow: 0 1px 4px var(--pincushion-border-muted);
-  transition: transform 0.1s ease;
   user-select: none;
 }
-#modifiers label:hover {
-  border-color: var(--pincushion-border-hover);
-}
-#modifiers label:active {
-  transform: translate(2px,2px);
-}
-#modifiers input[type=checkbox] {
-  margin: 0 10px 0 13px;
-  transform: scale(1.5);
+
+#modifiers label:has(:focus-visible) {
+  outline: max(2px, 0.08em) solid var(--pincushion-accent);
+  outline-offset: 2px;
 }
 
-/* Tag suggestions */
+#modifiers label:active {
+  transform: translate(2px, 2px);
+}
+
+#modifiers input[type="checkbox"] {
+  margin-block: 0;
+  margin-inline: 13px 10px;
+  transform: scale(1.5);
+  accent-color: var(--pincushion-accent);
+}
+
+/* The label draws the ring; this keeps one for forced-colours mode. */
+#modifiers input[type="checkbox"]:focus-visible {
+  outline: 2px solid transparent;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  #modifiers label:hover {
+    border-color: var(--pincushion-border-hover);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  #modifiers label {
+    transition: transform 0.1s var(--ease-out);
+  }
+}
+
+/* ------------------------------------------------------ Tag suggestions */
 
 .suggestions-list,
 .tag-suggestions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  margin: 0.8em 0;
+  margin-block: 0.8em;
   line-height: 1.5;
 }
+
 .tag-suggestions {
   gap: 0.4em;
   color: var(--pincushion-accent);
   font-size: 0.95rem;
 }
+
 .tag-suggestions #tagspinner {
-  margin-right: 0.3em;
+  margin-inline-end: 0.3em;
 }
+
 .tag-spinner-enter {
   opacity: 0;
-  max-height: 0;
-  margin: 0;
+  max-block-size: 0;
+  margin-block: 0;
 }
+
 .tag-spinner-enter-active {
   opacity: 1;
-  max-height: 32px;
-  margin: 0.6em 0;
-  transition: opacity 0.2s ease, max-height 0.2s ease, margin 0.2s ease;
+  max-block-size: 32px;
+  margin-block: 0.6em;
+  transition: opacity 0.2s var(--ease-out);
 }
+
 .tag-spinner-exit {
   opacity: 1;
-  max-height: 32px;
-  margin: 0.6em 0;
+  max-block-size: 32px;
+  margin-block: 0.6em;
 }
+
 .tag-spinner-exit-active {
   opacity: 0;
-  max-height: 0;
-  margin: 0;
-  transition: opacity 0.2s ease, max-height 0.2s ease, margin 0.2s ease;
-}
-
-.suggestions-list label {
-  margin: 0 0 8px;
-  font-size: 1em;
-  font-weight: 400;
-  color: var(--pincushion-accent);
-}
-
-.none {
-  color: var(--pincushion-text-muted);
-  font-size: 80%;
+  max-block-size: 0;
+  margin-block: 0;
+  transition: opacity 0.2s var(--ease-out);
 }
 
 .suggestions-list button {
   position: relative;
-  font-size: 12px;
-  margin: 0.4em 0.3em 0 0.2em;
-  padding: 3px 10px 4px;
-  border: 1px solid #445;
-  border-bottom-color: #335;
+  font-size: 0.75rem;
+  margin-block: 0.4em 0;
+  margin-inline: 0.2em 0.3em;
+  padding-block: 3px 4px;
+  padding-inline: 10px;
+  border: 1px solid var(--pincushion-suggestion-border);
+  border-block-end-color: var(--pincushion-suggestion-border-bottom);
   border-radius: 4px;
-  background: #76a;
-  color: #fff;
+  background: var(--pincushion-suggestion-bg);
+  color: oklch(100% 0 none);
   letter-spacing: 1px;
-  box-shadow: inset 0 -2px 10px #559;
+  box-shadow: inset 0 -2px 10px var(--pincushion-suggestion-glow);
   text-shadow: 0 1px 1px var(--pincushion-chip-text-shadow);
   cursor: pointer;
   opacity: 0.9;
   display: inline-flex;
   align-items: center;
-  overflow: visible;
-  max-width: 240px;
-  flex: 0 0 auto;
-  transition: background-color 0.1s ease,
-    box-shadow 0.2s ease,
-    transform 0.12s ease-out,
-    margin 0.22s ease,
-    padding 0.22s ease,
-    max-width 0.22s ease;
+  max-inline-size: 240px;
+  flex: none;
+  transition: background-color 0.1s var(--ease-out), box-shadow 0.2s var(--ease-out);
 }
+
+/* At least 44px to press, whatever the drawn size. */
+.suggestions-list button::after {
+  content: "";
+  position: absolute;
+  inset: min(0px, (100% - 44px) / 2);
+}
+
+.suggestions-list button:focus-visible {
+  background-color: var(--pincushion-suggestion-hover-bg);
+  background-image: linear-gradient(to bottom, var(--pincushion-suggestion-hover-start), var(--pincushion-suggestion-hover-end));
+  border: 1px solid var(--pincushion-suggestion-hover-border);
+  box-shadow: 2px 2px 6px var(--pincushion-chip-hover-shadow);
+  text-shadow: 1px 1px 1px var(--pincushion-suggestion-hover-text-shadow);
+  transform: translateY(-2px);
+}
+
+.suggestions-list button:active {
+  transform: scale(0.97);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .suggestions-list button:hover {
+    background-color: var(--pincushion-suggestion-hover-bg);
+    background-image: linear-gradient(to bottom, var(--pincushion-suggestion-hover-start), var(--pincushion-suggestion-hover-end));
+    border: 1px solid var(--pincushion-suggestion-hover-border);
+    box-shadow: 2px 2px 6px var(--pincushion-chip-hover-shadow);
+    text-shadow: 1px 1px 1px var(--pincushion-suggestion-hover-text-shadow);
+    transform: translateY(-2px);
+  }
+
+  .suggestions-list button:hover:active {
+    transform: translateY(-2px) scale(0.97);
+  }
+}
+
 .suggestions-list .separator {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 10px;
-  flex: 0 0 auto;
-  margin: 9px 0.4em 3px;
-  padding: 0 0.35em;
+  inline-size: 10px;
+  flex: none;
+  margin-block: 9px 3px;
+  margin-inline: 0.4em;
+  padding-inline: 0.35em;
   line-height: 0;
   font-size: 0;
   pointer-events: none;
 }
+
 .suggestions-list .separator::after {
   content: "";
-  width: 5px;
-  height: 5px;
+  inline-size: 5px;
+  block-size: 5px;
   border-radius: 50%;
   background: var(--pincushion-chip-separator);
   display: block;
 }
-/* Hover & focus styling */
-.suggestions-list button:hover,
-.suggestions-list button:focus {
-  background-color: #20a5e4;
-  background-image: linear-gradient(to bottom, #1da7ee, #178ee9);
-  border: 1px solid #1073bb;
-  box-shadow: 2px 2px 6px var(--pincushion-chip-hover-shadow);
-  text-shadow: 1px 1px 1px #222;
-  transform: translate(0, -2px);
-}
-/* Expand clickable area of suggestion buttons */
-.suggestions-list button:after {
-  content: "";
-  position: absolute;
-  left: -7%;
-  top: -8px;
-  height: 200%;
-  width: 120%;
-}
 
-/* Animations for suggestions entering/leaving */
+/* Suggestions entering and leaving. Opacity fades always; the scale and
+   the collapse of the gap they leave are motion, so they are opt-in. */
 .suggestions-list button.suggestion-chip-enter,
 .suggestions-list span.suggestion-separator-enter {
   opacity: 0;
-  transform: scale(0.7);
-  margin-right: -6px;
 }
+
 .suggestions-list button.suggestion-chip-enter-active,
 .suggestions-list span.suggestion-separator-enter-active {
   opacity: 1;
-  transform: scale(1);
-  margin-right: 0.3em;
-  transition: opacity 160ms ease, transform 160ms ease, margin 160ms ease;
+  transition: opacity 160ms var(--ease-out);
 }
+
 .suggestions-list button.suggestion-chip-exit,
 .suggestions-list span.suggestion-separator-exit {
   opacity: 1;
-  transform: scale(1);
 }
 
 .suggestions-list button.suggestion-chip-exit-active,
 .suggestions-list span.suggestion-separator-exit-active {
   opacity: 0;
-  transform: scale(0.6);
   margin: 0;
-  padding-left: 0;
-  padding-right: 0;
-  max-width: 0;
-  transition: opacity 220ms ease, transform 220ms ease, margin 220ms ease,
-    padding 220ms ease;
+  padding-inline: 0;
+  max-inline-size: 0;
+  transition: opacity 220ms var(--ease-out);
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  .suggestions-list button {
+    transition:
+      background-color 0.1s var(--ease-out),
+      box-shadow 0.2s var(--ease-out),
+      transform 0.12s var(--ease-out),
+      margin 0.22s var(--ease-out),
+      padding 0.22s var(--ease-out),
+      max-inline-size 0.22s var(--ease-out);
+  }
+
+  .suggestions-list button.suggestion-chip-enter,
+  .suggestions-list span.suggestion-separator-enter {
+    transform: scale(0.7);
+    margin-inline-end: -6px;
+  }
+
+  .suggestions-list button.suggestion-chip-enter-active,
+  .suggestions-list span.suggestion-separator-enter-active {
+    transform: scale(1);
+    margin-inline-end: 0.3em;
+    transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out), margin 160ms var(--ease-out);
+  }
+
+  .suggestions-list button.suggestion-chip-exit-active,
+  .suggestions-list span.suggestion-separator-exit-active {
+    transform: scale(0.6);
+    transition: opacity 220ms var(--ease-out), transform 220ms var(--ease-out), margin 220ms var(--ease-out), padding 220ms var(--ease-out);
+  }
+
+  .tag-spinner-enter-active,
+  .tag-spinner-exit-active {
+    transition: opacity 0.2s var(--ease-out), max-block-size 0.2s var(--ease-out), margin 0.2s var(--ease-out);
+  }
+}
+
+/* -------------------------------------------------------------- Footer */
 
 footer {
-  margin: 3em 0 1em;
-  padding: 1em 0.6em 0;
-  border-top: 2px dotted var(--pincushion-border-muted);
+  margin-block: 3em 1em;
+  padding-block: 1em 0;
+  padding-inline: 0.6em;
+  border-block-start: 2px dotted var(--pincushion-border-muted);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
 }
 
+#pinboard-link {
+  opacity: 0.8;
+}
+
 .settings-button {
   background: linear-gradient(180deg, var(--pincushion-settings-button-bg-start) 0%, var(--pincushion-settings-button-bg-end) 100%);
   border: 1px solid var(--pincushion-settings-button-border);
   border-radius: 28px;
-  padding: 0 1.2rem;
-  min-height: 44px;
+  padding-block: 0;
+  padding-inline: 1.2rem;
+  min-block-size: 44px;
   cursor: pointer;
   font-size: 1rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: var(--pincushion-settings-button-text);
-  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   gap: 0.35rem;
-  box-shadow: var(--pincushion-settings-button-shadow);
+  box-shadow:
+    inset 0 1px 0 var(--pincushion-settings-button-highlight),
+    0 2px 4px var(--pincushion-settings-button-drop);
+  transition: box-shadow 0.2s var(--ease-out);
 }
 
-.settings-button:hover,
-.settings-button:focus {
+.settings-button:focus-visible {
   background: linear-gradient(180deg, var(--pincushion-settings-button-hover-start) 0%, var(--pincushion-settings-button-hover-end) 100%);
-  outline: none;
-  transform: translateY(-1px);
-  box-shadow: var(--pincushion-settings-button-hover-shadow);
+  box-shadow:
+    inset 0 1px 0 var(--pincushion-settings-button-highlight-hover),
+    0 3px 6px var(--pincushion-settings-button-drop-hover);
+}
+
+.settings-button:active {
+  transform: scale(0.97);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .settings-button:hover {
+    background: linear-gradient(180deg, var(--pincushion-settings-button-hover-start) 0%, var(--pincushion-settings-button-hover-end) 100%);
+    transform: translateY(-1px);
+    box-shadow:
+      inset 0 1px 0 var(--pincushion-settings-button-highlight-hover),
+      0 3px 6px var(--pincushion-settings-button-drop-hover);
+  }
+
+  .settings-button:hover:active {
+    transform: translateY(-1px) scale(0.97);
+  }
 }
 
 .settings-button__icon {
   font-size: 1.4rem;
   line-height: 1.5rem;
-  width: 1.6rem;
-  height: 1.6rem;
+  inline-size: 1.6rem;
+  block-size: 1.6rem;
   display: inline-block;
   text-align: center;
   transform-origin: 50% 50%;
 }
 
-.settings-button:hover .settings-button__icon,
-.settings-button:focus .settings-button__icon {
-  animation: gear-spin 1.5s linear infinite;
+@media (prefers-reduced-motion: no-preference) {
+  .settings-button {
+    transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
+  }
+
+  .settings-button:focus-visible .settings-button__icon {
+    animation: gear-spin 1.5s linear infinite;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .settings-button:hover .settings-button__icon {
+      animation: gear-spin 1.5s linear infinite;
+    }
+  }
 }
 
 @keyframes gear-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
+/* ------------------------------------------------------------ Settings */
+
 .settings-banner {
-  margin: 0 0 1rem;
-  padding: 0.75rem 1rem;
+  margin-block: 0 1rem;
+  padding-block: 0.75rem;
+  padding-inline: 1rem;
   background: var(--pincushion-settings-banner-bg);
   border: 1px solid var(--pincushion-settings-banner-border);
   border-radius: 4px;
@@ -716,25 +882,26 @@ footer {
 }
 
 .settings-form {
-  padding: 1rem 0.5rem 2rem;
+  padding-block: 1rem 2rem;
+  padding-inline: 0.5rem;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
 }
 
 .settings-form h2 {
-  margin-bottom: 0;
+  margin-block-end: 0;
 }
 
 .settings-form__helper {
   font-size: 0.9rem;
   color: var(--pincushion-settings-helper-text);
-  margin-top: 0;
+  margin-block-start: 0;
 }
 
 .settings-form__helper.small {
   font-size: 0.8rem;
-  margin-bottom: 0.5rem;
+  margin-block-end: 0.5rem;
 }
 
 .settings-form input {
@@ -747,16 +914,21 @@ footer {
   display: flex;
   justify-content: flex-end;
   gap: 0.5rem;
-  margin-top: 1rem;
+  margin-block-start: 1rem;
 }
 
 .settings-form__actions button {
-  min-width: 120px;
-  padding: 0.5rem 0.75rem;
+  min-inline-size: 144px;
+  padding-block: 0.5rem;
+  padding-inline: 0.75rem;
   border-radius: 4px;
   border: none;
   cursor: pointer;
   font-weight: 600;
+}
+
+.settings-form__actions button:active {
+  transform: scale(0.97);
 }
 
 .settings-form__actions button.secondary {
@@ -766,16 +938,20 @@ footer {
 
 .settings-form__actions button[type="submit"] {
   background: var(--pincushion-accent);
-  color: #fff;
+  color: var(--pincushion-on-accent);
 }
 
-#pinboard-link {
-  opacity: 0.8;
+@media (prefers-reduced-motion: no-preference) {
+  .settings-form__actions button {
+    transition: background-color 0.2s var(--ease-out), transform 160ms var(--ease-out);
+  }
 }
 
-/* Twitter card preview */
+/* ---------------------------------------------------- Page preview card */
+
 .twitter-card-panel {
-  margin: 2rem 0 1.75rem;
+  container-type: inline-size;
+  margin-block: 2rem 1.75rem;
 }
 
 .twitter-card-panel__label {
@@ -784,7 +960,7 @@ footer {
   text-transform: uppercase;
   font-weight: 600;
   color: var(--pincushion-text-muted);
-  margin-bottom: 0.75rem;
+  margin-block-end: 0.75rem;
 }
 
 .twitter-card-panel__message {
@@ -801,40 +977,61 @@ footer {
 }
 
 .twitter-card-panel__message + .twitter-card {
-  margin-top: 0.75rem;
+  margin-block-start: 0.75rem;
 }
 
 .twitter-card-panel__spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(0, 0, 0, 0.15);
-  border-top-color: var(--pincushion-accent);
+  flex: none;
+  inline-size: 20px;
+  block-size: 20px;
+  border: 2px solid color-mix(in oklch, var(--pincushion-text-primary) 15%, transparent);
+  border-block-start-color: var(--pincushion-accent);
   border-radius: 50%;
   animation: twitter-spinner 0.75s linear infinite;
 }
 
 @keyframes twitter-spinner {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
 
 .twitter-card-panel-fade-enter,
-.twitter-card-panel-fade-exit {
+.twitter-card-panel-fade-exit,
+.twitter-card-fade-enter,
+.twitter-card-fade-exit {
   opacity: 0;
-  transform: translateY(6px);
 }
 
-.twitter-card-panel-fade-enter-active {
+.twitter-card-panel-fade-enter-active,
+.twitter-card-fade-enter-active {
   opacity: 1;
-  transform: translateY(0);
-  transition: opacity 200ms ease, transform 200ms ease;
+  transition: opacity 200ms var(--ease-out);
 }
 
-.twitter-card-panel-fade-exit-active {
+.twitter-card-panel-fade-exit-active,
+.twitter-card-fade-exit-active {
   opacity: 0;
-  transform: translateY(6px);
-  transition: opacity 160ms ease, transform 160ms ease;
+  transition: opacity 160ms var(--ease-out);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .twitter-card-panel-fade-enter,
+  .twitter-card-panel-fade-exit,
+  .twitter-card-fade-enter,
+  .twitter-card-fade-exit {
+    transform: translateY(6px);
+  }
+
+  .twitter-card-panel-fade-enter-active,
+  .twitter-card-fade-enter-active {
+    transform: translateY(0);
+    transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+  }
+
+  .twitter-card-panel-fade-exit-active,
+  .twitter-card-fade-exit-active {
+    transform: translateY(6px);
+    transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out);
+  }
 }
 
 .twitter-card {
@@ -844,48 +1041,30 @@ footer {
   display: flex;
   gap: 1.5rem;
   background: var(--pincushion-surface-bg);
-  box-shadow: 0 18px 36px rgba(15, 15, 40, 0.14);
-}
-
-.twitter-card-fade-enter,
-.twitter-card-fade-exit {
-  opacity: 0;
-  transform: translateY(6px);
-}
-
-.twitter-card-fade-enter-active {
-  opacity: 1;
-  transform: translateY(0);
-  transition: opacity 220ms ease, transform 220ms ease;
-}
-
-.twitter-card-fade-exit-active {
-  opacity: 0;
-  transform: translateY(6px);
-  transition: opacity 180ms ease, transform 180ms ease;
+  box-shadow: 0 18px 36px oklch(18.5% 0.05 280.4 / 0.14);
 }
 
 .twitter-card__image-wrapper {
   flex: 0 0 220px;
   border-radius: 18px;
-  overflow: hidden;
-  background: #f8f8fb;
+  overflow: clip;
+  background: var(--pincushion-surface-muted);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .twitter-card__image-wrapper img {
-  width: 100%;
-  height: 100%;
+  inline-size: 100%;
+  block-size: 100%;
   object-fit: cover;
-  display: block;
 }
 
 .twitter-card__body {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+  min-inline-size: 0;
 }
 
 .twitter-card__domain {
@@ -898,15 +1077,17 @@ footer {
 }
 
 .twitter-card__favicon {
-  width: 20px;
-  height: 20px;
+  flex: none;
+  inline-size: 20px;
+  block-size: 20px;
   border-radius: 4px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 2px oklch(0% 0 none / 0.2);
 }
 
 .twitter-card__domain-pill {
   font-size: 0.75rem;
-  padding: 0.15rem 0.5rem;
+  padding-block: 0.15rem;
+  padding-inline: 0.5rem;
   border-radius: 999px;
   background: var(--pincushion-input-bg);
   border: 1px solid var(--pincushion-border);
@@ -919,19 +1100,16 @@ footer {
   text-decoration: none;
 }
 
-.twitter-card__handle--link:hover,
-.twitter-card__handle--link:focus {
+.twitter-card__handle--link:focus-visible {
   color: var(--pincushion-accent);
   text-decoration: underline;
 }
 
-.twitter-card__badge {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  border: 1px solid var(--pincushion-border);
-  border-radius: 999px;
-  padding: 0.15rem 0.5rem;
+@media (hover: hover) and (pointer: fine) {
+  .twitter-card__handle--link:hover {
+    color: var(--pincushion-accent);
+    text-decoration: underline;
+  }
 }
 
 .twitter-card__title {
@@ -948,78 +1126,53 @@ footer {
   line-height: 1.5;
 }
 
-.twitter-card__meta {
-  margin-top: 0.5rem;
-  font-size: 0.78rem;
-  color: var(--pincushion-text-muted);
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-@media (max-width: 560px) {
+/* Narrow slot: stack the image above the text at the usual OG image ratio. */
+@container (width < 34rem) {
   .twitter-card {
     flex-direction: column;
   }
 
   .twitter-card__image-wrapper {
-    flex: 0 0 auto;
-    width: 100%;
-    max-height: 240px;
+    flex: none;
+  }
+
+  .twitter-card__image-wrapper img {
+    block-size: auto;
+    aspect-ratio: 1.91 / 1;
   }
 }
 
-/* Spinner styles ported from original popup.less */
+/* ------------------------------------------------------------- Spinners */
+
 .spinner {
   display: inline-block;
-  width: 24px;
-  height: 24px;
-  margin: -4px 6px 0 0;
+  inline-size: 24px;
+  block-size: 24px;
+  margin-block-start: -4px;
+  margin-inline-end: 6px;
   vertical-align: middle;
-  /* Adjust path relative to CSS file location */
   background: url(../assets/images/spinner_2x.gif) 0 0 no-repeat;
   background-size: 24px 24px;
   opacity: 0.6;
 }
 
-.spinner.hidden {
-  /* Animation to hide spinner */
-  animation: squelch 0.4s linear forwards;
-}
-
 #tagspinner {
-  /* Specific styles for the smaller tag spinner */
-  width: 16px;
-  height: 16px;
+  inline-size: 16px;
+  block-size: 16px;
   background-size: 16px 16px;
   opacity: 0.8;
 }
 
-/* Keyframes for hiding animation */
-@keyframes squelch {
-  100% {
-    transform: scale(0);
-    opacity: 0;
-  }
-}
+/* ------------------------------------------------- Tag autocomplete menu */
 
-a {
-  text-decoration: none;
-  font-weight: bold;
-  color: var(--pincushion-link-color);
-}
-
-/* Selectize dropdown option count styling */
 .optioncount {
-  margin-left: 65px;
+  margin-inline-start: auto;
   font-family: "Open Sans", sans-serif;
   font-weight: 300;
+  font-variant-numeric: tabular-nums;
   color: var(--pincushion-optioncount-text);
-  float: right; /* Align count to the right */
-  margin-right: 10px; /* Add some space from the edge */
 }
 
-/* Tag weight classes */
 .tw1 {
   font-weight: 400;
 }
