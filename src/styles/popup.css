@@ -188,17 +188,10 @@ input[type="checkbox"] {
   max-inline-size: 740px;
   margin-inline: auto;
   padding: 2px;
-  background-repeat: no-repeat;
-  background-position: 50% 8px;
-  background-size: 55px 55px;
 }
 
 .private {
   background-color: var(--pincushion-private-bg);
-}
-
-.private .pincushion-popup {
-  background-image: url(../assets/images/padlock.png);
 }
 
 /* ---------------------------------------------------------- Keyframes */
@@ -319,9 +312,30 @@ label {
   transition: color 0.3s var(--ease-out);
 }
 
+/*
+ * The save button sits at the end of the row. For a private bookmark the
+ * space before it shows a padlock: centred on the page where it fits, and
+ * centred in the space beside the button where it would otherwise overlap.
+ */
 .bookmark-save {
-  text-align: end;
+  container-type: inline-size;
+  display: flex;
+  justify-content: flex-end;
   margin-block-end: 0.4em;
+}
+
+.private .bookmark-save::before {
+  content: "";
+  flex: 1;
+  background: url(../assets/images/padlock.png) no-repeat;
+  background-position: calc(50cqi - 27.5px) center;
+  background-size: 55px 55px;
+}
+
+@container (width < 30rem) {
+  .private .bookmark-save::before {
+    background-position: center;
+  }
 }
 
 .timestamp-info {
