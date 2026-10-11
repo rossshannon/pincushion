@@ -2,6 +2,8 @@ import { vi } from 'vitest';
 import axios from 'axios';
 import bookmarkReducer, {
   setFormData,
+  stripTrackingFromUrl,
+  toggleTrackingStrip,
   resetStatus,
   submitBookmark,
   fetchBookmarkDetails,
@@ -37,6 +39,7 @@ const initialState = {
   hasExistingBookmark: false,
   displayOriginalTimestamp: false,
   existingBookmarkTags: [],
+  trackingStrip: null,
 };
 
 // Helper to create a mock store
@@ -511,5 +514,60 @@ describe('bookmark slice', () => {
         expect(state.errors.generic).toEqual(errorMessage);
       });
     });
+  });
+});
+
+describe('tracking parameter stripping', () => {
+  const tracked = 'https://example.com/post?id=7&utm_source=news#top';
+  const clean = 'https://example.com/post?id=7#top';
+
+  const loaded = () =>
+    bookmarkReducer(
+      bookmarkReducer(initialState, setFormData({ url: tracked })),
+      stripTrackingFromUrl()
+    );
+
+  it('strips the URL and remembers what it removed', () => {
+    const state = loaded();
+    expect(state.formData.url).toBe(clean);
+    expect(state.trackingStrip).toEqual({
+      original: tracked,
+      stripped: clean,
+      removed: ['utm_source'],
+      restored: false,
+    });
+  });
+
+  it('does nothing to a URL without tracking parameters', () => {
+    const before = bookmarkReducer(
+      initialState,
+      setFormData({ url: 'https://example.com/?id=7' })
+    );
+    const after = bookmarkReducer(before, stripTrackingFromUrl());
+    expect(after.formData.url).toBe('https://example.com/?id=7');
+    expect(after.trackingStrip).toBeNull();
+  });
+
+  it('toggles between the original and stripped URL', () => {
+    const restored = bookmarkReducer(loaded(), toggleTrackingStrip());
+    expect(restored.formData.url).toBe(tracked);
+    expect(restored.trackingStrip?.restored).toBe(true);
+
+    const reStripped = bookmarkReducer(restored, toggleTrackingStrip());
+    expect(reStripped.formData.url).toBe(clean);
+    expect(reStripped.trackingStrip?.restored).toBe(false);
+  });
+
+  it('forgets the strip once the user edits the URL', () => {
+    const edited = bookmarkReducer(
+      loaded(),
+      setFormData({ url: 'https://example.com/other' })
+    );
+    expect(edited.trackingStrip).toBeNull();
+  });
+
+  it('keeps the strip when other fields change', () => {
+    const edited = bookmarkReducer(loaded(), setFormData({ title: 'New' }));
+    expect(edited.trackingStrip?.removed).toEqual(['utm_source']);
   });
 });

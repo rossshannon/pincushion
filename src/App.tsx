@@ -4,7 +4,11 @@ import BookmarkForm from './components/BookmarkForm';
 import TwitterCardPreview from './components/TwitterCardPreview';
 import './styles/popup.css';
 import { setAuth } from './redux/authSlice';
-import { setFormData, fetchBookmarkDetails } from './redux/bookmarkSlice';
+import {
+  setFormData,
+  fetchBookmarkDetails,
+  stripTrackingFromUrl,
+} from './redux/bookmarkSlice';
 import {
   fetchTags,
   fetchSuggestedTags,
@@ -16,6 +20,7 @@ import {
 import { enforceMinimumPopupSize } from './utils/popupAffordances';
 import { getRecentTags } from './utils/recentTagStorage';
 import { readTagCache } from './utils/tagCache';
+import { stripTrackingParams } from './utils/trackingParams';
 import Settings from './components/Settings';
 import { clearTwitterCard } from './redux/twitterCardSlice';
 import {
@@ -132,8 +137,10 @@ function App() {
       setCredentialsMissing(true);
     }
     const initial = readInitialParams();
-    pendingInitialUrlRef.current = initial.url.trim() || null;
+    const { url: initialUrl } = stripTrackingParams(initial.url);
+    pendingInitialUrlRef.current = initialUrl.trim() || null;
     dispatch(setFormData(initial));
+    dispatch(stripTrackingFromUrl());
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {

@@ -5,6 +5,7 @@ import { getTimestampFormats } from '../utils/date';
 import { isLikelyTouchDevice } from '../utils/popupAffordances';
 import {
   setFormData,
+  toggleTrackingStrip,
   submitBookmark,
   resetStatus,
   clearStatus,
@@ -46,6 +47,7 @@ function BookmarkForm() {
     existingBookmarkTime,
     hasExistingBookmark,
     displayOriginalTimestamp,
+    trackingStrip,
   } = useSelector((state: RootState) => state.bookmark);
   const userTags = useSelector((state: RootState) => state.tags.tagCounts);
   const suggestions = useSelector((state: RootState) =>
@@ -366,6 +368,27 @@ function BookmarkForm() {
           </button>
         )}
         {errors?.url && <span className="helptext">{errors.url}</span>}
+        {trackingStrip && (
+          <p className="tracking-note" aria-live="polite">
+            {trackingStrip.restored ? (
+              <>Kept tracking parameters</>
+            ) : (
+              <>
+                Removed tracking:{' '}
+                <span className="tracking-note__params">
+                  {trackingStrip.removed.join(', ')}
+                </span>
+              </>
+            )}{' '}
+            <button
+              type="button"
+              className="tracking-note__toggle"
+              onClick={() => dispatch(toggleTrackingStrip())}
+            >
+              {trackingStrip.restored ? 'Remove' : 'Undo'}
+            </button>
+          </p>
+        )}
       </div>
 
       <label htmlFor="description" className={errors?.description ? 'error' : ''}>

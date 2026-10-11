@@ -181,6 +181,33 @@ describe('App integration', () => {
     expect(store.getState().tags.tagCounts).toEqual({ coding: 5 });
   });
 
+  it('strips tracking parameters from the bookmarklet URL before looking it up', async () => {
+    mockPinboardApi();
+    seedCredentials();
+    window.history.pushState(
+      {},
+      '',
+      '?url=' +
+        encodeURIComponent('https://testing.com/?utm_source=rss&utm_medium=feed')
+    );
+
+    const store = await renderAppWithStore();
+
+    expect(store.getState().bookmark.formData.url).toBe('https://testing.com/');
+    expect(screen.getByText('utm_source, utm_medium')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        expect.stringContaining('posts/get'),
+        expect.anything()
+      )
+    );
+    const lookup = mockedAxios.get.mock.calls.find(([url]) =>
+      url.includes('posts/get')
+    );
+    expect(lookup[0]).toContain(encodeURIComponent('https://testing.com/'));
+    expect(lookup[0]).not.toContain('utm_source');
+  });
+
   it('submits bookmark successfully and closes the window', async () => {
     vi.useFakeTimers();
     const closeSpy = vi.spyOn(window, 'close').mockImplementation(() => undefined);

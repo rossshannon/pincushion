@@ -296,6 +296,42 @@ label.error {
   margin-block: 4px 8px;
 }
 
+/* Shown under the URL when tracking parameters were stripped on load. */
+.tracking-note {
+  margin-block: 4px 8px;
+  font-size: 0.8125rem;
+  color: var(--pincushion-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.tracking-note__params {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.75rem;
+}
+
+.tracking-note__toggle {
+  position: relative;
+  padding: 0;
+  background: none;
+  color: var(--pincushion-link-color);
+  font: inherit;
+  font-weight: 600;
+
+  /* At least 44px to press, whatever the drawn size. */
+  &::after {
+    content: "";
+    position: absolute;
+    inset: min(0px, (100% - 44px) / 2);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tracking-note__toggle:hover {
+    background: none;
+    text-decoration: underline;
+  }
+}
+
 /* ------------------------------------------------------------ The form */
 
 form.bookmark-form {

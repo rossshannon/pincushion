@@ -5,6 +5,7 @@ import {
 } from '@reduxjs/toolkit';
 import axios from 'axios';
 import { cleanUrl } from '../utils/url';
+import { stripTrackingParams } from '../utils/trackingParams';
 import {
   bridgeRequestConfig,
   bridgeUrl,
@@ -44,6 +45,20 @@ export type BookmarkState = {
   displayOriginalTimestamp: boolean;
   /** Tags the bookmark had on Pinboard when it was loaded; [] if new. */
   existingBookmarkTags: string[];
+  /**
+   * Set when tracking parameters were stripped from the URL, so the form can
+   * say what went and offer to put it back. Cleared once the user edits the
+   * URL by hand.
+   */
+  trackingStrip: TrackingStrip | null;
+};
+
+export type TrackingStrip = {
+  original: string;
+  stripped: string;
+  removed: string[];
+  /** True while the user has put the original URL back. */
+  restored: boolean;
 };
 
 type BookmarkThunkState = {
@@ -294,6 +309,7 @@ const initialState: BookmarkState = {
   hasExistingBookmark: false,
   displayOriginalTimestamp: false,
   existingBookmarkTags: [],
+  trackingStrip: null,
 };
 
 const bookmarkSlice = createSlice({
@@ -305,12 +321,35 @@ const bookmarkSlice = createSlice({
       if (Object.prototype.hasOwnProperty.call(updates, 'tags')) {
         updates.tags = toTagArray(updates.tags);
       }
+      if (
+        typeof updates.url === 'string' &&
+        updates.url !== state.formData.url
+      ) {
+        state.trackingStrip = null;
+      }
       state.formData = { ...state.formData, ...updates };
       Object.keys(updates).forEach((fieldName) => {
         if (isBookmarkErrorKey(fieldName)) {
           state.errors[fieldName] = null;
         }
       });
+    },
+    // Strip tracking parameters from the current URL, remembering the
+    // original so it can be restored.
+    stripTrackingFromUrl(state) {
+      const original = state.formData.url;
+      const { url: stripped, removed } = stripTrackingParams(original);
+      if (removed.length === 0) return;
+      state.formData.url = stripped;
+      state.errors.url = null;
+      state.trackingStrip = { original, stripped, removed, restored: false };
+    },
+    toggleTrackingStrip(state) {
+      const strip = state.trackingStrip;
+      if (!strip) return;
+      strip.restored = !strip.restored;
+      state.formData.url = strip.restored ? strip.original : strip.stripped;
+      state.errors.url = null;
     },
     resetStatus(state) {
       state.status = 'idle';
@@ -467,5 +506,11 @@ const bookmarkSlice = createSlice({
   },
 });
 
-export const { setFormData, resetStatus, clearStatus } = bookmarkSlice.actions;
+export const {
+  setFormData,
+  stripTrackingFromUrl,
+  toggleTrackingStrip,
+  resetStatus,
+  clearStatus,
+} = bookmarkSlice.actions;
 export default bookmarkSlice.reducer;
