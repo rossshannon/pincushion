@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
@@ -53,7 +53,7 @@ describe('BookmarkForm Component', () => {
     store.dispatch = vi.fn();
   });
 
-  test('handles URL hash removal correctly', () => {
+  test('handles URL hash removal correctly', async () => {
     // Initial render - Use the store from beforeEach
     const { rerender } = render(
       <Provider store={store}>
@@ -113,10 +113,17 @@ describe('BookmarkForm Component', () => {
       </Provider>
     );
 
-    // Assert button is gone and value/class are updated - re-query elements
-    expect(
-      screen.queryByTitle(/Remove hash from URL/i)
-    ).not.toBeInTheDocument();
+    // The button stays to animate out, then unmounts
+    expect(screen.getByTitle(/Remove hash from URL/i)).toHaveClass(
+      'is-leaving'
+    );
+    await waitFor(() =>
+      expect(
+        screen.queryByTitle(/Remove hash from URL/i)
+      ).not.toBeInTheDocument()
+    );
+
+    // Assert value/class are updated - re-query elements
     urlInput = screen.getByLabelText(/URL/i);
     expect(urlInput).toHaveValue(testUrlWithoutHash);
     expect(urlInput).not.toHaveClass('hash-detected');

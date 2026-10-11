@@ -70,6 +70,22 @@ function BookmarkForm() {
   );
   const spinnerActiveRef = useRef(false);
   const [shouldAutoFocusTags] = useState(() => !isLikelyTouchDevice());
+  const hasHash = !!formData.url?.includes('#');
+  // Keep the # button mounted after the fragment goes so it can animate out
+  // while the URL input straightens; onAnimationEnd then unmounts it.
+  const [hashButtonShown, setHashButtonShown] = useState(hasHash);
+  const hashButtonLeaving = hashButtonShown && !hasHash;
+
+  useEffect(() => {
+    if (hasHash) setHashButtonShown(true);
+  }, [hasHash]);
+
+  // Fallback in case animationend never fires (e.g. the tab is hidden).
+  useEffect(() => {
+    if (!hashButtonLeaving) return undefined;
+    const timer = setTimeout(() => setHashButtonShown(false), 600);
+    return () => clearTimeout(timer);
+  }, [hashButtonLeaving]);
 
   useEffect(() => {
     if (btnRef.current) {
@@ -346,21 +362,25 @@ function BookmarkForm() {
           name="url"
           value={formData.url}
           onChange={handleChange}
-          className={formData.url?.includes('#') ? 'hash-detected' : ''}
+          className={hasHash ? 'hash-detected' : ''}
           aria-invalid={!!errors?.url}
           ref={urlRef}
           tabIndex={2}
         />
-        {formData.url?.includes('#') && (
+        {(hasHash || hashButtonShown) && (
           <button
             type="button"
-            className="remove-hash"
+            className={hashButtonLeaving ? 'remove-hash is-leaving' : 'remove-hash'}
             onClick={() => {
               const cleanUrl = formData.url.replace(/#.*$/, '');
               dispatch(setFormData({ url: cleanUrl }));
             }}
+            onAnimationEnd={() => {
+              if (hashButtonLeaving) setHashButtonShown(false);
+            }}
             title="Remove hash from URL"
             tabIndex={-1}
+            aria-hidden={hashButtonLeaving || undefined}
           >
             &#35;
           </button>

@@ -51,6 +51,7 @@ svg {
 
   --pincushion-font: "Helvetica Neue", helvetica, "Arial Unicode", arial, "Nimbus Sans L", "Liberation Sans", freesans, sans-serif;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --hash-exit: 0.3s;
 
   /* Surfaces */
   --pincushion-body-bg: light-dark(oklch(99.4% 0 none), oklch(18.5% 0.016 279.1));
@@ -471,10 +472,95 @@ textarea[aria-invalid="true"]:focus {
   grid-column: 1 / -1;
 }
 
+/*
+ * When the URL has a #fragment, the input's end is cut on a diagonal so it
+ * interlocks with the skewed # button. --slant is the cut's horizontal run:
+ * input height × tan(15deg), the button's skew. It is a registered length so
+ * removing the fragment can ease it back to a straight edge.
+ */
+@property --slant {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0;
+}
+
+/* Clip slack beyond the end edge: 8px when straight, so the focus outline isn't cut. */
+@property --slant-slack {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 8px;
+}
+
+input#url {
+  --slant-colour: var(--pincushion-border);
+  --slant-width: 1px;
+  /* The extra run the diagonal gains over the 8px of slack above and below. */
+  --slant-overhang: calc(var(--slant) * 0.2);
+  /* The clip cuts off the end border, so the diagonal is redrawn with a
+     gradient. With "to bottom right" the 50% line runs corner to corner. */
+  background-image: linear-gradient(
+    to bottom right,
+    transparent calc(50% - var(--slant-width) - 0.5px),
+    var(--slant-colour) calc(50% - var(--slant-width) + 0.5px),
+    var(--slant-colour) 50%,
+    transparent 50%
+  );
+  background-origin: border-box;
+  background-position: right;
+  background-size: var(--slant) 100%;
+  background-repeat: no-repeat;
+  padding-inline-end: max(1px, var(--slant));
+  /* 8px of slack on the other sides keeps the shadow and focus outline. */
+  clip-path: polygon(
+    -8px -8px,
+    calc(100% + var(--slant-overhang) + var(--slant-slack)) -8px,
+    calc(100% - var(--slant) - var(--slant-overhang) + var(--slant-slack)) calc(100% + 8px),
+    -8px calc(100% + 8px)
+  );
+}
+
+input#url.hash-detected {
+  --slant: 10px;
+  --slant-slack: 0px;
+
+  border-inline-end-color: transparent;
+}
+
+input#url.hash-detected:focus {
+  --slant-colour: var(--pincushion-border-focus);
+}
+
+/* The outline can't follow the clip, so carry it down the slant. */
+input#url.hash-detected:focus-visible {
+  --slant-colour: var(--pincushion-accent);
+  --slant-width: max(2px, 0.08em);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Straightening: the real end border fades back in as the edge nears upright. */
+  input#url {
+    transition:
+      border-color 0.1s var(--ease-out),
+      background-color 0.1s var(--ease-out),
+      --slant var(--hash-exit) var(--ease-out),
+      --slant-slack 0s var(--hash-exit),
+      border-inline-end-color calc(var(--hash-exit) / 2) linear calc(var(--hash-exit) / 4);
+  }
+
+  input#url.hash-detected {
+    transition:
+      border-color 0.1s var(--ease-out),
+      background-color 0.1s var(--ease-out),
+      --slant var(--hash-exit) var(--ease-out),
+      --slant-slack 0s,
+      border-inline-end-color 0s;
+  }
+}
+
 .remove-hash {
   position: relative;
   inset-block-start: 1px;
-  margin-inline-start: 10px;
+  margin-inline-start: 2px;
   padding-block: 0.1em;
   padding-inline: 0.4em 0.5em;
   border: 1px solid var(--pincushion-border);
@@ -507,10 +593,48 @@ textarea[aria-invalid="true"]:focus {
   }
 }
 
+/*
+ * Once pressed, the button stays mounted with .is-leaving until its exit
+ * animation ends, so it can fade out while the input straightens.
+ */
+.remove-hash.is-leaving {
+  pointer-events: none;
+  animation: hash-fade-out var(--hash-exit) var(--ease-out) forwards;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .remove-hash {
     opacity: 0;
     animation: bounce-in 0.8s var(--ease-out) 0.4s forwards;
+  }
+
+  /* Collapse the button's column so the input glides out to full width. */
+  .remove-hash.is-leaving {
+    overflow: clip;
+    animation: hash-leave var(--hash-exit) var(--ease-out) forwards;
+  }
+}
+
+@keyframes hash-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes hash-leave {
+  from {
+    opacity: 1;
+    transform: skew(-15deg);
+    max-inline-size: 2em;
+  }
+
+  to {
+    opacity: 0;
+    transform: skew(-15deg) translateX(8px);
+    max-inline-size: 0;
+    margin-inline-start: 0;
+    padding-inline: 0;
+    border-inline-width: 0;
   }
 }
 
