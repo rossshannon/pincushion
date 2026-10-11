@@ -361,7 +361,6 @@ function App() {
             type="button"
             className="settings-button"
             onClick={() => setView(VIEW_SETTINGS)}
-            aria-pressed="false"
             title="Configure your Pinboard and OpenAI access tokens."
           >
             <span className="settings-button__icon" aria-hidden="true">

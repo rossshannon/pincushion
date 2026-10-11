@@ -1,7 +1,6 @@
 {
   "extends": ["stylelint-config-standard"],
   "rules": {
-    "string-quotes": "double",
     "selector-class-pattern": null,
     "color-function-notation": null,
     "alpha-value-notation": null,
@@ -15,6 +14,8 @@
     "rule-empty-line-before": null,
     "comment-empty-line-before": null,
     "no-descending-specificity": null,
-    "function-url-quotes": null
+    "function-url-quotes": null,
+    "hue-degree-notation": "number",
+    "lightness-notation": "percentage"
   }
 }
