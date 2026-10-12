@@ -364,6 +364,22 @@ describe('App integration', () => {
     expect(card?.url).toBe('https://testing.com/canonical');
   });
 
+  it('shows the bookmarklet card before any credentials are saved', async () => {
+    mockedAxios.get.mockImplementation((url) => Promise.reject(new Error(`Unexpected call to ${url}`)));
+    window.history.pushState(
+      {},
+      '',
+      '?url=https%3A%2F%2Ftesting.com%2Fpost&title=Doc%20Title' +
+        '&meta_description=From%20the%20page&meta_image=%2Fcard.png'
+    );
+    const store = await renderAppWithStore();
+
+    await waitFor(() => expect(store.getState().twitterCard.card?.description).toBe('From the page'));
+    expect(store.getState().twitterCard.card?.title).toBe('Doc Title');
+    expect(screen.getByText(/enter your Pinboard credentials/)).toBeInTheDocument();
+    expect(mockedAxios.get).not.toHaveBeenCalled();
+  });
+
   it('fills a missing preview title from the document title when the page sent no card', async () => {
     mockedAxios.get.mockImplementation((url) => {
       if (url.includes('posts/get')) return Promise.resolve({ data: { posts: [] } });

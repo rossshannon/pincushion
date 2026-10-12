@@ -232,7 +232,12 @@ export const submitBookmark = createAsyncThunk<
 export const fetchBookmarkDetails = createAsyncThunk<
   PinboardPost | null,
   string | undefined,
-  { state: BookmarkThunkState; rejectValue: string }
+  {
+    state: BookmarkThunkState;
+    rejectValue: string;
+    // Set when Pinboard refused the URL as too long (HTTP 414).
+    rejectedMeta: { urlTooLong: boolean };
+  }
 >(
   'bookmark/fetchDetails',
   async (overrideUrl, { getState, rejectWithValue }) => {
@@ -256,16 +261,16 @@ export const fetchBookmarkDetails = createAsyncThunk<
       return null;
     } catch (err) {
       if (isUrlTooLongError(err)) {
-        return rejectWithValue(`${ERROR_MESSAGES.URL_TOO_LONG} (HTTP 414).`);
+        return rejectWithValue(`${ERROR_MESSAGES.URL_TOO_LONG} (HTTP 414).`, { urlTooLong: true });
       }
       if (isTimeoutError(err)) {
-        return rejectWithValue(ERROR_MESSAGES.LOOKUP_TIMEOUT);
+        return rejectWithValue(ERROR_MESSAGES.LOOKUP_TIMEOUT, { urlTooLong: false });
       }
       const message =
         err instanceof Error
           ? err.message
           : 'Failed to load existing bookmark details.';
-      return rejectWithValue(message);
+      return rejectWithValue(message, { urlTooLong: false });
     }
   }
 );

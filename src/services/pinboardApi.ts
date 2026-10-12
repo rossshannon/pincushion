@@ -24,12 +24,13 @@ export const PINBOARD_BRIDGE_URL = (envBridgeUrl || DEFAULT_BRIDGE_URL).replace(
  * about 15s for a URL it hasn't seen, plus up to 3s the bridge holds it to
  * space it from the lookup, so it gets more: a little over the bridge's own
  * 25s budget, so the bridge's 504 arrives first. The preview never touches
- * Pinboard and the bridge gives up on the page after 5s.
+ * Pinboard and the bridge gives up on the page after 5s, but a cold-started
+ * dyno can add as much as it does to the lookup, so it gets the same budget.
  */
 export const REQUEST_TIMEOUTS_MS = {
   lookup: 20_000,
   suggest: 28_000,
-  preview: 10_000,
+  preview: 20_000,
   tags: 30_000,
   save: 30_000,
 } as const;

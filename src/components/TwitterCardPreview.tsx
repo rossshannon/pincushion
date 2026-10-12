@@ -90,6 +90,7 @@ const TwitterCardPreview = () => {
               <div className="twitter-card__image-wrapper">
                 <img
                   src={displayCard.imageUrl}
+                  referrerPolicy="no-referrer"
                   alt={imageAlt}
                   aria-hidden={imageAriaHidden}
                   loading="lazy"
@@ -102,6 +103,7 @@ const TwitterCardPreview = () => {
                 {displayCard?.faviconUrl && showFavicon && (
                   <img
                     src={displayCard.faviconUrl}
+                    referrerPolicy="no-referrer"
                     alt=""
                     aria-hidden="true"
                     className="twitter-card__favicon"

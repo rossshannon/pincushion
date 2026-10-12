@@ -19,8 +19,8 @@ import { enforceMinimumPopupSize } from './utils/popupAffordances';
 import { getRecentTags } from './utils/recentTagStorage';
 import { readTagCache } from './utils/tagCache';
 import Settings from './components/Settings';
-import { clearTwitterCard, fetchPagePreview } from './redux/twitterCardSlice';
-import { readPageMetadata } from './utils/pageMetadata';
+import { clearTwitterCard, fetchPagePreview, showPageCard } from './redux/twitterCardSlice';
+import { isShowablePageCard, readPageMetadata } from './utils/pageMetadata';
 import type { TwitterCardData } from './types/twitterCard';
 import {
   readStoredCredentials,
@@ -77,14 +77,12 @@ const readInitialPageCard = (pageUrl: string): TwitterCardData | null =>
     pageUrl.trim()
   );
 
-// fetchBookmarkDetails rejects with this message when Pinboard answers 414.
+// fetchBookmarkDetails marks its rejection when Pinboard answers 414.
 const isUrlTooLongRejection = (result: unknown): boolean => {
-  const action = result as { meta?: { requestStatus?: string }; payload?: unknown } | undefined;
-  return (
-    action?.meta?.requestStatus === 'rejected' &&
-    typeof action.payload === 'string' &&
-    action.payload.includes('(HTTP 414)')
-  );
+  const action = result as
+    | { meta?: { requestStatus?: string; urlTooLong?: boolean } }
+    | undefined;
+  return action?.meta?.requestStatus === 'rejected' && action.meta.urlTooLong === true;
 };
 
 const isLikelyCompleteUrl = (value: string): boolean => {
@@ -294,6 +292,23 @@ function App() {
       window.clearTimeout(timer);
     };
   }, [dispatch, url]);
+
+  // The bookmarklet's own card needs no credentials, so it shows before
+  // they're saved too. Once they are, the lookup below asks the bridge.
+  useEffect(() => {
+    if (user && token) return;
+    if (!debouncedUrl) return;
+    const initialPage =
+      initialPageCardRef.current?.url === debouncedUrl ? initialPageCardRef.current : null;
+    if (!initialPage?.card || !isShowablePageCard(initialPage.card)) return;
+    dispatch(
+      showPageCard({
+        url: debouncedUrl,
+        pageCard: initialPage.card,
+        fallbackTitle: initialPage.fallbackTitle || null,
+      })
+    );
+  }, [dispatch, user, token, debouncedUrl]);
 
   useEffect(() => {
     if (!user || !token) return;

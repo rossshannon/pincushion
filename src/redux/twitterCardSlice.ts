@@ -97,6 +97,34 @@ type FetchPagePreviewArgs = {
   fallbackTitle?: string | null;
 };
 
+const withFallbackTitle = (
+  card: TwitterCardData | null,
+  fallbackTitle: string | null
+): TwitterCardData | null =>
+  card && !card.title && fallbackTitle ? { ...card, title: fallbackTitle } : card;
+
+/**
+ * Show the card the bookmarklet read off the page, with nothing from the
+ * bridge. Needs no credentials.
+ */
+export const showPageCard = ({
+  url,
+  pageCard,
+  fallbackTitle = null,
+}: {
+  url: string;
+  pageCard: TwitterCardData;
+  fallbackTitle?: string | null;
+}) =>
+  setTwitterCardPreview({
+    card: withFallbackTitle(pageCard, fallbackTitle),
+    error: null,
+    url: url.trim(),
+    status: 'succeeded',
+    previewStatus: 'page',
+    previewError: null,
+  });
+
 /**
  * Fetch the page preview from the bridge's /preview route. When the
  * bookmarklet supplied the page's own metadata, that card shows straight
@@ -117,14 +145,12 @@ export const fetchPagePreview = createAsyncThunk<
   const previewToken = ++latestPreviewToken;
   const showPage = isShowablePageCard(pageCard);
   const withTitle = (card: TwitterCardData | null): TwitterCardData | null =>
-    card && !card.title && fallbackTitle ? { ...card, title: fallbackTitle } : card;
+    withFallbackTitle(card, fallbackTitle);
 
   dispatch(
-    setTwitterCardPreview(
-      showPage
-        ? { card: withTitle(pageCard), error: null, url: trimmedUrl, status: 'succeeded', previewStatus: 'page', previewError: null }
-        : { card: null, error: null, url: trimmedUrl, status: 'loading', previewStatus: null, previewError: null }
-    )
+    showPage && pageCard
+      ? showPageCard({ url: trimmedUrl, pageCard, fallbackTitle })
+      : setTwitterCardPreview({ card: null, error: null, url: trimmedUrl, status: 'loading', previewStatus: null, previewError: null })
   );
 
   const {
