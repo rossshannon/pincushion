@@ -37,7 +37,9 @@ const initialState = {
   hasExistingBookmark: false,
   displayOriginalTimestamp: false,
   existingBookmarkTags: [],
+  existingBookmarkUrl: null,
   tagsAtLookupStart: [],
+  savingUrl: '',
   savingTags: [],
 };
 
@@ -251,18 +253,6 @@ describe('bookmark slice', () => {
         expect(state.existingBookmarkTags).toEqual(['saved', 'old']);
       });
 
-      it('forgets the loaded bookmark’s tags when the URL is edited', () => {
-        const editStore = createMockStore({
-          ...initialState,
-          formData: { ...initialState.formData, url: 'http://a.example' },
-          existingBookmarkTags: ['x'],
-        });
-        editStore.dispatch(setFormData({ title: 'same url' }));
-        expect(editStore.getState().bookmark.existingBookmarkTags).toEqual(['x']);
-        editStore.dispatch(setFormData({ url: 'http://c.example' }));
-        expect(editStore.getState().bookmark.existingBookmarkTags).toBeNull();
-      });
-
       it('marks the existing tags as unknown when the lookup fails', async () => {
         mockedAxios.get.mockRejectedValueOnce(new Error('Network Error'));
         await store.dispatch(fetchBookmarkDetails());
@@ -409,6 +399,18 @@ describe('bookmark slice', () => {
         window.localStorage.clear();
       });
 
+      it('refuses to overwrite after the URL is edited away from the loaded bookmark, but not after editing it back', async () => {
+        store.dispatch(setFormData({ url: 'http://example.com/other' }));
+        mockedAxios.get.mockResolvedValueOnce({ data: { result_code: 'item already exists' } });
+        await store.dispatch(submitBookmark());
+        expect(new URL(mockedAxios.get.mock.calls.at(-1)[0]).searchParams.get('replace')).toBe('no');
+
+        store.dispatch(setFormData({ url: validFormData.url }));
+        mockedAxios.get.mockResolvedValueOnce({ data: { result_code: 'done' } });
+        await store.dispatch(submitBookmark());
+        expect(new URL(mockedAxios.get.mock.calls.at(-1)[0]).searchParams.get('replace')).toBeNull();
+      });
+
       it('lets a save replace the bookmark when the lookup succeeded', async () => {
         mockedAxios.get.mockResolvedValueOnce({ data: { result_code: 'done' } });
         await store.dispatch(submitBookmark());
@@ -518,6 +520,7 @@ describe('bookmark slice', () => {
               formData: validFormData,
               hasExistingBookmark: true,
               existingBookmarkTags: ['submit', 'old'],
+              existingBookmarkUrl: validFormData.url,
             },
             auth: { user: 'testUser', token: 'testToken' },
             tags: [],
@@ -558,6 +561,7 @@ describe('bookmark slice', () => {
               formData: validFormData,
               hasExistingBookmark: true,
               existingBookmarkTags: ['tag', 'submit'],
+              existingBookmarkUrl: validFormData.url,
             },
             auth: { user: 'testUser', token: 'testToken' },
             tags: [],

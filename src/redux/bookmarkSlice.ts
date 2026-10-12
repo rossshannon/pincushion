@@ -47,9 +47,12 @@ export type BookmarkState = {
    * if unknown because the lookup is pending or failed.
    */
   existingBookmarkTags: string[] | null;
+  /** The URL existingBookmarkTags describes; a save for any other URL has no baseline. */
+  existingBookmarkUrl: string | null;
   /** formData.tags when the lookup started, to spot tags typed meanwhile. */
   tagsAtLookupStart: string[];
-  /** The tags sent by the save in flight, the next delta's baseline. */
+  /** The URL and tags sent by the save in flight: the next baseline. */
+  savingUrl: string;
   savingTags: string[];
 };
 
@@ -155,7 +158,7 @@ export const submitBookmark = createAsyncThunk<
 >('bookmark/submit', async (_, { getState, dispatch, rejectWithValue }) => {
   const {
     auth: { user, token },
-    bookmark: { formData, existingBookmarkTags },
+    bookmark: { formData, existingBookmarkTags, existingBookmarkUrl },
   } = getState();
 
   // --- Client-side validation ---
@@ -198,7 +201,9 @@ export const submitBookmark = createAsyncThunk<
   params.append('tags', (formData.tags || []).join(' '));
   // posts/add replaces an existing bookmark wholesale. If the lookup failed
   // we don't know whether one exists, so refuse to overwrite it.
-  const baselineKnown = existingBookmarkTags !== null;
+  const baselineKnown =
+    existingBookmarkTags !== null &&
+    existingBookmarkUrl === formData.url.trim();
   if (!baselineKnown) params.append('replace', 'no');
 
   try {
@@ -214,7 +219,10 @@ export const submitBookmark = createAsyncThunk<
       // its last bookmark must drop out.
       // With replace=no, success means the bookmark was new, so every tag
       // counts as added.
-      const delta = diffTagLists(existingBookmarkTags || [], formData.tags || []);
+      const delta = diffTagLists(
+        baselineKnown ? existingBookmarkTags || [] : [],
+        formData.tags || []
+      );
       if (!isEmptyDelta(delta)) {
         dispatch(recordSavedTags(delta));
         bumpTagCache(user, delta);
@@ -309,7 +317,9 @@ const initialState: BookmarkState = {
   hasExistingBookmark: false,
   displayOriginalTimestamp: false,
   existingBookmarkTags: [],
+  existingBookmarkUrl: null,
   tagsAtLookupStart: [],
+  savingUrl: '',
   savingTags: [],
 };
 
@@ -321,14 +331,6 @@ const bookmarkSlice = createSlice({
       const updates = { ...action.payload };
       if (Object.prototype.hasOwnProperty.call(updates, 'tags')) {
         updates.tags = toTagArray(updates.tags);
-      }
-      if (
-        typeof updates.url === 'string' &&
-        updates.url.trim() !== state.formData.url.trim()
-      ) {
-        // The loaded bookmark (if any) was for the old URL; until a lookup
-        // for this one succeeds, we don't know what a save would replace.
-        state.existingBookmarkTags = null;
       }
       state.formData = { ...state.formData, ...updates };
       Object.keys(updates).forEach((fieldName) => {
@@ -407,6 +409,7 @@ const bookmarkSlice = createSlice({
             ...typedMeanwhile.filter((tag) => !savedTags.includes(tag)),
           ];
           state.existingBookmarkTags = savedTags;
+          state.existingBookmarkUrl = state.formData.url.trim();
           state.formData.private = post.shared === 'no';
           state.formData.toread = post.toread === 'yes';
           state.existingBookmarkTime =
@@ -418,6 +421,7 @@ const bookmarkSlice = createSlice({
           state.existingBookmarkTime = null;
           state.displayOriginalTimestamp = false;
           state.existingBookmarkTags = [];
+          state.existingBookmarkUrl = currentUrl;
         }
       })
       .addCase(fetchBookmarkDetails.rejected, (state, action) => {
@@ -455,6 +459,7 @@ const bookmarkSlice = createSlice({
       })
       .addCase(submitBookmark.pending, (state) => {
         state.status = 'saving';
+        state.savingUrl = state.formData.url.trim();
         state.savingTags = [...state.formData.tags];
         // Reset errors to the full initial structure
         state.errors = { ...initialState.errors };
@@ -471,6 +476,7 @@ const bookmarkSlice = createSlice({
         // Whatever was just saved (not anything typed since) is now the
         // bookmark's baseline for the next delta.
         state.existingBookmarkTags = [...state.savingTags];
+        state.existingBookmarkUrl = state.savingUrl;
         // Reset errors to the full initial structure
         state.errors = { ...initialState.errors };
       })

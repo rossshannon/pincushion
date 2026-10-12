@@ -237,6 +237,31 @@ describe('tag slice', () => {
         expect(racingStore.getState().tags.savedDuringTagFetch).toBeNull();
       });
 
+      it('drops a refresh that finishes after the account changed', async () => {
+        let resolveTags;
+        mockedAxios.get.mockReturnValueOnce(
+          new Promise((resolve) => {
+            resolveTags = resolve;
+          })
+        );
+        let currentUser = 'accountA';
+        const switchingStore = configureStore({
+          reducer: {
+            auth: () => ({ user: currentUser, token: 'token' }),
+            tags: tagReducer,
+            bookmark: (state = { formData: {} }) => state,
+          },
+        });
+        const pending = switchingStore.dispatch(fetchTags());
+        currentUser = 'accountB';
+        switchingStore.dispatch({ type: 'auth/switched' });
+        resolveTags({ data: { onlyA: '3' } });
+        await pending;
+
+        expect(switchingStore.getState().tags.tagCounts).toEqual({});
+        expect(localStorageMock.getItem('tags')).toBeNull();
+      });
+
       it('should handle fulfilled state with empty data', async () => {
         mockedAxios.get.mockResolvedValueOnce({ data: null }); // API returns null
         await store.dispatch(fetchTags());

@@ -68,6 +68,11 @@ export const fetchTags = createAsyncThunk<
         bridgeUrl('/v1/tags/get?format=json'),
         bridgeRequestConfig(user, token, REQUEST_TIMEOUTS_MS.tags)
       );
+      // The account changed in Settings while this was downloading: these
+      // are someone else's tags now, so drop them.
+      if (getState().auth.user !== user) {
+        return rejectWithValue('Account changed during tag refresh');
+      }
       // Bookmarks saved while this download was in flight patched the old
       // counts; fold their deltas into the snapshot so it doesn't drop them.
       // Pinboard may already have counted them, though, so if there were
