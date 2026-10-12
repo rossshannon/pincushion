@@ -31,7 +31,6 @@ const supportsFieldSizing =
   typeof CSS.supports === 'function' &&
   CSS.supports('field-sizing', 'content');
 export const __TEST_MIN_SPINNER_DURATION = MIN_SPINNER_DURATION_MS;
-const HASH_EXIT_FALLBACK_MS = 600;
 
 type ErrorField = keyof Pick<BookmarkFormData, 'url' | 'title' | 'description'>;
 
@@ -73,16 +72,29 @@ function BookmarkForm() {
   const [shouldAutoFocusTags] = useState(() => !isLikelyTouchDevice());
   const hasHash = !!formData.url?.includes('#');
   // Keep the # button mounted after the fragment goes so it can animate out
-  // while the URL input straightens; onAnimationEnd then unmounts it.
+  // while the URL input straightens; onAnimationEnd then unmounts it. A button
+  // that never finished bouncing in (e.g. the lookup dropped the fragment
+  // first) just goes, rather than flashing up only to fade out.
+  const hashButtonRef = useRef<HTMLButtonElement | null>(null);
   const [hashButtonShown, setHashButtonShown] = useState(hasHash);
-  if (hasHash && !hashButtonShown) setHashButtonShown(true);
+  const [hashButtonEntered, setHashButtonEntered] = useState(false);
+  if (hasHash && !hashButtonShown) {
+    setHashButtonShown(true);
+    setHashButtonEntered(false);
+  } else if (!hasHash && hashButtonShown && !hashButtonEntered) {
+    setHashButtonShown(false);
+  }
   const hashButtonLeaving = hashButtonShown && !hasHash;
 
-  // Fallback in case animationend never fires (hidden tab, reduced motion).
-  // Keep it longer than --hash-exit in popup.css.
+  // Fallback in case animationend never fires (hidden tab, reduced motion):
+  // wait out the exit animation's own duration, plus a margin.
   useEffect(() => {
     if (!hashButtonLeaving) return undefined;
-    const timer = setTimeout(() => setHashButtonShown(false), HASH_EXIT_FALLBACK_MS);
+    const button = hashButtonRef.current;
+    const exitMs = button
+      ? parseFloat(getComputedStyle(button).animationDuration) * 1000 || 0
+      : 0;
+    const timer = setTimeout(() => setHashButtonShown(false), exitMs + 300);
     return () => clearTimeout(timer);
   }, [hashButtonLeaving]);
 
@@ -370,20 +382,17 @@ function BookmarkForm() {
           <button
             type="button"
             className={hashButtonLeaving ? 'remove-hash is-leaving' : 'remove-hash'}
-            // Don't take focus: the button is about to leave the page.
-            onMouseDown={(event) => event.preventDefault()}
             onClick={() => {
               const cleanUrl = formData.url.replace(/#.*$/, '');
               dispatch(setFormData({ url: cleanUrl }));
             }}
             onAnimationEnd={(event) => {
-              if (hashButtonLeaving && event.animationName === 'hash-leave') {
-                setHashButtonShown(false);
-              }
+              if (event.animationName === 'bounce-in') setHashButtonEntered(true);
+              if (event.animationName === 'hash-leave') setHashButtonShown(false);
             }}
             title="Remove hash from URL"
             tabIndex={-1}
-            aria-hidden={hashButtonLeaving || undefined}
+            ref={hashButtonRef}
           >
             &#35;
           </button>

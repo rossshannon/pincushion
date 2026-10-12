@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
@@ -9,6 +9,14 @@ import BookmarkForm from '../components/BookmarkForm';
 import { setFormData } from '../redux/bookmarkSlice';
 
 const mockStore = configureStore([]);
+
+// jsdom has no AnimationEvent, so React listens for the webkit-prefixed name;
+// fireEvent.animationEnd would go unheard.
+const endAnimation = (element, animationName) => {
+  const event = new Event('webkitAnimationEnd', { bubbles: true });
+  Object.defineProperty(event, 'animationName', { value: animationName });
+  fireEvent(element, event);
+};
 
 describe('BookmarkForm Component', () => {
   let store;
@@ -93,6 +101,7 @@ describe('BookmarkForm Component', () => {
     expect(removeHashButton).toBeInTheDocument();
     expect(urlInput).toHaveValue(testUrlWithHash);
     expect(urlInput).toHaveClass('hash-detected');
+    endAnimation(removeHashButton, 'bounce-in');
 
     // Simulate clicking the remove hash button
     fireEvent.click(removeHashButton);
@@ -116,11 +125,7 @@ describe('BookmarkForm Component', () => {
     // The button stays to animate out, then unmounts when its exit ends
     const leavingButton = screen.getByTitle(/Remove hash from URL/i);
     expect(leavingButton).toHaveClass('is-leaving');
-    // jsdom has no AnimationEvent, so React listens for the webkit-prefixed
-    // name; fireEvent.animationEnd would go unheard.
-    const animationEnd = new Event('webkitAnimationEnd', { bubbles: true });
-    Object.defineProperty(animationEnd, 'animationName', { value: 'hash-leave' });
-    fireEvent(leavingButton, animationEnd);
+    endAnimation(leavingButton, 'hash-leave');
     expect(
       screen.queryByTitle(/Remove hash from URL/i)
     ).not.toBeInTheDocument();
@@ -129,6 +134,77 @@ describe('BookmarkForm Component', () => {
     urlInput = screen.getByLabelText(/URL/i);
     expect(urlInput).toHaveValue(testUrlWithoutHash);
     expect(urlInput).not.toHaveClass('hash-detected');
+  });
+
+  const renderWithUrl = (url) => {
+    initialState.bookmark.formData.url = url;
+    return mockStore(initialState);
+  };
+
+  test('removes a # button that never finished entering at once', () => {
+    const { rerender } = render(
+      <Provider store={renderWithUrl('https://example.com/page#a')}>
+        <BookmarkForm />
+      </Provider>
+    );
+    expect(screen.getByTitle(/Remove hash from URL/i)).toBeInTheDocument();
+
+    rerender(
+      <Provider store={renderWithUrl('https://example.com/page')}>
+        <BookmarkForm />
+      </Provider>
+    );
+    expect(
+      screen.queryByTitle(/Remove hash from URL/i)
+    ).not.toBeInTheDocument();
+  });
+
+  test('unmounts a leaving # button on a timer if animationend never fires', () => {
+    vi.useFakeTimers();
+    try {
+      const { rerender } = render(
+        <Provider store={renderWithUrl('https://example.com/page#a')}>
+          <BookmarkForm />
+        </Provider>
+      );
+      endAnimation(screen.getByTitle(/Remove hash from URL/i), 'bounce-in');
+
+      rerender(
+        <Provider store={renderWithUrl('https://example.com/page')}>
+          <BookmarkForm />
+        </Provider>
+      );
+      expect(screen.getByTitle(/Remove hash from URL/i)).toHaveClass(
+        'is-leaving'
+      );
+
+      // Typing a # again mid-exit brings the button back.
+      rerender(
+        <Provider store={renderWithUrl('https://example.com/page#b')}>
+          <BookmarkForm />
+        </Provider>
+      );
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+      expect(screen.getByTitle(/Remove hash from URL/i)).not.toHaveClass(
+        'is-leaving'
+      );
+
+      rerender(
+        <Provider store={renderWithUrl('https://example.com/page')}>
+          <BookmarkForm />
+        </Provider>
+      );
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+      expect(
+        screen.queryByTitle(/Remove hash from URL/i)
+      ).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   // Add more tests for other functionalities (submit, errors, checkboxes, tags, etc.)
