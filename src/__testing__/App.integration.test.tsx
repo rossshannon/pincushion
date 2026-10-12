@@ -364,6 +364,27 @@ describe('App integration', () => {
     expect(card?.url).toBe('https://testing.com/canonical');
   });
 
+  it('fills a missing preview title from the document title when the page sent no card', async () => {
+    mockedAxios.get.mockImplementation((url) => {
+      if (url.includes('posts/get')) return Promise.resolve({ data: { posts: [] } });
+      if (url.includes('/v1/posts/suggest')) return Promise.resolve({ data: [] });
+      if (url.includes('/preview?')) {
+        return Promise.resolve({
+          data: { preview: { url: 'https://testing.com/post', title: null, description: 'Bridge text' } },
+        });
+      }
+      if (url.includes('tags/get')) return Promise.resolve({ data: {} });
+      return Promise.reject(new Error(`Unhandled url ${url}`));
+    });
+    seedCredentials();
+    // An older bookmarklet: a title, but no meta_* parameters.
+    window.history.pushState({}, '', '?url=https%3A%2F%2Ftesting.com%2Fpost&title=Doc%20Title');
+    const store = await renderAppWithStore();
+
+    await waitFor(() => expect(store.getState().twitterCard.card?.description).toBe('Bridge text'));
+    expect(store.getState().twitterCard.card?.title).toBe('Doc Title');
+  });
+
   it('keeps the suggestions spinner for a new URL while a stale lookup settles', async () => {
     vi.useFakeTimers();
     try {

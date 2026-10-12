@@ -142,10 +142,11 @@ function App() {
   // The URL the bookmarklet opened us with. It is looked up straight away;
   // the debounce only applies to URLs the user types afterwards.
   const pendingInitialUrlRef = useRef<string | null>(null);
-  // Preview metadata the bookmarklet read off the page, for its URL only.
+  // Preview metadata the bookmarklet read off the page, and the document
+  // title, for its URL only. Older bookmarklets send no card, just the title.
   const initialPageCardRef = useRef<{
     url: string;
-    card: TwitterCardData;
+    card: TwitterCardData | null;
     fallbackTitle: string;
   } | null>(null);
   useEffect(() => {
@@ -170,9 +171,12 @@ function App() {
     }
     const initial = readInitialParams();
     pendingInitialUrlRef.current = initial.url.trim() || null;
-    const initialPageCard = readInitialPageCard(initial.url);
-    initialPageCardRef.current = initialPageCard
-      ? { url: initial.url.trim(), card: initialPageCard, fallbackTitle: initial.title }
+    initialPageCardRef.current = initial.url.trim()
+      ? {
+          url: initial.url.trim(),
+          card: readInitialPageCard(initial.url),
+          fallbackTitle: initial.title,
+        }
       : null;
     dispatch(setFormData(initial));
 
@@ -308,7 +312,7 @@ function App() {
       fetchPagePreview({
         url: debouncedUrl,
         pageCard: initialPage?.card ?? null,
-        fallbackTitle: initialPage?.fallbackTitle ?? null,
+        fallbackTitle: initialPage?.fallbackTitle || null,
       })
     );
     // Clear the previous URL's suggestions and show the spinner during the lookup.
