@@ -259,6 +259,8 @@ describe('tag slice', () => {
         await pending;
 
         expect(switchingStore.getState().tags.tagCounts).toEqual({});
+        expect(switchingStore.getState().tags.error).toBeNull();
+        expect(switchingStore.getState().tags.savedDuringTagFetch).toBeNull();
         expect(localStorageMock.getItem('tags')).toBeNull();
       });
 

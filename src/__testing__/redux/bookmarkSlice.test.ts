@@ -411,6 +411,20 @@ describe('bookmark slice', () => {
         expect(new URL(mockedAxios.get.mock.calls.at(-1)[0]).searchParams.get('replace')).toBeNull();
       });
 
+      it('takes the next baseline from the URL that was saved, not one edited mid-save', async () => {
+        let resolveSave;
+        mockedAxios.get.mockReturnValueOnce(
+          new Promise((resolve) => {
+            resolveSave = resolve;
+          })
+        );
+        const saving = store.dispatch(submitBookmark());
+        store.dispatch(setFormData({ url: 'http://example.com/typed-during-save' }));
+        resolveSave({ data: { result_code: 'done' } });
+        await saving;
+        expect(store.getState().bookmark.existingBookmarkUrl).toBe(validFormData.url);
+      });
+
       it('lets a save replace the bookmark when the lookup succeeded', async () => {
         mockedAxios.get.mockResolvedValueOnce({ data: { result_code: 'done' } });
         await store.dispatch(submitBookmark());

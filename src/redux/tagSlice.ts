@@ -52,6 +52,9 @@ type TagThunkState = {
   tags: TagState;
 };
 
+// Rejection for a refresh that outlived an account switch: not an error.
+const ACCOUNT_CHANGED = 'Account changed during tag refresh';
+
 // Fetch user's tags from Pinboard
 export const fetchTags = createAsyncThunk<
   Record<string, number>,
@@ -71,7 +74,7 @@ export const fetchTags = createAsyncThunk<
       // The account changed in Settings while this was downloading: these
       // are someone else's tags now, so drop them.
       if (getState().auth.user !== user) {
-        return rejectWithValue('Account changed during tag refresh');
+        return rejectWithValue(ACCOUNT_CHANGED);
       }
       // Bookmarks saved while this download was in flight patched the old
       // counts; fold their deltas into the snapshot so it doesn't drop them.
@@ -450,7 +453,9 @@ const tagSlice = createSlice({
         if (state.tagFetchesInFlight === 0) state.savedDuringTagFetch = null;
       })
       .addCase(fetchTags.rejected, (state, action) => {
-        state.error = (action.payload as string) || action.error.message || null;
+        if (action.payload !== ACCOUNT_CHANGED) {
+          state.error = (action.payload as string) || action.error.message || null;
+        }
         state.tagFetchesInFlight = Math.max((state.tagFetchesInFlight || 0) - 1, 0);
         if (state.tagFetchesInFlight === 0) state.savedDuringTagFetch = null;
       })
