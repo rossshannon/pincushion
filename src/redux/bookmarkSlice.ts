@@ -5,7 +5,6 @@ import {
 } from '@reduxjs/toolkit';
 import axios from 'axios';
 import { cleanUrl } from '../utils/url';
-import { stripTrackingParams } from '../utils/trackingParams';
 import {
   bridgeRequestConfig,
   bridgeUrl,
@@ -51,14 +50,21 @@ export type BookmarkState = {
    * URL by hand.
    */
   trackingStrip: TrackingStrip | null;
+  /** The URL whose existing-bookmark lookup last completed for the form. */
+  resolvedLookupUrl: string | null;
 };
 
 export type TrackingStrip = {
   original: string;
   stripped: string;
   removed: string[];
-  /** True while the user has put the original URL back. */
+  /** True while the original URL is in the form. */
   restored: boolean;
+  /**
+   * True when the original URL was put back because the user had already
+   * bookmarked it with its tracking parameters.
+   */
+  savedWithTracking: boolean;
 };
 
 type BookmarkThunkState = {
@@ -72,6 +78,11 @@ type PinboardAddResponse = {
 };
 
 type PinboardPost = {
+  /**
+   * Set (by us, not Pinboard) when the clean URL wasn't bookmarked but the
+   * original, tracked URL was: the URL that matched.
+   */
+  matchedTrackedUrl?: string;
   href?: string;
   description?: string;
   extended?: string;
@@ -255,18 +266,36 @@ export const fetchBookmarkDetails = createAsyncThunk<
       auth: { user, token },
       bookmark: {
         formData: { url },
+        trackingStrip,
       },
     } = getState();
     const targetUrl = overrideUrl || url;
     if (!user || !token || !targetUrl) return null;
-    try {
+    const lookup = async (lookupUrl: string): Promise<PinboardPost | null> => {
       // Fetch details: strip fragment and encode URL parameter
       const response = await axios.get(
-        bridgeUrl(`/v1/posts/get?format=json&url=${cleanUrl(targetUrl)}`),
+        bridgeUrl(`/v1/posts/get?format=json&url=${cleanUrl(lookupUrl)}`),
         bridgeRequestConfig(user, token, REQUEST_TIMEOUTS_MS.lookup)
       );
       if (response.data.posts && response.data.posts.length === 1) {
         return response.data.posts[0];
+      }
+      return null;
+    };
+    try {
+      const post = await lookup(targetUrl);
+      if (post) return post;
+      // Bookmarks saved before tracking parameters were stripped live under
+      // the tracked URL. Look that up too, so they aren't saved twice.
+      if (
+        trackingStrip &&
+        !trackingStrip.restored &&
+        targetUrl.trim() === trackingStrip.stripped.trim()
+      ) {
+        const trackedPost = await lookup(trackingStrip.original);
+        if (trackedPost) {
+          return { ...trackedPost, matchedTrackedUrl: trackingStrip.original };
+        }
       }
       return null;
     } catch (err) {
@@ -310,6 +339,7 @@ const initialState: BookmarkState = {
   displayOriginalTimestamp: false,
   existingBookmarkTags: [],
   trackingStrip: null,
+  resolvedLookupUrl: null,
 };
 
 const bookmarkSlice = createSlice({
@@ -334,20 +364,45 @@ const bookmarkSlice = createSlice({
         }
       });
     },
-    // Strip tracking parameters from the current URL, remembering the
-    // original so it can be restored.
-    stripTrackingFromUrl(state) {
-      const original = state.formData.url;
-      const { url: stripped, removed } = stripTrackingParams(original);
+    // Put the URL with its tracking parameters stripped into the form,
+    // remembering the original so it can be restored.
+    applyTrackingStrip(
+      state,
+      action: PayloadAction<{
+        original: string;
+        stripped: string;
+        removed: string[];
+      }>
+    ) {
+      const { original, stripped, removed } = action.payload;
       if (removed.length === 0) return;
       state.formData.url = stripped;
       state.errors.url = null;
-      state.trackingStrip = { original, stripped, removed, restored: false };
+      state.trackingStrip = {
+        original,
+        stripped,
+        removed,
+        restored: false,
+        savedWithTracking: false,
+      };
+    },
+    // The "#" button. Drops the fragment from both versions of a stripped
+    // URL too, so the tracking note and its toggle survive.
+    removeUrlFragment(state) {
+      const dropFragment = (value: string) => value.replace(/#.*$/, '');
+      state.formData.url = dropFragment(state.formData.url);
+      state.errors.url = null;
+      const strip = state.trackingStrip;
+      if (strip) {
+        strip.original = dropFragment(strip.original);
+        strip.stripped = dropFragment(strip.stripped);
+      }
     },
     toggleTrackingStrip(state) {
       const strip = state.trackingStrip;
       if (!strip) return;
       strip.restored = !strip.restored;
+      strip.savedWithTracking = false;
       state.formData.url = strip.restored ? strip.original : strip.stripped;
       state.errors.url = null;
     },
@@ -403,10 +458,26 @@ const bookmarkSlice = createSlice({
         // Reset errors on success
         state.errors = { ...initialState.errors };
         const post = action.payload;
+        const strip = state.trackingStrip;
+        if (post?.matchedTrackedUrl && strip) {
+          // Already bookmarked with its tracking parameters: keep that URL
+          // rather than saving a second copy under the clean one.
+          state.formData.url = post.matchedTrackedUrl;
+          strip.restored = true;
+          strip.savedWithTracking = true;
+        }
         if (post) {
           // Populate formData from existing bookmark
           state.formData.title = post.description || state.formData.title;
           state.formData.url = post.href || state.formData.url;
+          if (strip) {
+            // Keep the toggle in step with the URL Pinboard has on file.
+            if (strip.restored) {
+              strip.original = state.formData.url;
+            } else {
+              strip.stripped = state.formData.url;
+            }
+          }
           state.formData.description =
             post.extended || state.formData.description;
           state.formData.tags = toTagArray(post.tags);
@@ -423,6 +494,7 @@ const bookmarkSlice = createSlice({
           state.displayOriginalTimestamp = false;
           state.existingBookmarkTags = [];
         }
+        state.resolvedLookupUrl = state.formData.url.trim();
       })
       .addCase(fetchBookmarkDetails.rejected, (state, action) => {
         if (
@@ -508,7 +580,8 @@ const bookmarkSlice = createSlice({
 
 export const {
   setFormData,
-  stripTrackingFromUrl,
+  applyTrackingStrip,
+  removeUrlFragment,
   toggleTrackingStrip,
   resetStatus,
   clearStatus,

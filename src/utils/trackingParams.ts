@@ -93,7 +93,7 @@ export const isTrackingParam = (name: string, hostname = ''): boolean => {
 
 export type TrackingStripResult = {
   url: string;
-  /** Names of the parameters that were removed, in URL order. */
+  /** Names of the parameters that were removed, in URL order, once each. */
   removed: string[];
 };
 
@@ -130,7 +130,7 @@ export function stripTrackingParams(input: string): TrackingStripResult {
     if (pair === '') return true;
     const name = decodeName(pair.split('=')[0]);
     if (isTrackingParam(name, hostname)) {
-      removed.push(name);
+      if (!removed.includes(name)) removed.push(name);
       return false;
     }
     return true;
@@ -138,7 +138,7 @@ export function stripTrackingParams(input: string): TrackingStripResult {
 
   if (removed.length === 0) return unchanged;
 
-  const query = kept.filter((pair) => pair !== '').join('&');
+  const query = kept.some((pair) => pair !== '') ? kept.join('&') : '';
   return {
     url: `${base}${query ? `?${query}` : ''}${fragment}`,
     removed,

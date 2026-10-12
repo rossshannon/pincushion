@@ -7,7 +7,7 @@ import { setAuth } from './redux/authSlice';
 import {
   setFormData,
   fetchBookmarkDetails,
-  stripTrackingFromUrl,
+  applyTrackingStrip,
 } from './redux/bookmarkSlice';
 import {
   fetchTags,
@@ -93,7 +93,7 @@ const isLikelyCompleteUrl = (value: string): boolean => {
 
 function App() {
   const dispatch = useDispatch<AppDispatch>();
-  const { formData, initialLoading } = useSelector(
+  const { formData, initialLoading, resolvedLookupUrl } = useSelector(
     (state: RootState) => state.bookmark
   );
   const { user, token, openAiToken } = useSelector(
@@ -137,10 +137,10 @@ function App() {
       setCredentialsMissing(true);
     }
     const initial = readInitialParams();
-    const { url: initialUrl } = stripTrackingParams(initial.url);
-    pendingInitialUrlRef.current = initialUrl.trim() || null;
+    const { url: stripped, removed } = stripTrackingParams(initial.url);
+    pendingInitialUrlRef.current = stripped.trim() || null;
     dispatch(setFormData(initial));
-    dispatch(stripTrackingFromUrl());
+    dispatch(applyTrackingStrip({ original: initial.url, stripped, removed }));
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -240,9 +240,12 @@ function App() {
     if (lastLookupUrlRef.current === debouncedUrl) return;
     lastLookupUrlRef.current = debouncedUrl;
     setLookupStartedFor(debouncedUrl);
+    // The lookup itself moved the form to this URL (Pinboard's stored href,
+    // or the tracked URL an old bookmark was saved under): already loaded.
+    if (resolvedLookupUrl === debouncedUrl) return;
     dispatch(fetchBookmarkDetails(debouncedUrl));
     dispatch(fetchSuggestedTags());
-  }, [dispatch, user, token, debouncedUrl]);
+  }, [dispatch, user, token, debouncedUrl, resolvedLookupUrl]);
 
   const initialTagSignatureRef = useRef<string | null>(null);
   const previousUrlRef = useRef<string | null>(null);

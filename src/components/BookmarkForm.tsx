@@ -5,6 +5,7 @@ import { getTimestampFormats } from '../utils/date';
 import { isLikelyTouchDevice } from '../utils/popupAffordances';
 import {
   setFormData,
+  removeUrlFragment,
   toggleTrackingStrip,
   submitBookmark,
   resetStatus,
@@ -357,10 +358,7 @@ function BookmarkForm() {
           <button
             type="button"
             className="remove-hash"
-            onClick={() => {
-              const cleanUrl = formData.url.replace(/#.*$/, '');
-              dispatch(setFormData({ url: cleanUrl }));
-            }}
+            onClick={() => dispatch(removeUrlFragment())}
             title="Remove hash from URL"
             tabIndex={-1}
           >
@@ -368,27 +366,32 @@ function BookmarkForm() {
           </button>
         )}
         {errors?.url && <span className="helptext">{errors.url}</span>}
-        {trackingStrip && (
-          <p className="tracking-note" aria-live="polite">
-            {trackingStrip.restored ? (
-              <>Kept tracking parameters</>
-            ) : (
-              <>
-                Removed tracking:{' '}
-                <span className="tracking-note__params">
-                  {trackingStrip.removed.join(', ')}
-                </span>
-              </>
-            )}{' '}
-            <button
-              type="button"
-              className="tracking-note__toggle"
-              onClick={() => dispatch(toggleTrackingStrip())}
-            >
-              {trackingStrip.restored ? 'Remove' : 'Undo'}
-            </button>
-          </p>
-        )}
+        {/* Always mounted so screen readers announce what gets put in it. */}
+        <p className="tracking-note" role="status">
+          {trackingStrip && (
+            <>
+              {trackingStrip.savedWithTracking ? (
+                <>You saved this with its tracking parameters</>
+              ) : trackingStrip.restored ? (
+                <>Kept tracking parameters</>
+              ) : (
+                <>
+                  Removed tracking:{' '}
+                  <span className="tracking-note__params">
+                    {trackingStrip.removed.join(', ')}
+                  </span>
+                </>
+              )}{' '}
+              <button
+                type="button"
+                className="tracking-note__toggle"
+                onClick={() => dispatch(toggleTrackingStrip())}
+              >
+                {trackingStrip.restored ? 'Remove' : 'Undo'}
+              </button>
+            </>
+          )}
+        </p>
       </div>
 
       <label htmlFor="description" className={errors?.description ? 'error' : ''}>

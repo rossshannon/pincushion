@@ -208,6 +208,39 @@ describe('App integration', () => {
     expect(lookup[0]).not.toContain('utm_source');
   });
 
+  it('keeps the tracked URL, without a second lookup, when that is what was bookmarked', async () => {
+    const tracked = 'https://testing.com/?utm_source=rss';
+    mockedAxios.get.mockImplementation((url) => {
+      if (url.includes('posts/get')) {
+        const posts = url.includes('utm_source')
+          ? [{ href: tracked, description: 'Saved with tracking', tags: 'old' }]
+          : [];
+        return Promise.resolve({ data: { posts } });
+      }
+      if (url.includes('posts/suggest-with-preview')) {
+        return Promise.resolve({ data: { suggestions: { popular: [], recommended: [] } } });
+      }
+      if (url.includes('tags/get')) {
+        return Promise.resolve({ data: { old: 1 } });
+      }
+      return Promise.reject(new Error(`Unhandled url ${url}`));
+    });
+    seedCredentials();
+    window.history.pushState({}, '', '?url=' + encodeURIComponent(tracked));
+
+    const store = await renderAppWithStore();
+
+    await waitFor(() =>
+      expect(screen.getByText(/you saved this with its tracking parameters/i)).toBeInTheDocument()
+    );
+    expect(store.getState().bookmark.formData.url).toBe(tracked);
+    // Outlast the URL debounce: the form's switch back to the tracked URL
+    // must not trigger another lookup.
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    const lookups = mockedAxios.get.mock.calls.filter(([url]) => url.includes('posts/get'));
+    expect(lookups).toHaveLength(2);
+  });
+
   it('submits bookmark successfully and closes the window', async () => {
     vi.useFakeTimers();
     const closeSpy = vi.spyOn(window, 'close').mockImplementation(() => undefined);

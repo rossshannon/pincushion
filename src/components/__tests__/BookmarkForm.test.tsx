@@ -381,17 +381,16 @@ describe('BookmarkForm Component', () => {
     const removeHashButton = screen.getByTitle('Remove hash from URL');
     fireEvent.click(removeHashButton);
 
-    // Verify the action was dispatched with the cleaned URL
-    const actions = store.getActions();
-    expect(actions).toContainEqual(
-      expect.objectContaining({
-        type: 'bookmark/setFormData',
-        payload: { url: 'https://example.com' },
-      })
+    // The reducer drops the fragment (from the tracking toggle's URLs too)
+    expect(store.getActions()).toContainEqual(
+      expect.objectContaining({ type: 'bookmark/removeUrlFragment' })
     );
   });
 
-  const renderWithTrackingStrip = (restored: boolean) => {
+  const renderWithTrackingStrip = (
+    restored: boolean,
+    savedWithTracking = false
+  ) => {
     store = mockStore({
       bookmark: {
         formData: {
@@ -415,6 +414,7 @@ describe('BookmarkForm Component', () => {
           stripped: 'https://example.com/?id=1',
           removed: ['utm_source', 'fbclid'],
           restored,
+          savedWithTracking,
         },
       },
       tags: { ...baseTagsState },
@@ -445,13 +445,22 @@ describe('BookmarkForm Component', () => {
     expect(screen.getByRole('button', { name: 'Remove' })).toBeInTheDocument();
   });
 
-  test('shows no tracking note when nothing was stripped', () => {
+  test('explains when the tracked URL was kept because it was already saved', () => {
+    renderWithTrackingStrip(true, true);
+    expect(
+      screen.getByText(/you saved this with its tracking parameters/i)
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Remove' })).toBeInTheDocument();
+  });
+
+  test('keeps an empty status region when nothing was stripped', () => {
     render(
       <Provider store={store}>
         <BookmarkForm />
       </Provider>
     );
     expect(screen.queryByText(/tracking/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
   });
 
   test('clicking a suggested tag updates tags and removes chip', async () => {

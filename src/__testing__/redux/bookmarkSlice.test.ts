@@ -2,7 +2,8 @@ import { vi } from 'vitest';
 import axios from 'axios';
 import bookmarkReducer, {
   setFormData,
-  stripTrackingFromUrl,
+  applyTrackingStrip,
+  removeUrlFragment,
   toggleTrackingStrip,
   resetStatus,
   submitBookmark,
@@ -40,6 +41,7 @@ const initialState = {
   displayOriginalTimestamp: false,
   existingBookmarkTags: [],
   trackingStrip: null,
+  resolvedLookupUrl: null,
 };
 
 // Helper to create a mock store
@@ -520,31 +522,32 @@ describe('bookmark slice', () => {
 describe('tracking parameter stripping', () => {
   const tracked = 'https://example.com/post?id=7&utm_source=news#top';
   const clean = 'https://example.com/post?id=7#top';
+  const strip = { original: tracked, stripped: clean, removed: ['utm_source'] };
 
   const loaded = () =>
     bookmarkReducer(
       bookmarkReducer(initialState, setFormData({ url: tracked })),
-      stripTrackingFromUrl()
+      applyTrackingStrip(strip)
     );
 
   it('strips the URL and remembers what it removed', () => {
     const state = loaded();
     expect(state.formData.url).toBe(clean);
     expect(state.trackingStrip).toEqual({
-      original: tracked,
-      stripped: clean,
-      removed: ['utm_source'],
+      ...strip,
       restored: false,
+      savedWithTracking: false,
     });
   });
 
-  it('does nothing to a URL without tracking parameters', () => {
-    const before = bookmarkReducer(
-      initialState,
-      setFormData({ url: 'https://example.com/?id=7' })
+  it('does nothing when nothing was removed', () => {
+    const url = 'https://example.com/?id=7';
+    const before = bookmarkReducer(initialState, setFormData({ url }));
+    const after = bookmarkReducer(
+      before,
+      applyTrackingStrip({ original: url, stripped: url, removed: [] })
     );
-    const after = bookmarkReducer(before, stripTrackingFromUrl());
-    expect(after.formData.url).toBe('https://example.com/?id=7');
+    expect(after.formData.url).toBe(url);
     expect(after.trackingStrip).toBeNull();
   });
 
@@ -569,5 +572,102 @@ describe('tracking parameter stripping', () => {
   it('keeps the strip when other fields change', () => {
     const edited = bookmarkReducer(loaded(), setFormData({ title: 'New' }));
     expect(edited.trackingStrip?.removed).toEqual(['utm_source']);
+  });
+
+  it('drops the fragment from both URLs when # is pressed, keeping undo', () => {
+    const state = bookmarkReducer(loaded(), removeUrlFragment());
+    expect(state.formData.url).toBe('https://example.com/post?id=7');
+    const restored = bookmarkReducer(state, toggleTrackingStrip());
+    expect(restored.formData.url).toBe(
+      'https://example.com/post?id=7&utm_source=news'
+    );
+  });
+
+  it('drops the fragment when nothing was stripped', () => {
+    const state = bookmarkReducer(
+      bookmarkReducer(initialState, setFormData({ url: 'https://a.com/#x' })),
+      removeUrlFragment()
+    );
+    expect(state.formData.url).toBe('https://a.com/');
+    expect(state.trackingStrip).toBeNull();
+  });
+
+  describe('existing-bookmark lookup', () => {
+    beforeEach(() => {
+      mockedAxios.get.mockReset();
+    });
+
+    const storeWithStrip = () => {
+      const store = createMockStore();
+      store.dispatch(setFormData({ url: tracked }));
+      store.dispatch(applyTrackingStrip(strip));
+      return store;
+    };
+
+    it('falls back to the tracked URL and keeps it when that was bookmarked', async () => {
+      mockedAxios.get
+        .mockResolvedValueOnce({ data: { posts: [] } })
+        .mockResolvedValueOnce({
+          data: {
+            posts: [{ href: tracked, description: 'Old', tags: 'kept' }],
+          },
+        });
+      const store = storeWithStrip();
+      await store.dispatch(fetchBookmarkDetails(clean));
+
+      expect(mockedAxios.get).toHaveBeenCalledTimes(2);
+      expect(mockedAxios.get.mock.calls[1][0]).toContain('utm_source');
+      const state = store.getState().bookmark;
+      expect(state.formData.url).toBe(tracked);
+      expect(state.formData.tags).toEqual(['kept']);
+      expect(state.hasExistingBookmark).toBe(true);
+      expect(state.resolvedLookupUrl).toBe(tracked);
+      expect(state.trackingStrip).toMatchObject({
+        restored: true,
+        savedWithTracking: true,
+      });
+    });
+
+    it('stays on the clean URL when neither was bookmarked', async () => {
+      mockedAxios.get.mockResolvedValue({ data: { posts: [] } });
+      const store = storeWithStrip();
+      await store.dispatch(fetchBookmarkDetails(clean));
+
+      expect(mockedAxios.get).toHaveBeenCalledTimes(2);
+      const state = store.getState().bookmark;
+      expect(state.formData.url).toBe(clean);
+      expect(state.hasExistingBookmark).toBe(false);
+      expect(state.trackingStrip?.restored).toBe(false);
+    });
+
+    it('makes one request when the clean URL is bookmarked', async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: { posts: [{ href: clean, description: 'Clean' }] },
+      });
+      const store = storeWithStrip();
+      await store.dispatch(fetchBookmarkDetails(clean));
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+      expect(store.getState().bookmark.formData.url).toBe(clean);
+    });
+
+    it('does not fall back after the user has restored the original', async () => {
+      mockedAxios.get.mockResolvedValue({ data: { posts: [] } });
+      const store = storeWithStrip();
+      store.dispatch(toggleTrackingStrip());
+      await store.dispatch(fetchBookmarkDetails(tracked));
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps the toggle in step with Pinboard's stored href", async () => {
+      const storedHref = 'https://example.com/post?id=7';
+      mockedAxios.get.mockResolvedValueOnce({
+        data: { posts: [{ href: storedHref, description: 'Clean' }] },
+      });
+      const store = storeWithStrip();
+      await store.dispatch(fetchBookmarkDetails(clean));
+      store.dispatch(toggleTrackingStrip());
+      store.dispatch(toggleTrackingStrip());
+      expect(store.getState().bookmark.formData.url).toBe(storedHref);
+    });
   });
 });

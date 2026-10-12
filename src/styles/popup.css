@@ -302,6 +302,10 @@ label.error {
   font-size: 0.8125rem;
   color: var(--pincushion-text-muted);
   overflow-wrap: anywhere;
+
+  &:empty {
+    margin: 0;
+  }
 }
 
 .tracking-note__params {
@@ -317,11 +321,13 @@ label.error {
   font: inherit;
   font-weight: 600;
 
-  /* At least 44px to press, whatever the drawn size. */
+  /* 44px wide to press. Only 8px taller each way, so the target stays out
+     of the description label below. */
   &::after {
     content: "";
     position: absolute;
-    inset: min(0px, (100% - 44px) / 2);
+    inset-block: -8px;
+    inset-inline: min(0px, (100% - 44px) / 2);
   }
 }
 

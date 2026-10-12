@@ -34,6 +34,23 @@ describe('stripTrackingParams', () => {
     expect(stripTrackingParams(url)).toEqual({ url, removed: [] });
   });
 
+  it('keeps empty query segments it was not asked to remove', () => {
+    expect(
+      stripTrackingParams('https://example.com/p?a=1&&b=2&utm_source=x').url
+    ).toBe('https://example.com/p?a=1&&b=2');
+    expect(stripTrackingParams('https://example.com/p?&utm_source=x').url).toBe(
+      'https://example.com/p'
+    );
+  });
+
+  it('lists a repeated parameter once', () => {
+    expect(
+      stripTrackingParams(
+        'https://example.com/?utm_source=a&utm_source=b&fbclid=c'
+      ).removed
+    ).toEqual(['utm_source', 'fbclid']);
+  });
+
   it('preserves the encoding of the parameters it keeps', () => {
     expect(
       stripTrackingParams('https://example.com/s?q=a+b%2Fc&utm_term=foo').url
