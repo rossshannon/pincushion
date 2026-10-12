@@ -272,15 +272,21 @@ export const fetchBookmarkDetails = createAsyncThunk<
     const targetUrl = overrideUrl || url;
     if (!user || !token || !targetUrl) return null;
     try {
-      // Fetch details: strip fragment and encode URL parameter
-      const response = await axios.get(
-        bridgeUrl(`/v1/posts/get?format=json&url=${cleanUrl(targetUrl)}`),
-        bridgeRequestConfig(user, token, REQUEST_TIMEOUTS_MS.lookup)
-      );
-      if (response.data.posts && response.data.posts.length === 1) {
-        return response.data.posts[0];
-      }
-      return null;
+      const lookup = async (encodedUrl: string) => {
+        const response = await axios.get(
+          bridgeUrl(`/v1/posts/get?format=json&url=${encodedUrl}`),
+          bridgeRequestConfig(user, token, REQUEST_TIMEOUTS_MS.lookup)
+        );
+        const posts = response.data.posts;
+        return posts && posts.length === 1 ? (posts[0] as PinboardPost) : null;
+      };
+      // Look the page up without its #fragment first. Pinboard keeps the
+      // href exactly as saved, though, so a miss for a URL with a fragment
+      // doesn't rule out a bookmark saved with that fragment: check that too
+      // before reporting "not found", which lets the save overwrite.
+      const post = await lookup(cleanUrl(targetUrl));
+      if (post || !targetUrl.includes('#')) return post;
+      return await lookup(encodeURIComponent(targetUrl));
     } catch (err) {
       if (isUrlTooLongError(err)) {
         return rejectWithValue(`${ERROR_MESSAGES.URL_TOO_LONG} (HTTP 414).`);
@@ -433,10 +439,8 @@ const bookmarkSlice = createSlice({
           state.existingBookmarkTime = null;
           state.displayOriginalTimestamp = false;
           state.existingBookmarkTags = [];
-          // The lookup drops any #fragment, so for a URL with one, "not
-          // found" doesn't prove Pinboard has no bookmark for it: leave the
-          // baseline unknown so the save won't overwrite one.
-          state.existingBookmarkUrl = currentUrl.includes('#') ? null : currentUrl;
+          // The lookup checked the URL both with and without any #fragment.
+          state.existingBookmarkUrl = currentUrl;
           // Tags loaded from the previous URL's (or account's) bookmark
           // don't belong to this new one; keep only what the user typed.
           state.formData.tags = state.formData.tags.filter(

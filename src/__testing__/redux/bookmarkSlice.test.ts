@@ -463,16 +463,36 @@ describe('bookmark slice', () => {
         expect(store.getState().bookmark.existingBookmarkUrl).toBe(validFormData.url);
       });
 
-      it('refuses to overwrite a #fragment URL the lookup could not check', async () => {
+      it('finds a bookmark saved with its #fragment when the fragment-free lookup misses', async () => {
         const fragmentStore = createMockStore({
           ...initialState,
           formData: { ...validFormData, url: 'http://example.com/page#section' },
         });
         mockedAxios.get.mockResolvedValueOnce({ data: { posts: [] } });
+        mockedAxios.get.mockResolvedValueOnce({
+          data: { posts: [{ href: 'http://example.com/page#section', tags: 'saved' }] },
+        });
         await fragmentStore.dispatch(fetchBookmarkDetails());
+        const lookups = mockedAxios.get.mock.calls.slice(-2).map((call) => new URL(call[0]).searchParams.get('url'));
+        expect(lookups).toEqual(['http://example.com/page', 'http://example.com/page#section']);
+        const state = fragmentStore.getState().bookmark;
+        expect(state.hasExistingBookmark).toBe(true);
+        expect(state.existingBookmarkTags).toEqual(['saved']);
+        expect(state.existingBookmarkUrl).toBe('http://example.com/page#section');
+      });
+
+      it('lets a save go ahead for a #fragment URL both lookups showed is new', async () => {
+        const fragmentStore = createMockStore({
+          ...initialState,
+          formData: { ...validFormData, url: 'http://example.com/page#section' },
+        });
+        mockedAxios.get.mockResolvedValueOnce({ data: { posts: [] } });
+        mockedAxios.get.mockResolvedValueOnce({ data: { posts: [] } });
+        await fragmentStore.dispatch(fetchBookmarkDetails());
+        expect(fragmentStore.getState().bookmark.existingBookmarkUrl).toBe('http://example.com/page#section');
         mockedAxios.get.mockResolvedValueOnce({ data: { result_code: 'done' } });
         await fragmentStore.dispatch(submitBookmark());
-        expect(new URL(mockedAxios.get.mock.calls.at(-1)[0]).searchParams.get('replace')).toBe('no');
+        expect(new URL(mockedAxios.get.mock.calls.at(-1)[0]).searchParams.get('replace')).toBeNull();
       });
 
       it('replaces an existing bookmark the lookup found, with the right tag delta', async () => {
