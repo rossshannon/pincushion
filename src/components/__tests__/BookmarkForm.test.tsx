@@ -389,7 +389,8 @@ describe('BookmarkForm Component', () => {
 
   const renderWithTrackingStrip = (
     restored: boolean,
-    savedWithTracking = false
+    savedWithTracking = false,
+    checkingOriginal = false
   ) => {
     store = mockStore({
       bookmark: {
@@ -415,6 +416,7 @@ describe('BookmarkForm Component', () => {
           removed: ['utm_source', 'fbclid'],
           restored,
           savedWithTracking,
+          checkingOriginal,
         },
       },
       tags: { ...baseTagsState },
@@ -448,6 +450,16 @@ describe('BookmarkForm Component', () => {
     renderWithTrackingStrip(true);
     expect(screen.getByText(/kept tracking parameters/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Remove' })).toBeInTheDocument();
+  });
+
+  test('holds Save while checking for a bookmark under the tracked URL', () => {
+    renderWithTrackingStrip(false, false, true);
+    const save = screen.getByRole('button', { name: /add bookmark/i });
+    expect(save).toBeDisabled();
+    fireEvent.submit(screen.getByRole('form'));
+    expect(
+      store.getActions().some(({ type }) => type.startsWith('bookmark/submit'))
+    ).toBe(false);
   });
 
   test('offers the tracked URL when it was bookmarked before', () => {

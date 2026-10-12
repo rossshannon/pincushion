@@ -64,6 +64,8 @@ export type TrackingStrip = {
   checkingOriginal: boolean;
   /** True when that lookup found a bookmark saved under the original URL. */
   savedWithTracking: boolean;
+  /** What checkTrackedBookmark found, so "Use that bookmark" needn't ask again. */
+  trackedPost?: PinboardPost;
   /**
    * The form's other fields as the bookmarklet filled them in. Toggling away
    * from a URL whose saved bookmark is loaded goes back to these, so that
@@ -283,10 +285,18 @@ export const fetchBookmarkDetails = createAsyncThunk<
       auth: { user, token },
       bookmark: {
         formData: { url },
+        trackingStrip,
       },
     } = getState();
     const targetUrl = overrideUrl || url;
     if (!user || !token || !targetUrl) return null;
+    if (
+      trackingStrip?.trackedPost &&
+      targetUrl.trim() === trackingStrip.original.trim()
+    ) {
+      // checkTrackedBookmark already fetched this one.
+      return trackingStrip.trackedPost;
+    }
     try {
       return await lookupPost(targetUrl, user, token);
     } catch (err) {
@@ -308,7 +318,7 @@ export const fetchBookmarkDetails = createAsyncThunk<
 // Was the URL bookmarked before with the tracking parameters we stripped?
 // Best-effort: any failure counts as "no".
 export const checkTrackedBookmark = createAsyncThunk<
-  boolean,
+  PinboardPost | null,
   void,
   { state: BookmarkThunkState }
 >(
@@ -318,11 +328,11 @@ export const checkTrackedBookmark = createAsyncThunk<
       auth: { user, token },
       bookmark: { trackingStrip },
     } = getState();
-    if (!user || !token || !trackingStrip) return false;
+    if (!user || !token || !trackingStrip) return null;
     try {
-      return (await lookupPost(trackingStrip.original, user, token)) !== null;
+      return await lookupPost(trackingStrip.original, user, token);
     } catch {
-      return false;
+      return null;
     }
   },
   {
@@ -542,7 +552,8 @@ const bookmarkSlice = createSlice({
         strip.checkingOriginal = false;
         if (strip.checkedOriginal) return; // A lookup of it answered first.
         strip.checkedOriginal = true;
-        strip.savedWithTracking = action.payload;
+        strip.savedWithTracking = action.payload !== null;
+        if (action.payload) strip.trackedPost = action.payload;
       })
       .addCase(checkTrackedBookmark.rejected, (state) => {
         if (!state.trackingStrip) return;

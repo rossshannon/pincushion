@@ -210,10 +210,17 @@ describe('App integration', () => {
 
   describe('bookmarks saved under the tracked URL', () => {
     const tracked = 'https://testing.com/?utm_source=rss';
-    const mockLookups = ({ cleanSaved = false, trackedSaved = false } = {}) => {
-      mockedAxios.get.mockImplementation((url) => {
+    let releaseCleanLookup = () => {};
+    const mockLookups = ({ cleanSaved = false, trackedSaved = false, holdClean = false } = {}) => {
+      const cleanHeld = holdClean
+        ? new Promise((resolve) => {
+            releaseCleanLookup = resolve;
+          })
+        : Promise.resolve();
+      mockedAxios.get.mockImplementation(async (url) => {
         if (url.includes('posts/get')) {
           const isTracked = url.includes('utm_source');
+          if (!isTracked) await cleanHeld;
           const posts =
             isTracked && trackedSaved
               ? [{ href: tracked, description: 'Saved with tracking', tags: 'old' }]
@@ -235,11 +242,20 @@ describe('App integration', () => {
       mockedAxios.get.mock.calls.map(([url]) => url).filter((url) => url.includes('posts/get'));
 
     it('checks the tracked URL after the lookup and offers that bookmark', async () => {
-      mockLookups({ trackedSaved: true });
+      mockLookups({ trackedSaved: true, holdClean: true });
       seedCredentials();
       window.history.pushState({}, '', '?url=' + encodeURIComponent(tracked));
 
       const store = await renderAppWithStore();
+
+      // Nothing goes to the tracked URL while the clean lookup is in flight.
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+      expect(lookups()).toHaveLength(1);
+      await act(async () => {
+        releaseCleanLookup();
+      });
 
       await waitFor(() =>
         expect(
@@ -252,12 +268,14 @@ describe('App integration', () => {
       expect(store.getState().bookmark.formData.url).toBe('https://testing.com/');
 
       fireEvent.click(screen.getByRole('button', { name: 'Use that bookmark' }));
-      // Looked up straight away, without the typing debounce.
-      expect(lookups()).toHaveLength(3);
+      // Loaded straight away from what the check found: no debounce, and no
+      // second request for the same URL.
       await waitFor(() =>
         expect(screen.getByDisplayValue('Saved with tracking')).toBeInTheDocument()
       );
+      expect(lookups()).toHaveLength(2);
       expect(store.getState().bookmark.formData.url).toBe(tracked);
+      expect(store.getState().bookmark.hasExistingBookmark).toBe(true);
     });
 
     it('skips the check when the clean URL is already bookmarked', async () => {

@@ -269,6 +269,9 @@ function BookmarkForm() {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    // Hold off while we check for a bookmark under the tracked URL: saving
+    // now could make a duplicate of it.
+    if (trackingStrip?.checkingOriginal) return;
     dispatch(submitBookmark());
   };
 
@@ -305,7 +308,11 @@ function BookmarkForm() {
           data-spinner-size="30"
           data-color="blue"
           type="submit"
-          disabled={initialLoading || status === 'saving'}
+          disabled={
+            initialLoading ||
+            status === 'saving' ||
+            !!trackingStrip?.checkingOriginal
+          }
           tabIndex={7}
         >
           <span className="ladda-label text">{buttonText()}</span>

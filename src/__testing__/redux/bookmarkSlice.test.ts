@@ -637,6 +637,19 @@ describe('tracking parameter stripping', () => {
       expect(store.getState().bookmark.formData.url).toBe(tracked);
     });
 
+    it('serves "Use that bookmark" from what the check found', async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: { posts: [{ href: tracked, description: 'Old' }] },
+      });
+      const store = storeWithStrip();
+      await store.dispatch(checkTrackedBookmark());
+      store.dispatch(toggleTrackingStrip());
+      await store.dispatch(fetchBookmarkDetails(tracked));
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+      expect(store.getState().bookmark.formData.title).toBe('Old');
+      expect(store.getState().bookmark.hasExistingBookmark).toBe(true);
+    });
+
     it('leaves the flag off when it was not', async () => {
       mockedAxios.get.mockResolvedValueOnce({ data: { posts: [] } });
       const store = storeWithStrip();
