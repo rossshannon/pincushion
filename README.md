@@ -30,7 +30,9 @@ The part after the colon is the API token (`462E2B102D4CCDE36662` in this exampl
 
 To add the bookmarklet to your browser, simply add a new bookmark, give it any name you want, and use the following text as the URL:
 
-    javascript:q=location.href;d=(window.getSelection?window.getSelection():document.getSelection?document.getSelection():document.selection.createRange().text);p=document.title;void(open('https://rossshannon.github.io/pincushion/?url='+encodeURIComponent(q)+'&description='+encodeURIComponent(d)+'&title='+encodeURIComponent(p),'Pinboard','toolbar=yes,width=600,height=700,left=50,top=50'));
+    javascript:(function(){var d=document,m=function(s,a){var e=d.querySelector(s);return e?(e.getAttribute(a||'content')||'').trim():''},u='https://rossshannon.github.io/pincushion/?url='+encodeURIComponent(location.href)+'&description='+encodeURIComponent(window.getSelection?window.getSelection():d.getSelection?d.getSelection():d.selection.createRange().text)+'&title='+encodeURIComponent(d.title),x={meta_title:m('meta[property="og:title"]')||m('meta[name="twitter:title"]'),meta_description:(m('meta[property="og:description"]')||m('meta[name="twitter:description"]')||m('meta[name="description"]')).slice(0,300),meta_image:m('meta[property="og:image"]')||m('meta[name="twitter:image"]'),meta_site_name:m('meta[property="og:site_name"]'),meta_site_handle:m('meta[name="twitter:site"]'),meta_card:m('meta[name="twitter:card"]'),meta_theme_color:m('meta[name="theme-color"]'),meta_favicon:m('link[rel="apple-touch-icon"]','href')||m('link[rel~="icon"]','href')},k;for(k in x)if(x[k])u+='&'+k+'='+encodeURIComponent(x[k]);open(u,'Pinboard','toolbar=yes,width=600,height=700,left=50,top=50')})();
+
+As well as the page's address, title and any text you've selected, the bookmarklet passes along the page's own preview details (its Open Graph or Twitter Card title, description, image, site name and icon), so the preview card appears the moment the popup opens. The bridge still fetches the page to fill in anything that's missing. Older versions of the bookmarklet keep working; their preview just waits for the bridge.
 
 Often the easiest way to do this is to bookmark the page you’re currently reading, and then edit this bookmark and replace the URL with the above code. Click the bookmarklet in your browser’s bookmarks bar and it will open the Pincushion interface. The first time you run, you’ll be prompted to enter your Pinboard credentials and optionally an OpenAI API token for AI-powered tag suggestions.
 
@@ -38,7 +40,7 @@ Often the easiest way to do this is to bookmark the page you’re currently read
 
 You can also pre-check the “private” and “to read” checkboxes by passing these properties with the value `true`:
 
-    javascript:q=location.href;d=(window.getSelection?window.getSelection():document.getSelection?document.getSelection():document.selection.createRange().text);p=document.title;void(open('https://rossshannon.github.io/pincushion/?url='+encodeURIComponent(q)+'&description='+encodeURIComponent(d)+'&title='+encodeURIComponent(p)+'&private=true&toread=true','Pinboard','toolbar=yes,width=600,height=700,left=50,top=50'));
+    javascript:(function(){var d=document,m=function(s,a){var e=d.querySelector(s);return e?(e.getAttribute(a||'content')||'').trim():''},u='https://rossshannon.github.io/pincushion/?url='+encodeURIComponent(location.href)+'&description='+encodeURIComponent(window.getSelection?window.getSelection():d.getSelection?d.getSelection():d.selection.createRange().text)+'&title='+encodeURIComponent(d.title)+'&private=true&toread=true',x={meta_title:m('meta[property="og:title"]')||m('meta[name="twitter:title"]'),meta_description:(m('meta[property="og:description"]')||m('meta[name="twitter:description"]')||m('meta[name="description"]')).slice(0,300),meta_image:m('meta[property="og:image"]')||m('meta[name="twitter:image"]'),meta_site_name:m('meta[property="og:site_name"]'),meta_site_handle:m('meta[name="twitter:site"]'),meta_card:m('meta[name="twitter:card"]'),meta_theme_color:m('meta[name="theme-color"]'),meta_favicon:m('link[rel="apple-touch-icon"]','href')||m('link[rel~="icon"]','href')},k;for(k in x)if(x[k])u+='&'+k+'='+encodeURIComponent(x[k]);open(u,'Pinboard','toolbar=yes,width=600,height=700,left=50,top=50')})();
 
 ### Configuring Credentials
 
@@ -56,6 +58,14 @@ Pincushion is designed for modern browsers like Chrome, Safari, Comet, Atlas, Ed
 - To use a local [pinboard-bridge](https://github.com/rossshannon/pinboard-bridge) instead of the hosted one, create a `.env.local` file containing `VITE_PINBOARD_BRIDGE_URL=http://localhost:1337`.
 
 ## Changelog
+
+### 2.4 (2026-10-12)
+
+- The page preview no longer waits for Pinboard's tag suggestions. They used to come back together in one bridge call, and Pinboard's `posts/suggest` takes about 15 seconds for a URL it hasn't seen, so the preview often spun for just as long. The preview now comes from the bridge's `/preview` route and suggestions from `/v1/posts/suggest`, each with its own spinner.
+- Suggestions go out once the bookmark lookup has settled, so the lookup that gates the Save button is always first in the queue under Pinboard's one-call-per-three-seconds rule.
+- The bookmarklet now sends the page's own preview metadata, so the card can render instantly; reinstall it from the instructions above to get this. The bridge's result fills in whatever the page didn't say.
+- Pinboard's suggestions are read whether they arrive as Pinboard's documented array of objects or as a plain object.
+- Pairs with pinboard-bridge 2.3.0, which adds `/preview` and spaces Pinboard calls per user.
 
 ### 2.3.1 (2026-10-08)
 

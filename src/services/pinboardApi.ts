@@ -20,11 +20,15 @@ export const PINBOARD_BRIDGE_URL = (envBridgeUrl || DEFAULT_BRIDGE_URL).replace(
  * Per-request timeouts. The bridge itself waits up to 30s on Pinboard, and
  * Heroku's router gives up at 30s, so anything longer than that can never
  * succeed. The lookup gates the Save button, so it gets the shortest budget
- * that still survives a cold-started dyno.
+ * that still survives a cold-started dyno. Pinboard's posts/suggest can take
+ * about 15s for a URL it hasn't seen, plus up to 3s the bridge holds it to
+ * space it from the lookup, so it gets more. The preview never touches
+ * Pinboard and the bridge gives up on the page after 5s.
  */
 export const REQUEST_TIMEOUTS_MS = {
   lookup: 20_000,
-  suggest: 20_000,
+  suggest: 25_000,
+  preview: 10_000,
   tags: 30_000,
   save: 30_000,
 } as const;

@@ -16,8 +16,6 @@ import {
   filterRecentTagsForRelevance,
 } from '../services/gptSuggestions';
 import { postProcessPinboardSuggestions } from '../utils/tagSuggestionFilters';
-import type { TwitterCardData } from '../types/twitterCard';
-import { setTwitterCardPreview } from './twitterCardSlice';
 import type { AuthState } from './authSlice';
 import type { BookmarkState } from './bookmarkSlice';
 
@@ -68,22 +66,38 @@ export const fetchTags = createAsyncThunk<
   }
 );
 
-type SuggestPreviewPayload = {
+type SuggestPayload = {
   suggestions: string[];
-  preview: TwitterCardData | null;
-  previewError: string | null;
-  targetUrl: string | null;
-  previewStatus: string | null;
 };
 
-// Fetch suggested tags for current URL
+/**
+ * Pinboard's posts/suggest JSON is documented as
+ * `[{"popular": [...]}, {"recommended": [...]}]`; accept a plain
+ * `{popular, recommended}` object too.
+ */
+const readSuggestionLists = (
+  payload: unknown
+): { recommended: string[]; popular: string[] } => {
+  const parts = Array.isArray(payload) ? payload : [payload];
+  const lists = { recommended: [] as string[], popular: [] as string[] };
+  parts.forEach((part) => {
+    if (!part || typeof part !== 'object') return;
+    const { recommended, popular } = part as Record<string, unknown>;
+    if (Array.isArray(recommended)) lists.recommended.push(...recommended);
+    if (Array.isArray(popular)) lists.popular.push(...popular);
+  });
+  return lists;
+};
+
+// Fetch Pinboard's suggested tags for the current URL. The page preview is a
+// separate request (fetchPagePreview), so a slow Pinboard never holds it up.
 export const fetchSuggestedTags = createAsyncThunk<
-  SuggestPreviewPayload,
+  SuggestPayload,
   void,
   { state: TagThunkState; rejectValue: string }
 >(
   'tags/fetchSuggested',
-  async (_, { getState, rejectWithValue, dispatch }) => {
+  async (_, { getState, rejectWithValue }) => {
     const {
       auth: { user, token },
       bookmark: {
@@ -92,124 +106,18 @@ export const fetchSuggestedTags = createAsyncThunk<
       tags: { tagCounts },
     } = getState();
     try {
-      const trimmedUrl = typeof url === 'string' ? url.trim() : '';
-      if (trimmedUrl) {
-        dispatch(
-          setTwitterCardPreview({
-            card: null,
-            error: null,
-            url: trimmedUrl,
-            status: 'loading',
-            previewError: null,
-            previewStatus: null,
-          })
-        );
-      }
       const response = await axios.get(
-        bridgeUrl(
-          `/posts/suggest-with-preview?format=json&url=${cleanUrl(url)}`
-        ),
+        bridgeUrl(`/v1/posts/suggest?format=json&url=${cleanUrl(url)}`),
         bridgeRequestConfig(user, token, REQUEST_TIMEOUTS_MS.suggest)
       );
-      const suggestionPayload = response.data?.suggestions || {};
-      const rec = Array.isArray(suggestionPayload.recommended)
-        ? suggestionPayload.recommended
-        : [];
-      const pop = Array.isArray(suggestionPayload.popular)
-        ? suggestionPayload.popular
-        : [];
-      const combined = [...rec, ...pop]
-        .map((tag: string) => (typeof tag === 'string' ? tag.trim() : ''))
+      const { recommended, popular } = readSuggestionLists(response.data);
+      const combined = [...recommended, ...popular]
+        .map((tag: unknown) => (typeof tag === 'string' ? tag.trim() : ''))
         .filter(Boolean);
-      const processed = postProcessPinboardSuggestions(combined, tagCounts);
-      const previewRaw = response.data?.preview;
-      const preview: TwitterCardData | null =
-        previewRaw && typeof previewRaw === 'object'
-          ? {
-              url: previewRaw.url ?? trimmedUrl,
-              title:
-                typeof previewRaw.title === 'string'
-                  ? previewRaw.title
-                  : null,
-              description:
-                typeof previewRaw.description === 'string'
-                  ? previewRaw.description
-                  : null,
-              imageUrl:
-                typeof previewRaw.imageUrl === 'string'
-                  ? previewRaw.imageUrl
-                  : null,
-              siteName:
-                typeof previewRaw.siteName === 'string'
-                  ? previewRaw.siteName
-                  : null,
-              siteHandle:
-                typeof previewRaw.siteHandle === 'string'
-                  ? previewRaw.siteHandle
-                  : null,
-              siteHandleUrl:
-                typeof previewRaw.siteHandleUrl === 'string'
-                  ? previewRaw.siteHandleUrl
-                  : null,
-              siteDomain:
-                typeof previewRaw.siteDomain === 'string'
-                  ? previewRaw.siteDomain
-                  : null,
-              cardType:
-                typeof previewRaw.cardType === 'string'
-                  ? previewRaw.cardType
-                  : null,
-              fetchedAt:
-                typeof previewRaw.fetchedAt === 'string'
-                  ? previewRaw.fetchedAt
-                  : null,
-              themeColor:
-                typeof previewRaw.themeColor === 'string'
-                  ? previewRaw.themeColor
-                  : null,
-              faviconUrl:
-                typeof previewRaw.faviconUrl === 'string'
-                  ? previewRaw.faviconUrl
-                  : null,
-            }
-          : null;
-      const previewError =
-        typeof response.data?.previewError === 'string'
-          ? response.data.previewError
-          : null;
-      const previewStatusRaw =
-        typeof response.data?.previewStatus === 'string'
-          ? response.data.previewStatus
-          : null;
-      const previewStatus = previewStatusRaw;
-      dispatch(
-        setTwitterCardPreview({
-          card: preview,
-          error: null,
-          url: trimmedUrl || null,
-          previewStatus,
-          previewError,
-        })
-      );
-      return {
-        suggestions: processed,
-        preview,
-        previewError,
-        targetUrl: trimmedUrl || null,
-        previewStatus,
-      };
+      return { suggestions: postProcessPinboardSuggestions(combined, tagCounts) };
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Unable to fetch suggested tags';
-      dispatch(
-        setTwitterCardPreview({
-          card: null,
-          error: message,
-          url: null,
-          previewStatus: 'error',
-          previewError: message,
-        })
-      );
       return rejectWithValue(message);
     }
   }

@@ -17,7 +17,9 @@ import { enforceMinimumPopupSize } from './utils/popupAffordances';
 import { getRecentTags } from './utils/recentTagStorage';
 import { readTagCache } from './utils/tagCache';
 import Settings from './components/Settings';
-import { clearTwitterCard } from './redux/twitterCardSlice';
+import { clearTwitterCard, fetchPagePreview } from './redux/twitterCardSlice';
+import { readPageMetadata } from './utils/pageMetadata';
+import type { TwitterCardData } from './types/twitterCard';
 import {
   readStoredCredentials,
   persistStoredCredentials,
@@ -67,6 +69,12 @@ const readInitialParams = (): InitialParams => {
   };
 };
 
+const readInitialPageCard = (pageUrl: string): TwitterCardData | null =>
+  readPageMetadata(
+    new URLSearchParams(typeof window !== 'undefined' ? window.location.search : ''),
+    pageUrl.trim()
+  );
+
 const isLikelyCompleteUrl = (value: string): boolean => {
   try {
     const parsed = new URL(value);
@@ -111,6 +119,8 @@ function App() {
   // The URL the bookmarklet opened us with. It is looked up straight away;
   // the debounce only applies to URLs the user types afterwards.
   const pendingInitialUrlRef = useRef<string | null>(null);
+  // Preview metadata the bookmarklet read off the page, for its URL only.
+  const initialPageCardRef = useRef<{ url: string; card: TwitterCardData } | null>(null);
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
@@ -133,6 +143,10 @@ function App() {
     }
     const initial = readInitialParams();
     pendingInitialUrlRef.current = initial.url.trim() || null;
+    const initialPageCard = readInitialPageCard(initial.url);
+    initialPageCardRef.current = initialPageCard
+      ? { url: initial.url.trim(), card: initialPageCard }
+      : null;
     dispatch(setFormData(initial));
 
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -233,8 +247,20 @@ function App() {
     if (lastLookupUrlRef.current === debouncedUrl) return;
     lastLookupUrlRef.current = debouncedUrl;
     setLookupStartedFor(debouncedUrl);
-    dispatch(fetchBookmarkDetails(debouncedUrl));
-    dispatch(fetchSuggestedTags());
+    const pageCard =
+      initialPageCardRef.current?.url === debouncedUrl
+        ? initialPageCardRef.current.card
+        : null;
+    // The preview never touches Pinboard, so it goes out alongside the lookup.
+    // Suggestions wait for the lookup: Pinboard allows one call per user every
+    // three seconds and the bridge spaces them in arrival order, so this keeps
+    // the lookup (which gates Save) first in line.
+    const lookup = dispatch(fetchBookmarkDetails(debouncedUrl));
+    dispatch(fetchPagePreview({ url: debouncedUrl, pageCard }));
+    void Promise.resolve(lookup).finally(() => {
+      if (lastLookupUrlRef.current !== debouncedUrl) return;
+      dispatch(fetchSuggestedTags());
+    });
   }, [dispatch, user, token, debouncedUrl]);
 
   const initialTagSignatureRef = useRef<string | null>(null);

@@ -42,6 +42,16 @@ vi.mock('./redux/bookmarkSlice', async () => {
   };
 });
 
+vi.mock('./redux/twitterCardSlice', async () => {
+  const actual = await vi.importActual('./redux/twitterCardSlice');
+  return {
+    __esModule: true,
+    ...actual,
+    default: actual.default,
+    fetchPagePreview: vi.fn(() => () => undefined),
+  };
+});
+
 import React from 'react';
 import { render, waitFor, act, fireEvent } from '@testing-library/react';
 import { Provider } from 'react-redux';
@@ -53,6 +63,7 @@ import tagReducer from './redux/tagSlice';
 import twitterCardReducer from './redux/twitterCardSlice';
 import { fetchGptSuggestions, fetchSuggestedTags } from './redux/tagSlice';
 import { setAuth } from './redux/authSlice';
+import { fetchPagePreview } from './redux/twitterCardSlice';
 import { persistStoredCredentials } from './utils/credentialStorage';
 
 const fetchGptSuggestionsMock = fetchGptSuggestions as vi.MockedFunction<
@@ -60,6 +71,9 @@ const fetchGptSuggestionsMock = fetchGptSuggestions as vi.MockedFunction<
 >;
 const fetchSuggestedTagsMock = fetchSuggestedTags as vi.MockedFunction<
   typeof fetchSuggestedTags
+>;
+const fetchPagePreviewMock = fetchPagePreview as vi.MockedFunction<
+  typeof fetchPagePreview
 >;
 const fetchBookmarkDetailsMock = fetchBookmarkDetails as vi.MockedFunction<
   typeof fetchBookmarkDetails
@@ -238,6 +252,12 @@ describe('App GPT integration', () => {
       expect(fetchBookmarkDetailsMock).toHaveBeenCalledWith(
         'https://example.com/immediate'
       );
+      expect(fetchPagePreviewMock).toHaveBeenCalledWith({
+        url: 'https://example.com/immediate',
+        pageCard: null,
+      });
+      // Suggestions follow as soon as the lookup settles, still with no timers.
+      await act(async () => {});
       expect(fetchSuggestedTagsMock).toHaveBeenCalledTimes(1);
     } finally {
       vi.useRealTimers();

@@ -126,13 +126,15 @@ const mockPinboardApi = ({ submitResultCode = 'done', submitError } = {}) => {
         },
       });
     }
-    if (url.includes('posts/suggest-with-preview')) {
+    if (url.includes('/v1/posts/suggest')) {
+      // Pinboard's own JSON shape: an array of single-key objects.
+      return Promise.resolve({
+        data: [{ popular: ['coding'] }, { recommended: ['server_tag'] }],
+      });
+    }
+    if (url.includes('/preview?')) {
       return Promise.resolve({
         data: {
-          suggestions: {
-            popular: ['coding'],
-            recommended: ['server_tag'],
-          },
           preview: {
             url: 'https://testing.com/',
             title: 'Testing Preview',
@@ -140,6 +142,7 @@ const mockPinboardApi = ({ submitResultCode = 'done', submitError } = {}) => {
             imageUrl: 'https://testing.com/preview.jpg',
             siteName: 'Testing',
           },
+          previewStatus: 'fresh',
         },
       });
     }
@@ -178,6 +181,7 @@ describe('App integration', () => {
     expect(screen.getByDisplayValue('Existing description')).toBeInTheDocument();
     expect(screen.getByText('coding')).toBeInTheDocument();
     expect(screen.getByText('server_tag')).toBeInTheDocument();
+    expect(screen.getByText('Testing Preview')).toBeInTheDocument();
     expect(store.getState().tags.tagCounts).toEqual({ coding: 5 });
   });
 
@@ -218,7 +222,7 @@ describe('App integration', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('submit failed');
   });
 
-  it('fires the lookup and suggestions immediately, and refreshes a stale tag cache only after they settle', async () => {
+  it('fires the lookup and preview immediately, suggestions once the lookup settles, and refreshes a stale tag cache last', async () => {
     vi.useFakeTimers();
     try {
       seedCredentials();
@@ -238,7 +242,11 @@ describe('App integration', () => {
           calls.push('lookup');
           return defer('lookup');
         }
-        if (url.includes('posts/suggest-with-preview')) {
+        if (url.includes('/preview?')) {
+          calls.push('preview');
+          return defer('preview');
+        }
+        if (url.includes('/v1/posts/suggest')) {
           calls.push('suggest');
           return defer('suggest');
         }
@@ -252,37 +260,46 @@ describe('App integration', () => {
       window.history.pushState({}, '', '?url=https%3A%2F%2Ftesting.com%2F&title=T');
       const store = await renderAppWithStore();
 
-      // No timers have been advanced: the two user-facing requests are already
-      // out, the big tag download is not, and autocomplete has the cached tags.
-      expect(calls).toEqual(['lookup', 'suggest']);
+      // No timers have been advanced: the lookup and the preview are already
+      // out; suggestions wait for the lookup, so Pinboard sees the lookup first.
+      expect(calls).toEqual(['lookup', 'preview']);
       expect(store.getState().tags.tagCounts).toEqual({ cached_tag: 7 });
       expect(store.getState().bookmark.initialLoading).toBe(true);
 
-      // Suggestions come back first; the lookup is still pending, so still no tags/get.
+      // The preview lands on its own, whatever Pinboard is doing.
       await act(async () => {
-        deferred.suggest({
-          data: { suggestions: { popular: [], recommended: ['server_tag'] }, preview: null },
-        });
+        deferred.preview({ data: { preview: { url: 'https://testing.com/', title: 'Card' } } });
       });
+      expect(store.getState().twitterCard.card?.title).toBe('Card');
       await act(async () => {
         vi.advanceTimersByTime(10_000);
       });
-      expect(calls).toEqual(['lookup', 'suggest']);
+      expect(calls).toEqual(['lookup', 'preview']);
 
-      // The lookup settles. The refresh waits out the courtesy gap, then fires once.
+      // The lookup settles and suggestions go out; the tag refresh still waits.
       await act(async () => {
         deferred.lookup({ data: { posts: [] } });
       });
       await waitFor(() => expect(store.getState().bookmark.initialLoading).toBe(false));
+      expect(calls).toEqual(['lookup', 'preview', 'suggest']);
+      await act(async () => {
+        vi.advanceTimersByTime(10_000);
+      });
+      expect(calls).toEqual(['lookup', 'preview', 'suggest']);
+
+      // Suggestions settle. The refresh waits out the courtesy gap, then fires once.
+      await act(async () => {
+        deferred.suggest({ data: [{ popular: [] }, { recommended: ['server_tag'] }] });
+      });
       await act(async () => {
         vi.advanceTimersByTime(2_000);
       });
-      expect(calls).toEqual(['lookup', 'suggest']);
+      expect(calls).toEqual(['lookup', 'preview', 'suggest']);
 
       await act(async () => {
         vi.advanceTimersByTime(1_500);
       });
-      expect(calls).toEqual(['lookup', 'suggest', 'tags']);
+      expect(calls).toEqual(['lookup', 'preview', 'suggest', 'tags']);
       await waitFor(() =>
         expect(store.getState().tags.tagCounts).toEqual({ cached_tag: 8, fresh_tag: 1 })
       );
@@ -290,9 +307,58 @@ describe('App integration', () => {
       await act(async () => {
         vi.advanceTimersByTime(60_000);
       });
-      expect(calls).toEqual(['lookup', 'suggest', 'tags']);
+      expect(calls).toEqual(['lookup', 'preview', 'suggest', 'tags']);
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('shows the preview the bookmarklet read off the page before the bridge answers', async () => {
+    const calls = [];
+    let resolvePreview;
+    mockedAxios.get.mockImplementation((url) => {
+      if (url.includes('posts/get')) return Promise.resolve({ data: { posts: [] } });
+      if (url.includes('/v1/posts/suggest')) return Promise.resolve({ data: [] });
+      if (url.includes('/preview?')) {
+        calls.push('preview');
+        return new Promise((resolve) => {
+          resolvePreview = resolve;
+        });
+      }
+      if (url.includes('tags/get')) return Promise.resolve({ data: {} });
+      return Promise.reject(new Error(`Unhandled url ${url}`));
+    });
+    seedCredentials();
+    window.history.pushState(
+      {},
+      '',
+      '?url=https%3A%2F%2Ftesting.com%2Fpost&title=Doc%20Title' +
+        '&meta_title=Page%20Card&meta_description=From%20the%20page&meta_image=%2Fcard.png'
+    );
+    const store = await renderAppWithStore();
+
+    expect(screen.getByText('Page Card')).toBeInTheDocument();
+    expect(store.getState().twitterCard.card?.imageUrl).toBe('https://testing.com/card.png');
+    // The bridge is still asked, to fill in what the page didn't say.
+    expect(calls).toEqual(['preview']);
+
+    await act(async () => {
+      resolvePreview({
+        data: {
+          preview: {
+            url: 'https://testing.com/canonical',
+            title: 'Server Card',
+            description: null,
+            siteName: 'Testing Site',
+            faviconUrl: 'https://testing.com/icon.png',
+          },
+        },
+      });
+    });
+    const card = store.getState().twitterCard.card;
+    expect(card?.title).toBe('Page Card');
+    expect(card?.siteName).toBe('Testing Site');
+    expect(card?.faviconUrl).toBe('https://testing.com/icon.png');
+    expect(card?.url).toBe('https://testing.com/canonical');
   });
 });
