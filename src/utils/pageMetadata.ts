@@ -97,6 +97,8 @@ export const isCompletePageCard = (card: TwitterCardData | null): boolean =>
     card &&
       card.title &&
       card.description &&
+      // A description the bookmarklet cut short is worth asking the bridge for.
+      !card.description.endsWith('…') &&
       card.imageUrl &&
       card.siteName &&
       card.faviconUrl
@@ -152,8 +154,7 @@ export const mergePreviewCards = (
     // the bridge's full text is better then.
     description:
       page.description?.endsWith('…') &&
-      fetched.description &&
-      fetched.description.length >= page.description.length
+      fetched.description?.startsWith(page.description.slice(0, -1))
         ? fetched.description
         : pick('description'),
     imageUrl: pick('imageUrl'),

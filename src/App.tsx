@@ -233,6 +233,8 @@ function App() {
       if (lastLookupUrlRef.current === null) return;
       lastLookupUrlRef.current = null;
       lookupGenerationRef.current += 1;
+      // Hold GPT back until the re-entered URL's lookup has actually started.
+      setLookupStartedFor(null);
       dispatch(markSuggestionsPending());
       dispatch(cancelSuggestionsPending());
     };

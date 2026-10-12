@@ -141,5 +141,19 @@ describe('page metadata edge cases', () => {
     expect(mergePreviewCards(page, fetched)?.description).toBe('Long text cut here in full.');
     const whole = readPageMetadata(new URLSearchParams('meta_description=Whole'), PAGE);
     expect(mergePreviewCards(whole, fetched)?.description).toBe('Whole');
+    // A page whose own text just ends in an ellipsis keeps it over unrelated bridge text.
+    const ownEllipsis = readPageMetadata(new URLSearchParams('meta_description=Read%20more%E2%80%A6'), PAGE);
+    expect(mergePreviewCards(ownEllipsis, fetched)?.description).toBe('Read more…');
+  });
+
+  it('still asks the bridge when the only thing missing is the rest of a cut description', () => {
+    const card = readPageMetadata(
+      new URLSearchParams(
+        'meta_title=T&meta_description=Cut%E2%80%A6&meta_image=%2Fi.png&meta_site_name=S&meta_favicon=%2Ff.ico'
+      ),
+      PAGE
+    );
+    expect(isCompletePageCard(card)).toBe(false);
+    expect(isCompletePageCard(card && { ...card, description: 'Whole' })).toBe(true);
   });
 });
