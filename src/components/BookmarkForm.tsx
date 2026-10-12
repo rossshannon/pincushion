@@ -369,10 +369,10 @@ function BookmarkForm() {
         <p className="tracking-note">
           {/* Always mounted so screen readers announce what gets put in it. */}
           <span role="status">
-            {trackingStrip?.savedWithTracking ? (
-              <>You saved this with its tracking parameters</>
-            ) : trackingStrip?.restored ? (
+            {trackingStrip?.restored ? (
               <>Kept tracking parameters</>
+            ) : trackingStrip?.savedWithTracking ? (
+              <>You bookmarked this before with tracking parameters</>
             ) : trackingStrip ? (
               <>
                 Removed tracking:{' '}
@@ -390,7 +390,11 @@ function BookmarkForm() {
                 className="tracking-note__toggle"
                 onClick={() => dispatch(toggleTrackingStrip())}
               >
-                {trackingStrip.restored ? 'Remove' : 'Undo'}
+                {trackingStrip.restored
+                  ? 'Remove'
+                  : trackingStrip.savedWithTracking
+                    ? 'Use that'
+                    : 'Undo'}
               </button>
             </>
           )}

@@ -8,6 +8,7 @@ import {
   setFormData,
   fetchBookmarkDetails,
   applyTrackingStrip,
+  checkTrackedBookmark,
 } from './redux/bookmarkSlice';
 import {
   fetchTags,
@@ -93,9 +94,8 @@ const isLikelyCompleteUrl = (value: string): boolean => {
 
 function App() {
   const dispatch = useDispatch<AppDispatch>();
-  const { formData, initialLoading, resolvedLookupUrl } = useSelector(
-    (state: RootState) => state.bookmark
-  );
+  const { formData, initialLoading, hasExistingBookmark, trackingStrip } =
+    useSelector((state: RootState) => state.bookmark);
   const { user, token, openAiToken } = useSelector(
     (state: RootState) => state.auth
   );
@@ -224,12 +224,6 @@ function App() {
       setDebouncedUrl(trimmedUrl);
       return;
     }
-    if (trimmedUrl === resolvedLookupUrl) {
-      // A lookup moved the form to this URL (Pinboard's stored href, or the
-      // tracked URL an old bookmark was saved under), not typing.
-      setDebouncedUrl(trimmedUrl);
-      return;
-    }
     const timer = window.setTimeout(() => {
       setDebouncedUrl(trimmedUrl);
       urlDebounceTimerRef.current = null;
@@ -238,7 +232,7 @@ function App() {
     return () => {
       window.clearTimeout(timer);
     };
-  }, [dispatch, url, resolvedLookupUrl]);
+  }, [dispatch, url]);
 
   useEffect(() => {
     if (!user || !token) return;
@@ -246,11 +240,33 @@ function App() {
     if (lastLookupUrlRef.current === debouncedUrl) return;
     lastLookupUrlRef.current = debouncedUrl;
     setLookupStartedFor(debouncedUrl);
-    // That URL's details are already loaded (see the debounce above).
-    if (resolvedLookupUrl === debouncedUrl) return;
     dispatch(fetchBookmarkDetails(debouncedUrl));
     dispatch(fetchSuggestedTags());
-  }, [dispatch, user, token, debouncedUrl, resolvedLookupUrl]);
+  }, [dispatch, user, token, debouncedUrl]);
+
+  // If the clean URL isn't bookmarked, check whether the tracked one was, so
+  // the form can offer to use it rather than save a duplicate. Like the tag
+  // refresh, this waits until the lookups have settled, plus a gap, so the
+  // extra Pinboard call never delays them.
+  const shouldCheckTrackedUrl =
+    !!user &&
+    !!token &&
+    !!trackingStrip &&
+    !trackingStrip.restored &&
+    !trackingStrip.checkedOriginal &&
+    lookupStartedFor === trackingStrip.stripped.trim() &&
+    !initialLoading &&
+    suggestedStatus !== 'loading' &&
+    !hasExistingBookmark;
+  useEffect(() => {
+    if (!shouldCheckTrackedUrl) return;
+    const timer = window.setTimeout(() => {
+      dispatch(checkTrackedBookmark());
+    }, TAG_REFRESH_GAP_MS);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [dispatch, shouldCheckTrackedUrl]);
 
   const initialTagSignatureRef = useRef<string | null>(null);
   const previousUrlRef = useRef<string | null>(null);
@@ -275,8 +291,6 @@ function App() {
     // request doesn't depend on them.
     if (lookupStartedFor !== debouncedUrl) return;
     if (initialLoading) return;
-    // The form has moved on to another URL; wait for that one instead.
-    if (url.trim() !== debouncedUrl) return;
 
     let existingTagsSnapshot = initialTagSignatureRef.current;
     if (existingTagsSnapshot === null) {
@@ -317,7 +331,6 @@ function App() {
     lookupStartedFor,
     gptStatus,
     gptContextKey,
-    url,
   ]);
 
   const handleSettingsSave = (creds: SettingsFormValues): void => {

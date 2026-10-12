@@ -208,7 +208,7 @@ describe('App integration', () => {
     expect(lookup[0]).not.toContain('utm_source');
   });
 
-  it('keeps the tracked URL, without a second lookup, when that is what was bookmarked', async () => {
+  it('after the lookups settle, offers a bookmark saved under the tracked URL', async () => {
     const tracked = 'https://testing.com/?utm_source=rss';
     mockedAxios.get.mockImplementation((url) => {
       if (url.includes('posts/get')) {
@@ -229,17 +229,30 @@ describe('App integration', () => {
     window.history.pushState({}, '', '?url=' + encodeURIComponent(tracked));
 
     const store = await renderAppWithStore();
+    const lookups = () =>
+      mockedAxios.get.mock.calls.map(([url]) => url).filter((url) => url.includes('posts/get'));
 
+    await waitFor(() => expect(store.getState().bookmark.initialLoading).toBe(false));
+    // Only the clean URL so far: the check waits for a gap after the lookups.
+    expect(lookups()).toHaveLength(1);
+    expect(lookups()[0]).not.toContain('utm_source');
+
+    await waitFor(
+      () =>
+        expect(
+          screen.getByText(/you bookmarked this before with tracking parameters/i)
+        ).toBeInTheDocument(),
+      { timeout: 5000 }
+    );
+    expect(lookups()).toHaveLength(2);
+    expect(store.getState().bookmark.formData.url).toBe('https://testing.com/');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Use that' }));
     await waitFor(() =>
-      expect(screen.getByText(/you saved this with its tracking parameters/i)).toBeInTheDocument()
+      expect(screen.getByDisplayValue('Saved with tracking')).toBeInTheDocument()
     );
     expect(store.getState().bookmark.formData.url).toBe(tracked);
-    // Outlast the URL debounce: the form's switch back to the tracked URL
-    // must not trigger another lookup.
-    await new Promise((resolve) => setTimeout(resolve, 700));
-    const lookups = mockedAxios.get.mock.calls.filter(([url]) => url.includes('posts/get'));
-    expect(lookups).toHaveLength(2);
-  });
+  }, 10000);
 
   it('submits bookmark successfully and closes the window', async () => {
     vi.useFakeTimers();

@@ -445,12 +445,16 @@ describe('BookmarkForm Component', () => {
     expect(screen.getByRole('button', { name: 'Remove' })).toBeInTheDocument();
   });
 
-  test('explains when the tracked URL was kept because it was already saved', () => {
-    renderWithTrackingStrip(true, true);
+  test('offers the tracked URL when it was bookmarked before', () => {
+    renderWithTrackingStrip(false, true);
     expect(
-      screen.getByText(/you saved this with its tracking parameters/i)
+      screen.getByText(/you bookmarked this before with tracking parameters/i)
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Remove' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Use that' }));
+    expect(store.getActions()).toContainEqual({
+      type: 'bookmark/toggleTrackingStrip',
+      payload: undefined,
+    });
   });
 
   test('keeps an empty status region when nothing was stripped', () => {
