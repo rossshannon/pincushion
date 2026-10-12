@@ -530,28 +530,29 @@ input#url.hash-detected {
 }
 
 /* The diagonal follows the border colour of each state, in the same
-   precedence as the other edges: hover beats error unless focused. */
-input#url.hash-detected[aria-invalid="true"] {
+   precedence as the other edges: hover beats error unless focused. These
+   key off input#url, not .hash-detected, so they hold while it straightens. */
+input#url[aria-invalid="true"] {
   --slant-colour: var(--pincushion-error);
 }
 
-input#url.hash-detected:focus {
+input#url:focus {
   --slant-colour: var(--pincushion-border-focus);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  input#url.hash-detected:hover {
+  input#url:hover {
     --slant-colour: var(--pincushion-border-hover);
   }
 }
 
-input#url.hash-detected[aria-invalid="true"]:focus {
+input#url[aria-invalid="true"]:focus {
   --slant-colour: var(--pincushion-error);
 }
 
 /* The outline can't follow the clip, so carry it down the slant. */
-input#url.hash-detected:focus-visible,
-input#url.hash-detected[aria-invalid="true"]:focus-visible {
+input#url:focus-visible,
+input#url[aria-invalid="true"]:focus-visible {
   --slant-colour: var(--pincushion-accent);
   --slant-width: max(2px, 0.08em);
 }
@@ -655,10 +656,11 @@ input#url.hash-detected[aria-invalid="true"]:focus-visible {
   .remove-hash.is-leaving {
     overflow: clip;
     pointer-events: none;
-    /* bounce-in stays in the list so hash-leave starts from wherever it
-       had got to: a button still waiting to bounce in leaves from opacity 0. */
+    /* bounce-in stays in the list, paused, so hash-leave starts from wherever
+       it had got to: a button still waiting to bounce in leaves from opacity 0,
+       and one caught mid-bounce doesn't keep wobbling as it goes. */
     animation:
-      bounce-in 0.8s var(--ease-out) 0.4s forwards,
+      bounce-in 0.8s var(--ease-out) 0.4s forwards paused,
       hash-leave var(--hash-exit) var(--ease-out) forwards;
   }
 }

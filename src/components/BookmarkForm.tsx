@@ -380,7 +380,9 @@ function BookmarkForm() {
           <button
             type="button"
             className={hashButtonLeaving ? 'remove-hash is-leaving' : 'remove-hash'}
-            onClick={() => {
+            onClick={(event) => {
+              // It's about to be hidden from assistive tech, so let go of focus.
+              event.currentTarget.blur();
               const cleanUrl = formData.url.replace(/#.*$/, '');
               dispatch(setFormData({ url: cleanUrl }));
             }}
@@ -390,6 +392,7 @@ function BookmarkForm() {
             }}
             title="Remove hash from URL"
             tabIndex={-1}
+            aria-hidden={hashButtonLeaving || undefined}
             ref={hashButtonRef}
           >
             &#35;
