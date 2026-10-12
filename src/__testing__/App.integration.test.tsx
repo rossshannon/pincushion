@@ -208,51 +208,73 @@ describe('App integration', () => {
     expect(lookup[0]).not.toContain('utm_source');
   });
 
-  it('after the lookups settle, offers a bookmark saved under the tracked URL', async () => {
+  describe('bookmarks saved under the tracked URL', () => {
     const tracked = 'https://testing.com/?utm_source=rss';
-    mockedAxios.get.mockImplementation((url) => {
-      if (url.includes('posts/get')) {
-        const posts = url.includes('utm_source')
-          ? [{ href: tracked, description: 'Saved with tracking', tags: 'old' }]
-          : [];
-        return Promise.resolve({ data: { posts } });
-      }
-      if (url.includes('posts/suggest-with-preview')) {
-        return Promise.resolve({ data: { suggestions: { popular: [], recommended: [] } } });
-      }
-      if (url.includes('tags/get')) {
-        return Promise.resolve({ data: { old: 1 } });
-      }
-      return Promise.reject(new Error(`Unhandled url ${url}`));
-    });
-    seedCredentials();
-    window.history.pushState({}, '', '?url=' + encodeURIComponent(tracked));
-
-    const store = await renderAppWithStore();
+    const mockLookups = ({ cleanSaved = false, trackedSaved = false } = {}) => {
+      mockedAxios.get.mockImplementation((url) => {
+        if (url.includes('posts/get')) {
+          const isTracked = url.includes('utm_source');
+          const posts =
+            isTracked && trackedSaved
+              ? [{ href: tracked, description: 'Saved with tracking', tags: 'old' }]
+              : !isTracked && cleanSaved
+                ? [{ href: 'https://testing.com/', description: 'Saved clean' }]
+                : [];
+          return Promise.resolve({ data: { posts } });
+        }
+        if (url.includes('posts/suggest-with-preview')) {
+          return Promise.resolve({ data: { suggestions: { popular: [], recommended: [] } } });
+        }
+        if (url.includes('tags/get')) {
+          return Promise.resolve({ data: { old: 1 } });
+        }
+        return Promise.reject(new Error(`Unhandled url ${url}`));
+      });
+    };
     const lookups = () =>
       mockedAxios.get.mock.calls.map(([url]) => url).filter((url) => url.includes('posts/get'));
 
-    await waitFor(() => expect(store.getState().bookmark.initialLoading).toBe(false));
-    // Only the clean URL so far: the check waits for a gap after the lookups.
-    expect(lookups()).toHaveLength(1);
-    expect(lookups()[0]).not.toContain('utm_source');
+    it('checks the tracked URL after the lookup and offers that bookmark', async () => {
+      mockLookups({ trackedSaved: true });
+      seedCredentials();
+      window.history.pushState({}, '', '?url=' + encodeURIComponent(tracked));
 
-    await waitFor(
-      () =>
+      const store = await renderAppWithStore();
+
+      await waitFor(() =>
         expect(
           screen.getByText(/you bookmarked this before with tracking parameters/i)
-        ).toBeInTheDocument(),
-      { timeout: 5000 }
-    );
-    expect(lookups()).toHaveLength(2);
-    expect(store.getState().bookmark.formData.url).toBe('https://testing.com/');
+        ).toBeInTheDocument()
+      );
+      expect(lookups()).toHaveLength(2);
+      expect(lookups()[0]).not.toContain('utm_source');
+      expect(lookups()[1]).toContain('utm_source');
+      expect(store.getState().bookmark.formData.url).toBe('https://testing.com/');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Use that' }));
-    await waitFor(() =>
-      expect(screen.getByDisplayValue('Saved with tracking')).toBeInTheDocument()
-    );
-    expect(store.getState().bookmark.formData.url).toBe(tracked);
-  }, 10000);
+      fireEvent.click(screen.getByRole('button', { name: 'Use that bookmark' }));
+      // Looked up straight away, without the typing debounce.
+      expect(lookups()).toHaveLength(3);
+      await waitFor(() =>
+        expect(screen.getByDisplayValue('Saved with tracking')).toBeInTheDocument()
+      );
+      expect(store.getState().bookmark.formData.url).toBe(tracked);
+    });
+
+    it('skips the check when the clean URL is already bookmarked', async () => {
+      mockLookups({ cleanSaved: true, trackedSaved: true });
+      seedCredentials();
+      window.history.pushState({}, '', '?url=' + encodeURIComponent(tracked));
+
+      await renderAppWithStore();
+
+      await waitFor(() => expect(screen.getByDisplayValue('Saved clean')).toBeInTheDocument());
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(lookups()).toHaveLength(1);
+      expect(screen.queryByText(/bookmarked this before/i)).not.toBeInTheDocument();
+    });
+  });
 
   it('submits bookmark successfully and closes the window', async () => {
     vi.useFakeTimers();

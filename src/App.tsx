@@ -182,12 +182,31 @@ function App() {
     }
   }, [dispatch, user, token]);
 
+  // If the clean URL isn't bookmarked, check whether the tracked one was, so
+  // the form can offer it rather than save a duplicate. It runs once the
+  // lookup has settled rather than alongside it, so it never slows the
+  // lookup down, and the tag refresh waits for it.
+  const shouldCheckTrackedUrl =
+    !!user &&
+    !!token &&
+    !!trackingStrip &&
+    !trackingStrip.restored &&
+    !trackingStrip.checkedOriginal &&
+    lookupStartedFor === trackingStrip.stripped.trim() &&
+    !initialLoading &&
+    !hasExistingBookmark;
+  const trackedCheckInFlight = !!trackingStrip?.checkingOriginal;
+
   // Background tag refresh. A stale cache is refreshed only once the
   // bookmark lookup and suggestions have settled, plus a short gap, so the
   // large /tags/get download never delays what the user is waiting on.
   useEffect(() => {
     if (tagRefreshPlan === 'none' || !user || !token) return;
-    const lookupsInFlight = initialLoading || suggestedStatus === 'loading';
+    const lookupsInFlight =
+      initialLoading ||
+      suggestedStatus === 'loading' ||
+      shouldCheckTrackedUrl ||
+      trackedCheckInFlight;
     if (tagRefreshPlan === 'after-lookups' && lookupsInFlight) return;
     const delay = tagRefreshPlan === 'immediate' ? 0 : TAG_REFRESH_GAP_MS;
     const timer = window.setTimeout(() => {
@@ -197,7 +216,16 @@ function App() {
     return () => {
       window.clearTimeout(timer);
     };
-  }, [dispatch, tagRefreshPlan, user, token, initialLoading, suggestedStatus]);
+  }, [
+    dispatch,
+    tagRefreshPlan,
+    user,
+    token,
+    initialLoading,
+    suggestedStatus,
+    shouldCheckTrackedUrl,
+    trackedCheckInFlight,
+  ]);
 
   useEffect(() => {
     if (urlDebounceTimerRef.current !== null) {
@@ -224,6 +252,16 @@ function App() {
       setDebouncedUrl(trimmedUrl);
       return;
     }
+    if (
+      trackingStrip &&
+      (trimmedUrl === trackingStrip.original.trim() ||
+        trimmedUrl === trackingStrip.stripped.trim())
+    ) {
+      // The tracking toggle set this URL, not typing: look it up now, so
+      // there's no window to save before the bookmark's details load.
+      setDebouncedUrl(trimmedUrl);
+      return;
+    }
     const timer = window.setTimeout(() => {
       setDebouncedUrl(trimmedUrl);
       urlDebounceTimerRef.current = null;
@@ -232,7 +270,7 @@ function App() {
     return () => {
       window.clearTimeout(timer);
     };
-  }, [dispatch, url]);
+  }, [dispatch, url, trackingStrip]);
 
   useEffect(() => {
     if (!user || !token) return;
@@ -244,28 +282,8 @@ function App() {
     dispatch(fetchSuggestedTags());
   }, [dispatch, user, token, debouncedUrl]);
 
-  // If the clean URL isn't bookmarked, check whether the tracked one was, so
-  // the form can offer to use it rather than save a duplicate. Like the tag
-  // refresh, this waits until the lookups have settled, plus a gap, so the
-  // extra Pinboard call never delays them.
-  const shouldCheckTrackedUrl =
-    !!user &&
-    !!token &&
-    !!trackingStrip &&
-    !trackingStrip.restored &&
-    !trackingStrip.checkedOriginal &&
-    lookupStartedFor === trackingStrip.stripped.trim() &&
-    !initialLoading &&
-    suggestedStatus !== 'loading' &&
-    !hasExistingBookmark;
   useEffect(() => {
-    if (!shouldCheckTrackedUrl) return;
-    const timer = window.setTimeout(() => {
-      dispatch(checkTrackedBookmark());
-    }, TAG_REFRESH_GAP_MS);
-    return () => {
-      window.clearTimeout(timer);
-    };
+    if (shouldCheckTrackedUrl) dispatch(checkTrackedBookmark());
   }, [dispatch, shouldCheckTrackedUrl]);
 
   const initialTagSignatureRef = useRef<string | null>(null);

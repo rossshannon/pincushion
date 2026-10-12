@@ -368,7 +368,7 @@ function BookmarkForm() {
         {errors?.url && <span className="helptext">{errors.url}</span>}
         <p className="tracking-note">
           {/* Always mounted so screen readers announce what gets put in it. */}
-          <span role="status">
+          <span role="status" id="tracking-note-status">
             {trackingStrip?.restored ? (
               <>Kept tracking parameters</>
             ) : trackingStrip?.savedWithTracking ? (
@@ -388,12 +388,13 @@ function BookmarkForm() {
               <button
                 type="button"
                 className="tracking-note__toggle"
+                aria-describedby="tracking-note-status"
                 onClick={() => dispatch(toggleTrackingStrip())}
               >
                 {trackingStrip.restored
                   ? 'Remove'
                   : trackingStrip.savedWithTracking
-                    ? 'Use that'
+                    ? 'Use that bookmark'
                     : 'Undo'}
               </button>
             </>

@@ -60,6 +60,8 @@ export type TrackingStrip = {
   restored: boolean;
   /** Whether the original URL has been looked up on Pinboard yet. */
   checkedOriginal: boolean;
+  /** True while checkTrackedBookmark is waiting on Pinboard. */
+  checkingOriginal: boolean;
   /** True when that lookup found a bookmark saved under the original URL. */
   savedWithTracking: boolean;
 };
@@ -302,18 +304,27 @@ export const checkTrackedBookmark = createAsyncThunk<
   boolean,
   void,
   { state: BookmarkThunkState }
->('bookmark/checkTrackedBookmark', async (_, { getState }) => {
-  const {
-    auth: { user, token },
-    bookmark: { trackingStrip },
-  } = getState();
-  if (!user || !token || !trackingStrip) return false;
-  try {
-    return (await lookupPost(trackingStrip.original, user, token)) !== null;
-  } catch {
-    return false;
+>(
+  'bookmark/checkTrackedBookmark',
+  async (_, { getState }) => {
+    const {
+      auth: { user, token },
+      bookmark: { trackingStrip },
+    } = getState();
+    if (!user || !token || !trackingStrip) return false;
+    try {
+      return (await lookupPost(trackingStrip.original, user, token)) !== null;
+    } catch {
+      return false;
+    }
+  },
+  {
+    condition: (_, { getState }) => {
+      const strip = getState().bookmark.trackingStrip;
+      return !!strip && !strip.checkedOriginal && !strip.checkingOriginal;
+    },
   }
-});
+);
 
 const initialState: BookmarkState = {
   formData: {
@@ -384,6 +395,7 @@ const bookmarkSlice = createSlice({
         removed,
         restored: false,
         checkedOriginal: false,
+        checkingOriginal: false,
         savedWithTracking: false,
       };
     },
@@ -459,6 +471,11 @@ const bookmarkSlice = createSlice({
         state.errors = { ...initialState.errors };
         const post = action.payload;
         const strip = state.trackingStrip;
+        if (strip && normalizedUrl === strip.original.trim()) {
+          // The user put the tracked URL back, so this answers the check.
+          strip.checkedOriginal = true;
+          strip.savedWithTracking = !!post;
+        }
         if (post) {
           // Populate formData from existing bookmark
           state.formData.title = post.description || state.formData.title;
@@ -489,11 +506,22 @@ const bookmarkSlice = createSlice({
         }
       })
       .addCase(checkTrackedBookmark.pending, (state) => {
-        if (state.trackingStrip) state.trackingStrip.checkedOriginal = true;
+        if (state.trackingStrip) state.trackingStrip.checkingOriginal = true;
       })
       .addCase(checkTrackedBookmark.fulfilled, (state, action) => {
         const strip = state.trackingStrip;
-        if (strip) strip.savedWithTracking = action.payload;
+        if (!strip) return;
+        strip.checkingOriginal = false;
+        if (strip.checkedOriginal) return; // A lookup of it answered first.
+        strip.checkedOriginal = true;
+        // Saved in the meantime: offering the old bookmark now would only
+        // invite a second save.
+        strip.savedWithTracking = action.payload && state.status !== 'success';
+      })
+      .addCase(checkTrackedBookmark.rejected, (state) => {
+        if (!state.trackingStrip) return;
+        state.trackingStrip.checkingOriginal = false;
+        state.trackingStrip.checkedOriginal = true;
       })
       .addCase(fetchBookmarkDetails.rejected, (state, action) => {
         if (

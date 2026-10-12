@@ -450,7 +450,7 @@ describe('BookmarkForm Component', () => {
     expect(
       screen.getByText(/you bookmarked this before with tracking parameters/i)
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Use that' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Use that bookmark' }));
     expect(store.getActions()).toContainEqual({
       type: 'bookmark/toggleTrackingStrip',
       payload: undefined,

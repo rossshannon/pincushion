@@ -537,6 +537,7 @@ describe('tracking parameter stripping', () => {
       ...strip,
       restored: false,
       checkedOriginal: false,
+      checkingOriginal: false,
       savedWithTracking: false,
     });
   });
@@ -619,11 +620,12 @@ describe('tracking parameter stripping', () => {
       expect(state.formData.url).toBe(clean);
       expect(state.trackingStrip).toMatchObject({
         checkedOriginal: true,
+        checkingOriginal: false,
         savedWithTracking: true,
         restored: false,
       });
 
-      // "Use that" puts the tracked URL back.
+      // "Use that bookmark" puts the tracked URL back.
       store.dispatch(toggleTrackingStrip());
       expect(store.getState().bookmark.formData.url).toBe(tracked);
     });
@@ -658,6 +660,52 @@ describe('tracking parameter stripping', () => {
       store.dispatch(setFormData({ url: 'https://typed.com/' }));
       await check;
       expect(store.getState().bookmark.trackingStrip).toBeNull();
+    });
+
+    it('runs at most once per strip', async () => {
+      mockedAxios.get.mockResolvedValue({ data: { posts: [] } });
+      const store = storeWithStrip();
+      await Promise.all([
+        store.dispatch(checkTrackedBookmark()),
+        store.dispatch(checkTrackedBookmark()),
+      ]);
+      await store.dispatch(checkTrackedBookmark());
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not offer the old bookmark once the user has saved', async () => {
+      let resolveCheck;
+      mockedAxios.get.mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveCheck = resolve;
+        })
+      );
+      const store = storeWithStrip();
+      const check = store.dispatch(checkTrackedBookmark());
+      store.dispatch(setFormData({ title: 'A title' }));
+      mockedAxios.get.mockResolvedValueOnce({ data: { result_code: 'done' } });
+      await store.dispatch(submitBookmark());
+      resolveCheck({ data: { posts: [{ href: tracked }] } });
+      await check;
+      expect(store.getState().bookmark.status).toBe('success');
+      expect(store.getState().bookmark.trackingStrip?.savedWithTracking).toBe(
+        false
+      );
+    });
+
+    it('counts a lookup of the restored URL as the check', async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: { posts: [{ href: tracked, description: 'Old' }] },
+      });
+      const store = storeWithStrip();
+      store.dispatch(toggleTrackingStrip());
+      await store.dispatch(fetchBookmarkDetails(tracked));
+      expect(store.getState().bookmark.trackingStrip).toMatchObject({
+        checkedOriginal: true,
+        savedWithTracking: true,
+      });
+      await store.dispatch(checkTrackedBookmark());
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
     });
 
     it("keeps the toggle in step with Pinboard's stored href", async () => {
