@@ -495,7 +495,7 @@ input#url {
   --slant-colour: var(--pincushion-border);
   --slant-width: 1px;
   /* The extra run the diagonal gains over the 8px of slack above and below. */
-  --slant-overhang: calc(var(--slant) * 0.2); /* 8px of slack ÷ ~40px height */
+  --slant-overhang: calc(var(--slant, 0px) * 0.2); /* 8px of slack ÷ ~40px height */
   /* The clip cuts off the end border, so the diagonal is redrawn with a
      gradient. With "to bottom right" the 50% line runs corner to corner. */
   background-image: linear-gradient(
@@ -507,17 +507,17 @@ input#url {
   );
   background-origin: border-box;
   background-position: right;
-  background-size: var(--slant) 100%;
+  background-size: var(--slant, 0) 100%;
   background-repeat: no-repeat;
-  padding-inline-end: max(1px, var(--slant));
+  padding-inline-end: max(1px, var(--slant, 0px));
   /* Sit above the # button so its enlarged hit area can't steal clicks
      meant for the end of the URL; the clip still lets them through. */
   z-index: 1;
   /* 8px of slack on the other sides keeps the shadow and focus outline. */
   clip-path: polygon(
     -8px -8px,
-    calc(100% + var(--slant-overhang) + var(--slant-slack)) -8px,
-    calc(100% - var(--slant) - var(--slant-overhang) + var(--slant-slack)) calc(100% + 8px),
+    calc(100% + var(--slant-overhang) + var(--slant-slack, 8px)) -8px,
+    calc(100% - var(--slant, 0px) - var(--slant-overhang) + var(--slant-slack, 8px)) calc(100% + 8px),
     -8px calc(100% + 8px)
   );
 }
@@ -550,9 +550,21 @@ input#url.hash-detected[aria-invalid="true"]:focus {
 }
 
 /* The outline can't follow the clip, so carry it down the slant. */
-input#url.hash-detected:focus-visible {
+input#url.hash-detected:focus-visible,
+input#url.hash-detected[aria-invalid="true"]:focus-visible {
   --slant-colour: var(--pincushion-accent);
   --slant-width: max(2px, 0.08em);
+}
+
+/* Forced colours drop the gradient that draws the diagonal, so keep it square. */
+@media (forced-colors: active) {
+  input#url {
+    clip-path: none;
+  }
+
+  input#url.hash-detected {
+    border-right-color: CanvasText;
+  }
 }
 
 @media (prefers-reduced-motion: no-preference) {
