@@ -222,6 +222,32 @@ describe('App Component', () => {
       expect(fetchTagActions(hydratedStore)).toHaveLength(1);
     });
 
+    test('clears the previous account’s tags when switching to an account with no cache', () => {
+      seedCredentials();
+      window.history.replaceState({}, '', '/?url=https%3A%2F%2Fexample.com');
+      seedTagCache();
+      const firstStore = mockStore(baseState);
+      const { rerender } = render(
+        <Provider store={firstStore}>
+          <App />
+        </Provider>
+      );
+      const switchedStore = mockStore({
+        ...baseState,
+        auth: { ...baseState.auth, user: 'someoneElse' },
+      });
+      rerender(
+        <Provider store={switchedStore}>
+          <App />
+        </Provider>
+      );
+      expect(
+        switchedStore
+          .getActions()
+          .filter((action) => action.type === 'tags/setTagCounts')
+      ).toEqual([expect.objectContaining({ payload: {} })]);
+    });
+
     test('refreshes a stale cache in the background, only after the lookups have settled', () => {
       seedCredentials();
       window.history.replaceState({}, '', '/?url=https%3A%2F%2Fexample.com');

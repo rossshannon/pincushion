@@ -433,7 +433,10 @@ const bookmarkSlice = createSlice({
           state.existingBookmarkTime = null;
           state.displayOriginalTimestamp = false;
           state.existingBookmarkTags = [];
-          state.existingBookmarkUrl = currentUrl;
+          // The lookup drops any #fragment, so for a URL with one, "not
+          // found" doesn't prove Pinboard has no bookmark for it: leave the
+          // baseline unknown so the save won't overwrite one.
+          state.existingBookmarkUrl = currentUrl.includes('#') ? null : currentUrl;
           // Tags loaded from the previous URL's (or account's) bookmark
           // don't belong to this new one; keep only what the user typed.
           state.formData.tags = state.formData.tags.filter(

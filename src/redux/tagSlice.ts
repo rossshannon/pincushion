@@ -39,11 +39,46 @@ export type TagState = {
   recentTags: string[];
   filteredRecentTags: string[];
   /**
-   * Tag deltas saved while fetchTags is in flight, replayed onto its result;
-   * null when no fetch is running.
+   * Tag deltas saved while any fetchTags is in flight. Each fetch replays
+   * only those saved after it started (its entry in tagFetchStarts), so
+   * overlapping fetches don't count a save twice.
    */
-  savedDuringTagFetch: TagDelta[] | null;
-  tagFetchesInFlight: number;
+  savedDuringTagFetch: TagDelta[];
+  /** Absolute position of savedDuringTagFetch[0] in the stream of saves. */
+  savedDuringTagFetchBase: number;
+  /** For each in-flight fetchTags request, the save position it started at. */
+  tagFetchStarts: Record<string, number>;
+};
+
+/** Fill in the replay bookkeeping if a preloaded state left it out. */
+const ensureTagFetchState = (state: TagState) => {
+  state.savedDuringTagFetch ??= [];
+  state.savedDuringTagFetchBase ??= 0;
+  state.tagFetchStarts ??= {};
+};
+
+/** The saves a given fetchTags must replay: those made after it started. */
+const deltasSince = (state: TagState, requestId: string): TagDelta[] => {
+  const start = state.tagFetchStarts?.[requestId];
+  if (start === undefined) return [];
+  return state.savedDuringTagFetch.slice(
+    Math.max(start - state.savedDuringTagFetchBase, 0)
+  );
+};
+
+/** Forget a finished fetch, and any saves no remaining fetch still needs. */
+const finishTagFetch = (state: TagState, requestId: string) => {
+  ensureTagFetchState(state);
+  delete state.tagFetchStarts[requestId];
+  const starts = Object.values(state.tagFetchStarts);
+  const keepFrom = starts.length
+    ? Math.min(...starts)
+    : state.savedDuringTagFetchBase + state.savedDuringTagFetch.length;
+  const drop = keepFrom - state.savedDuringTagFetchBase;
+  if (drop > 0) {
+    state.savedDuringTagFetch = state.savedDuringTagFetch.slice(drop);
+    state.savedDuringTagFetchBase = keepFrom;
+  }
 };
 
 type TagThunkState = {
@@ -62,7 +97,7 @@ export const fetchTags = createAsyncThunk<
   { state: TagThunkState; rejectValue: string }
 >(
   'tags/fetchTags',
-  async (_, { getState, rejectWithValue }) => {
+  async (_, { getState, rejectWithValue, requestId }) => {
     const {
       auth: { user, token },
     } = getState();
@@ -84,7 +119,7 @@ export const fetchTags = createAsyncThunk<
       // that lands between here and `fulfilled` isn't lost either (its
       // bumpTagCache patches the cache written here).
       const snapshot = normalizeTagCounts(response.data);
-      const savedMeanwhile = getState().tags.savedDuringTagFetch || [];
+      const savedMeanwhile = deltasSince(getState().tags, requestId);
       writeTagCache(user, savedMeanwhile.reduce(applyTagDelta, snapshot), {
         stale: savedMeanwhile.length > 0,
       });
@@ -351,8 +386,9 @@ const initialState: TagState = {
   error: null,
   recentTags: [],
   filteredRecentTags: [],
-  savedDuringTagFetch: null,
-  tagFetchesInFlight: 0,
+  savedDuringTagFetch: [],
+  savedDuringTagFetchBase: 0,
+  tagFetchStarts: {},
 };
 
 const tagSlice = createSlice({
@@ -417,7 +453,10 @@ const tagSlice = createSlice({
       const delta = action.payload;
       if (!delta || !Array.isArray(delta.added) || !Array.isArray(delta.removed)) return;
       state.tagCounts = applyTagDelta(state.tagCounts, delta);
-      state.savedDuringTagFetch?.push(delta);
+      ensureTagFetchState(state);
+      if (Object.keys(state.tagFetchStarts).length > 0) {
+        state.savedDuringTagFetch.push(delta);
+      }
     },
     /**
      * Load recent tags from localStorage
@@ -442,27 +481,26 @@ const tagSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchTags.pending, (state) => {
+      .addCase(fetchTags.pending, (state, action) => {
         // Add error reset on pending if desired, though fulfilled/rejected handle it here
         state.error = null; // Explicitly reset error on new fetch attempt
-        state.tagFetchesInFlight = (state.tagFetchesInFlight || 0) + 1;
-        state.savedDuringTagFetch = state.savedDuringTagFetch ?? [];
+        ensureTagFetchState(state);
+        state.tagFetchStarts[action.meta.requestId] =
+          state.savedDuringTagFetchBase + state.savedDuringTagFetch.length;
       })
       .addCase(fetchTags.fulfilled, (state, action) => {
-        state.tagCounts = (state.savedDuringTagFetch || []).reduce(
+        state.tagCounts = deltasSince(state, action.meta.requestId).reduce(
           applyTagDelta,
           action.payload || {}
         );
         state.error = null;
-        state.tagFetchesInFlight = Math.max((state.tagFetchesInFlight || 0) - 1, 0);
-        if (state.tagFetchesInFlight === 0) state.savedDuringTagFetch = null;
+        finishTagFetch(state, action.meta.requestId);
       })
       .addCase(fetchTags.rejected, (state, action) => {
         if (action.payload !== ACCOUNT_CHANGED) {
           state.error = (action.payload as string) || action.error.message || null;
         }
-        state.tagFetchesInFlight = Math.max((state.tagFetchesInFlight || 0) - 1, 0);
-        if (state.tagFetchesInFlight === 0) state.savedDuringTagFetch = null;
+        finishTagFetch(state, action.meta.requestId);
       })
       // Suggested tags
       .addCase(fetchSuggestedTags.pending, (state) => {

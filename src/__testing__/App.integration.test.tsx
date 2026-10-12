@@ -8,7 +8,7 @@ vi.mock('axios');
 import App from '../App';
 import authReducer, { setAuth } from '../redux/authSlice';
 import bookmarkReducer from '../redux/bookmarkSlice';
-import tagReducer from '../redux/tagSlice';
+import tagReducer, { setTagCounts } from '../redux/tagSlice';
 import twitterCardReducer from '../redux/twitterCardSlice';
 
 vi.mock('ladda');
@@ -193,6 +193,8 @@ describe('App integration', () => {
       mockedAxios.get.mock.calls.filter(([url]) => url.includes('posts/get')).length;
     const lookupsBefore = lookups();
 
+    store.dispatch(setTagCounts({ only_old_account: 3 }));
+
     let resolveSecondLookup;
     mockedAxios.get.mockImplementationOnce(
       () =>
@@ -205,6 +207,8 @@ describe('App integration', () => {
     });
 
     expect(lookups()).toBe(lookupsBefore + 1);
+    // The new account has no tag cache, so the old account's tags are cleared.
+    expect(store.getState().tags.tagCounts).not.toHaveProperty('only_old_account');
     // Until the new account's lookup answers, the old baseline is gone.
     expect(store.getState().bookmark.existingBookmarkTags).toBeNull();
     await act(async () => {

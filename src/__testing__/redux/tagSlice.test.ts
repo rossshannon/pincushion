@@ -84,8 +84,9 @@ describe('tag slice', () => {
     error: null,
     recentTags: [],
     filteredRecentTags: [],
-    savedDuringTagFetch: null,
-    tagFetchesInFlight: 0,
+    savedDuringTagFetch: [],
+    savedDuringTagFetchBase: 0,
+    tagFetchStarts: {},
   };
 
   beforeEach(() => {
@@ -234,7 +235,7 @@ describe('tag slice', () => {
         expect(JSON.parse(localStorageMock.getItem('tags'))).toEqual({ tagA: 5, brandnew: 1 });
         // Pinboard may already have counted that save, so the next popup refetches.
         expect(localStorageMock.getItem('tagTimestamp')).toBe('0');
-        expect(racingStore.getState().tags.savedDuringTagFetch).toBeNull();
+        expect(racingStore.getState().tags.savedDuringTagFetch).toEqual([]);
       });
 
       it('drops a refresh that finishes after the account changed', async () => {
@@ -260,7 +261,7 @@ describe('tag slice', () => {
 
         expect(switchingStore.getState().tags.tagCounts).toEqual({});
         expect(switchingStore.getState().tags.error).toBeNull();
-        expect(switchingStore.getState().tags.savedDuringTagFetch).toBeNull();
+        expect(switchingStore.getState().tags.tagFetchStarts).toEqual({});
         expect(localStorageMock.getItem('tags')).toBeNull();
       });
 
@@ -275,6 +276,35 @@ describe('tag slice', () => {
         racingStore.dispatch(recordSavedTags({ added: ['late'], removed: [] }));
         await pending;
         expect(racingStore.getState().tags.tagCounts).toEqual({ tagA: 5, late: 1 });
+      });
+
+      it('replays a save only onto refreshes that started before it', async () => {
+        const resolvers = [];
+        mockedAxios.get.mockImplementation(
+          () =>
+            new Promise((resolve) => {
+              resolvers.push(resolve);
+            })
+        );
+        const overlapStore = createMockStore({ ...initialState });
+        const first = overlapStore.dispatch(fetchTags());
+        overlapStore.dispatch(recordSavedTags({ added: ['early'], removed: [] }));
+        const second = overlapStore.dispatch(fetchTags());
+        overlapStore.dispatch(recordSavedTags({ added: ['late'], removed: [] }));
+        await vi.waitFor(() => expect(resolvers).toHaveLength(2));
+
+        // The second snapshot was taken after 'early' was saved, so it
+        // already counts it; only 'late' is replayed onto it.
+        resolvers[1]({ data: { early: '1' } });
+        await second;
+        expect(overlapStore.getState().tags.tagCounts).toEqual({ early: 1, late: 1 });
+
+        resolvers[0]({ data: {} });
+        await first;
+        expect(overlapStore.getState().tags.tagCounts).toEqual({ early: 1, late: 1 });
+        expect(overlapStore.getState().tags.savedDuringTagFetch).toEqual([]);
+        expect(overlapStore.getState().tags.tagFetchStarts).toEqual({});
+        mockedAxios.get.mockReset();
       });
 
       it('should handle fulfilled state with empty data', async () => {

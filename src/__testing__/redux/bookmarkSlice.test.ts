@@ -463,6 +463,31 @@ describe('bookmark slice', () => {
         expect(store.getState().bookmark.existingBookmarkUrl).toBe(validFormData.url);
       });
 
+      it('refuses to overwrite a #fragment URL the lookup could not check', async () => {
+        const fragmentStore = createMockStore({
+          ...initialState,
+          formData: { ...validFormData, url: 'http://example.com/page#section' },
+        });
+        mockedAxios.get.mockResolvedValueOnce({ data: { posts: [] } });
+        await fragmentStore.dispatch(fetchBookmarkDetails());
+        mockedAxios.get.mockResolvedValueOnce({ data: { result_code: 'done' } });
+        await fragmentStore.dispatch(submitBookmark());
+        expect(new URL(mockedAxios.get.mock.calls.at(-1)[0]).searchParams.get('replace')).toBe('no');
+      });
+
+      it('replaces an existing bookmark the lookup found, with the right tag delta', async () => {
+        mockedAxios.get.mockResolvedValueOnce({
+          data: { posts: [{ href: validFormData.url, description: 'Old', tags: 'submit old' }] },
+        });
+        await store.dispatch(fetchBookmarkDetails());
+        expect(store.getState().bookmark.existingBookmarkTags).toEqual(['submit', 'old']);
+        store.dispatch(setFormData({ tags: ['submit', 'tag'] }));
+        mockedAxios.get.mockResolvedValueOnce({ data: { result_code: 'done' } });
+        await store.dispatch(submitBookmark());
+        expect(new URL(mockedAxios.get.mock.calls.at(-1)[0]).searchParams.get('replace')).toBeNull();
+        expect(store.getState().bookmark.existingBookmarkTags).toEqual(['submit', 'tag']);
+      });
+
       it('lets a save replace the bookmark when the lookup succeeded', async () => {
         mockedAxios.get.mockResolvedValueOnce({ data: { result_code: 'done' } });
         await store.dispatch(submitBookmark());
