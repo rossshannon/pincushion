@@ -556,8 +556,18 @@ input#url.hash-detected:focus-visible {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  /* Straightening: the real end border fades back in as the edge nears upright. */
   input#url {
+    transition:
+      border-color 0.1s var(--ease-out),
+      background-color 0.1s var(--ease-out),
+      --slant var(--hash-exit) var(--ease-out),
+      --slant-slack 0s var(--hash-exit);
+  }
+
+  /* Straightening (only while the # button leaves, so hover and focus stay
+     in step on all four edges): the end border fades back in as the edge
+     nears upright. */
+  .url-field:has(> .remove-hash.is-leaving) > input#url {
     transition:
       border-color 0.1s var(--ease-out),
       background-color 0.1s var(--ease-out),

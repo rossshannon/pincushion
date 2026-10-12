@@ -83,9 +83,15 @@ function BookmarkForm() {
   useEffect(() => {
     if (!hashButtonLeaving) return undefined;
     const button = hashButtonRef.current;
-    const exitMs = button
-      ? parseFloat(getComputedStyle(button).animationDuration) * 1000 || 0
-      : 0;
+    // The button runs bounce-in and hash-leave together; take hash-leave's.
+    let exitMs = 0;
+    if (button) {
+      const style = getComputedStyle(button);
+      const names = style.animationName.split(',').map((name) => name.trim());
+      const durations = style.animationDuration.split(',');
+      const index = names.indexOf('hash-leave');
+      if (index !== -1) exitMs = parseFloat(durations[index]) * 1000 || 0;
+    }
     const timer = setTimeout(() => setHashButtonShown(false), exitMs + 300);
     return () => clearTimeout(timer);
   }, [hashButtonLeaving]);
