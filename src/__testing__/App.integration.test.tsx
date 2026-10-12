@@ -549,4 +549,122 @@ describe('App integration', () => {
       vi.useRealTimers();
     }
   });
+
+  it('drops an in-flight suggest call when the URL is cleared', async () => {
+    vi.useFakeTimers();
+    try {
+      seedCredentials();
+      let resolveSuggest;
+      mockedAxios.get.mockImplementation((url) => {
+        if (url.includes('posts/get')) return Promise.resolve({ data: { posts: [] } });
+        if (url.includes('/preview?')) return Promise.resolve({ data: { preview: null } });
+        if (url.includes('/v1/posts/suggest')) {
+          return new Promise((resolve) => {
+            resolveSuggest = resolve;
+          });
+        }
+        if (url.includes('tags/get')) return Promise.resolve({ data: {} });
+        return Promise.reject(new Error(`Unhandled url ${url}`));
+      });
+      window.history.pushState({}, '', '?url=https%3A%2F%2Fa.example.com%2F&title=T');
+      const store = await renderAppWithStore();
+      await act(async () => {
+        vi.advanceTimersByTime(10);
+      });
+      expect(resolveSuggest).toBeDefined();
+      expect(store.getState().tags.suggestedLoading).toBe(true);
+
+      await act(async () => {
+        store.dispatch(setFormData({ url: '' }));
+      });
+      expect(store.getState().tags.suggestedLoading).toBe(false);
+      await act(async () => {
+        resolveSuggest({ data: [{ popular: ['stale'] }, { recommended: [] }] });
+      });
+      expect(store.getState().tags.suggested).not.toContain('stale');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("doesn't ask GPT again until a re-entered URL's lookup is back", async () => {
+    vi.useFakeTimers();
+    try {
+      seedCredentials();
+      const lookups = [];
+      mockedAxios.get.mockImplementation((url) => {
+        if (url.includes('posts/get')) {
+          return new Promise((resolve) => {
+            lookups.push(resolve);
+          });
+        }
+        if (url.includes('/preview?')) return Promise.resolve({ data: { preview: null } });
+        if (url.includes('/v1/posts/suggest')) return Promise.resolve({ data: [] });
+        if (url.includes('tags/get')) return Promise.resolve({ data: {} });
+        return Promise.reject(new Error(`Unhandled url ${url}`));
+      });
+      const gptCalls = () => globalThis.fetch.mock.calls.length;
+      window.history.pushState({}, '', '?url=https%3A%2F%2Fa.example.com%2F&title=T');
+      const store = await renderAppWithStore();
+      await act(async () => {
+        lookups[0]({ data: { posts: [] } });
+      });
+      await act(async () => {
+        vi.advanceTimersByTime(10);
+      });
+      const afterFirst = gptCalls();
+      expect(afterFirst).toBeGreaterThan(0);
+
+      await act(async () => {
+        store.dispatch(setFormData({ url: '' }));
+      });
+      await act(async () => {
+        store.dispatch(setFormData({ url: 'https://a.example.com/' }));
+      });
+      await act(async () => {
+        vi.advanceTimersByTime(600);
+      });
+      // The lookup for the re-entered URL is still out, so GPT waits for it.
+      expect(lookups).toHaveLength(2);
+      expect(gptCalls()).toBe(afterFirst);
+
+      await act(async () => {
+        lookups[1]({ data: { posts: [] } });
+      });
+      await act(async () => {
+        vi.advanceTimersByTime(10);
+      });
+      expect(gptCalls()).toBe(afterFirst + 1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('skips suggestions for a URL Pinboard refused as too long', async () => {
+    seedCredentials();
+    const calls = [];
+    mockedAxios.get.mockImplementation((url) => {
+      if (url.includes('posts/get')) {
+        calls.push('lookup');
+        return Promise.reject(
+          Object.assign(new Error('Request failed with status code 414'), { response: { status: 414 } })
+        );
+      }
+      if (url.includes('/preview?')) return Promise.resolve({ data: { preview: null } });
+      if (url.includes('/v1/posts/suggest')) {
+        calls.push('suggest');
+        return Promise.resolve({ data: [] });
+      }
+      if (url.includes('tags/get')) return Promise.resolve({ data: {} });
+      return Promise.reject(new Error(`Unhandled url ${url}`));
+    });
+    window.history.pushState({}, '', '?url=https%3A%2F%2Fa.example.com%2F&title=T');
+    const store = await renderAppWithStore();
+    await waitFor(() => expect(store.getState().bookmark.initialLoading).toBe(false));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+    expect(calls).toEqual(['lookup']);
+    expect(store.getState().tags.suggestedLoading).toBe(false);
+  });
 });

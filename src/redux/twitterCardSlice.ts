@@ -12,7 +12,7 @@ import {
   REQUEST_TIMEOUTS_MS,
 } from '../services/pinboardApi';
 import {
-  isCompletePageCard,
+  isShowablePageCard,
   mergePreviewCards,
   parsePreviewPayload,
 } from '../utils/pageMetadata';
@@ -102,6 +102,8 @@ type FetchPagePreviewArgs = {
  * bookmarklet supplied the page's own metadata, that card shows straight
  * away and the bridge's result only fills in what it lacked.
  */
+let latestPreviewToken = 0;
+
 export const fetchPagePreview = createAsyncThunk<
   void,
   FetchPagePreviewArgs,
@@ -109,12 +111,17 @@ export const fetchPagePreview = createAsyncThunk<
 >('twitterCard/fetchPagePreview', async ({ url, pageCard = null, fallbackTitle = null }, { getState, dispatch }) => {
   const trimmedUrl = url.trim();
   if (!trimmedUrl) return;
+  // Only the latest request may update the card: after A → B → A, or
+  // clearing and re-entering a URL, an older response for the same URL
+  // must not overwrite the newer one.
+  const previewToken = ++latestPreviewToken;
+  const showPage = isShowablePageCard(pageCard);
   const withTitle = (card: TwitterCardData | null): TwitterCardData | null =>
     card && !card.title && fallbackTitle ? { ...card, title: fallbackTitle } : card;
 
   dispatch(
     setTwitterCardPreview(
-      pageCard
+      showPage
         ? { card: withTitle(pageCard), error: null, url: trimmedUrl, status: 'succeeded', previewStatus: 'page', previewError: null }
         : { card: null, error: null, url: trimmedUrl, status: 'loading', previewStatus: null, previewError: null }
     )
@@ -124,9 +131,8 @@ export const fetchPagePreview = createAsyncThunk<
     auth: { user, token },
   } = getState();
   // Ignore a response for a URL the user has since moved away from.
-  const stillCurrent = () => getState().twitterCard.lastUrl === trimmedUrl;
-  // Nothing the bridge could add: skip the server-side page fetch.
-  if (isCompletePageCard(pageCard)) return;
+  const stillCurrent = () =>
+    previewToken === latestPreviewToken && getState().twitterCard.lastUrl === trimmedUrl;
 
   try {
     const response = await axios.get(
@@ -144,12 +150,19 @@ export const fetchPagePreview = createAsyncThunk<
         card: withTitle(mergePreviewCards(pageCard, fetched)),
         error: null,
         url: trimmedUrl,
-        previewStatus: pageCard ? 'page' : previewStatus,
-        previewError: pageCard ? null : previewError,
+        previewStatus: showPage ? 'page' : previewStatus,
+        previewError: showPage ? null : previewError,
       })
     );
   } catch (err) {
-    if (!stillCurrent() || pageCard) return;
+    if (!stillCurrent()) return;
+    if (pageCard) {
+      // The bridge failed, but the page said something: show that.
+      dispatch(
+        setTwitterCardPreview({ card: withTitle(pageCard), error: null, url: trimmedUrl, previewStatus: 'page', previewError: null })
+      );
+      return;
+    }
     const message = err instanceof Error ? err.message : 'Unable to fetch page preview';
     dispatch(
       setTwitterCardPreview({

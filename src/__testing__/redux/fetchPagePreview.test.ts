@@ -103,7 +103,10 @@ describe('fetchPagePreview', () => {
     expect(store.getState().twitterCard.card?.title).toBe('OG title');
   });
 
-  it('skips the bridge when the page supplied a complete card', async () => {
+  it('still asks the bridge when the page supplied a full card, for what only it knows', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: { preview: { url: 'https://example.com/canonical', title: 'Bridge', cardType: 'summary' } },
+    });
     const store = createStore();
     await store.dispatch(
       fetchPagePreview({
@@ -111,8 +114,51 @@ describe('fetchPagePreview', () => {
         pageCard: { ...pageCard, imageUrl: 'https://example.com/i.png', siteName: 'Ex', faviconUrl: 'https://example.com/f.ico' },
       })
     );
-    expect(mockedAxios.get).not.toHaveBeenCalled();
-    expect(store.getState().twitterCard.card?.title).toBe('From the page');
+    expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+    const card = store.getState().twitterCard.card;
+    expect(card?.title).toBe('From the page');
+    expect(card?.url).toBe('https://example.com/canonical');
+    expect(card?.cardType).toBe('summary');
+  });
+
+  it('waits for the bridge before showing a page card with only a title', async () => {
+    let resolve: (value: unknown) => void = () => undefined;
+    mockedAxios.get.mockReturnValueOnce(
+      new Promise((res) => {
+        resolve = res;
+      })
+    );
+    const store = createStore();
+    const titleOnly = { ...pageCard, description: null };
+    const pending = store.dispatch(fetchPagePreview({ url: URL_A, pageCard: titleOnly }));
+    expect(store.getState().twitterCard.status).toBe('loading');
+    expect(store.getState().twitterCard.card).toBeNull();
+    resolve({ data: { preview: { url: URL_A, title: 'Bridge', description: 'Bridge text' } } });
+    await pending;
+    const card = store.getState().twitterCard.card;
+    expect(card?.title).toBe('From the page');
+    expect(card?.description).toBe('Bridge text');
+  });
+
+  it('lets only the latest request for a URL update the card', async () => {
+    const resolvers: Array<(value: unknown) => void> = [];
+    mockedAxios.get.mockImplementation(
+      () =>
+        new Promise((res) => {
+          resolvers.push(res);
+        })
+    );
+    const store = createStore();
+    // A, then B, then A again: two requests for A are in flight.
+    const first = store.dispatch(fetchPagePreview({ url: URL_A }));
+    const middle = store.dispatch(fetchPagePreview({ url: 'https://example.com/b' }));
+    const latest = store.dispatch(fetchPagePreview({ url: URL_A }));
+    resolvers[2]({ data: { preview: { url: URL_A, title: 'Newer' } } });
+    await latest;
+    resolvers[0]({ data: { preview: { url: URL_A, title: 'Older' } } });
+    resolvers[1]({ data: { preview: { url: 'https://example.com/b', title: 'B' } } });
+    await Promise.all([first, middle]);
+    expect(store.getState().twitterCard.card?.title).toBe('Newer');
   });
 
   it('ignores a response for a URL the user has moved away from', async () => {

@@ -53,19 +53,18 @@ const domainOf = (pageUrl: string): string | null => {
 };
 
 /**
- * Build a preview card from the metadata the bookmarklet read off the page.
- * Returns null when the bookmarklet sent no image or description (an older
- * bookmarklet only sends the document title), so the caller waits for the
- * bridge instead of showing a bare title.
+ * Build a preview card from the metadata the bookmarklet read off the page,
+ * or null when it sent none (an older bookmarklet only sends the document
+ * title). Even a partial card is kept, so its values beat the bridge's.
  */
 export const readPageMetadata = (
   params: URLSearchParams,
   pageUrl: string
 ): TwitterCardData | null => {
   if (!pageUrl) return null;
+  if (!Object.values(PAGE_METADATA_PARAMS).some((key) => read(params, key))) return null;
   const imageUrl = absoluteHttpUrl(read(params, PAGE_METADATA_PARAMS.imageUrl), pageUrl);
   const description = read(params, PAGE_METADATA_PARAMS.description);
-  if (!imageUrl && !description) return null;
 
   const siteHandle = read(params, PAGE_METADATA_PARAMS.siteHandle);
   const handle = twitterHandle(siteHandle);
@@ -89,20 +88,11 @@ export const readPageMetadata = (
 };
 
 /**
- * True when the page supplied everything the bridge's fetch could add, so
- * the /preview request can be skipped.
+ * True when the page's card has enough to show before the bridge answers:
+ * a bare title would just flash up and then change.
  */
-export const isCompletePageCard = (card: TwitterCardData | null): boolean =>
-  Boolean(
-    card &&
-      card.title &&
-      card.description &&
-      // A description the bookmarklet cut short is worth asking the bridge for.
-      !card.description.endsWith('…') &&
-      card.imageUrl &&
-      card.siteName &&
-      card.faviconUrl
-  );
+export const isShowablePageCard = (card: TwitterCardData | null): boolean =>
+  Boolean(card && (card.imageUrl || card.description));
 
 const stringOrNull = (value: unknown): string | null =>
   typeof value === 'string' ? value : null;
@@ -125,7 +115,10 @@ export const parsePreviewPayload = (
     imageUrl: absoluteHttpUrl(stringOrNull(raw.imageUrl), url),
     siteName: stringOrNull(raw.siteName),
     siteHandle: stringOrNull(raw.siteHandle),
-    siteHandleUrl: absoluteHttpUrl(stringOrNull(raw.siteHandleUrl), url),
+    // Only link a handle that is one (twitter:site sometimes holds a URL or prose).
+    siteHandleUrl: twitterHandle(stringOrNull(raw.siteHandle))
+      ? absoluteHttpUrl(stringOrNull(raw.siteHandleUrl), url)
+      : null,
     siteDomain: stringOrNull(raw.siteDomain),
     cardType: stringOrNull(raw.cardType),
     fetchedAt: stringOrNull(raw.fetchedAt),
@@ -147,16 +140,17 @@ export const mergePreviewCards = (
   if (!fetched) return page;
   const pick = <K extends keyof TwitterCardData>(key: K): TwitterCardData[K] =>
     (page[key] ?? fetched[key]) as TwitterCardData[K];
+  // The bookmarklet cuts long text and marks the cut with "…"; the bridge's
+  // full text is better then, as long as it carries on from the cut.
+  const uncut = (key: 'title' | 'description'): string | null => {
+    const mine = page[key];
+    const theirs = fetched[key];
+    return mine?.endsWith('…') && theirs?.startsWith(mine.slice(0, -1)) ? theirs : pick(key);
+  };
   return {
     url: fetched.url || page.url,
-    title: pick('title'),
-    // The bookmarklet cuts long descriptions and marks the cut with "…";
-    // the bridge's full text is better then.
-    description:
-      page.description?.endsWith('…') &&
-      fetched.description?.startsWith(page.description.slice(0, -1))
-        ? fetched.description
-        : pick('description'),
+    title: uncut('title'),
+    description: uncut('description'),
     imageUrl: pick('imageUrl'),
     siteName: pick('siteName'),
     siteHandle: pick('siteHandle'),

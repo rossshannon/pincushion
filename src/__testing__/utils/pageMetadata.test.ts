@@ -1,5 +1,5 @@
 import {
-  isCompletePageCard,
+  isShowablePageCard,
   mergePreviewCards,
   parsePreviewPayload,
   readPageMetadata,
@@ -57,17 +57,22 @@ describe('readPageMetadata', () => {
   });
 });
 
-describe('isCompletePageCard', () => {
-  it('is true only when the page gave everything the bridge could add', () => {
-    const full = readPageMetadata(
-      new URLSearchParams(
-        'meta_title=T&meta_description=D&meta_image=%2Fi.png&meta_site_name=S&meta_favicon=%2Ff.ico'
-      ),
-      PAGE
-    );
-    expect(isCompletePageCard(full)).toBe(true);
-    expect(isCompletePageCard(full && { ...full, faviconUrl: null })).toBe(false);
-    expect(isCompletePageCard(null)).toBe(false);
+describe('isShowablePageCard', () => {
+  it('shows a page card straight away only if it has an image or a description', () => {
+    const titleOnly = readPageMetadata(new URLSearchParams('meta_title=T&meta_site_name=S'), PAGE);
+    expect(titleOnly?.title).toBe('T');
+    expect(isShowablePageCard(titleOnly)).toBe(false);
+    expect(isShowablePageCard(titleOnly && { ...titleOnly, description: 'D' })).toBe(true);
+    expect(isShowablePageCard(titleOnly && { ...titleOnly, imageUrl: 'https://example.com/i.png' })).toBe(true);
+    expect(isShowablePageCard(null)).toBe(false);
+  });
+
+  it("keeps a partial card's values over the bridge's", () => {
+    const titleOnly = readPageMetadata(new URLSearchParams('meta_title=Page%20title'), PAGE);
+    const fetched = parsePreviewPayload({ title: 'Bridge title', description: 'From the bridge' }, PAGE);
+    const merged = mergePreviewCards(titleOnly, fetched);
+    expect(merged?.title).toBe('Page title');
+    expect(merged?.description).toBe('From the bridge');
   });
 });
 
@@ -146,14 +151,22 @@ describe('page metadata edge cases', () => {
     expect(mergePreviewCards(ownEllipsis, fetched)?.description).toBe('Read more…');
   });
 
-  it('still asks the bridge when the only thing missing is the rest of a cut description', () => {
-    const card = readPageMetadata(
-      new URLSearchParams(
-        'meta_title=T&meta_description=Cut%E2%80%A6&meta_image=%2Fi.png&meta_site_name=S&meta_favicon=%2Ff.ico'
-      ),
+  it("prefers the bridge's title when the bookmarklet cut the page's", () => {
+    const page = readPageMetadata(new URLSearchParams('meta_title=A%20very%20long%20ti%E2%80%A6'), PAGE);
+    const fetched = parsePreviewPayload({ title: 'A very long title indeed' }, PAGE);
+    expect(mergePreviewCards(page, fetched)?.title).toBe('A very long title indeed');
+  });
+
+  it("doesn't link a bridge twitter:site value that isn't a handle", () => {
+    const linked = parsePreviewPayload(
+      { siteHandle: '@foo', siteHandleUrl: 'https://twitter.com/foo' },
       PAGE
     );
-    expect(isCompletePageCard(card)).toBe(false);
-    expect(isCompletePageCard(card && { ...card, description: 'Whole' })).toBe(true);
+    expect(linked?.siteHandleUrl).toBe('https://twitter.com/foo');
+    const prose = parsePreviewPayload(
+      { siteHandle: 'https://twitter.com/foo', siteHandleUrl: 'https://twitter.com/https://twitter.com/foo' },
+      PAGE
+    );
+    expect(prose?.siteHandleUrl).toBeNull();
   });
 });
