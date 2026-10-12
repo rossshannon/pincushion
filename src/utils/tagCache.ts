@@ -72,12 +72,20 @@ export const readTagCache = (user: string): TagCacheEntry | null => {
   }
 };
 
-export const writeTagCache = (user: string, counts: TagCounts): boolean => {
+/**
+ * Store a fresh snapshot. Pass `stale` when the counts may be off (a save
+ * landed while they downloaded), so the next popup refreshes them.
+ */
+export const writeTagCache = (
+  user: string,
+  counts: TagCounts,
+  { stale = false }: { stale?: boolean } = {}
+): boolean => {
   const storage = getStorage();
   if (!storage) return false;
   try {
     storage.setItem(TAGS_KEY, JSON.stringify(counts));
-    storage.setItem(TIMESTAMP_KEY, Date.now().toString());
+    storage.setItem(TIMESTAMP_KEY, stale ? '0' : Date.now().toString());
     storage.setItem(USER_KEY, user);
     return true;
   } catch {
@@ -129,8 +137,9 @@ export const bumpTagCache = (user: string, delta: TagDelta): boolean => {
   if (!entry) return false;
   const counts = applyTagDelta(entry.counts, delta);
   try {
+    // Leaves the owner alone too: stamping a legacy, ownerless cache with
+    // this user would make it look fresh and theirs when it may be neither.
     storage.setItem(TAGS_KEY, JSON.stringify(counts));
-    storage.setItem(USER_KEY, user);
     return true;
   } catch {
     return false;

@@ -43,6 +43,7 @@ export type TagState = {
    * null when no fetch is running.
    */
   savedDuringTagFetch: TagDelta[] | null;
+  tagFetchesInFlight: number;
 };
 
 type TagThunkState = {
@@ -68,13 +69,15 @@ export const fetchTags = createAsyncThunk<
         bridgeRequestConfig(user, token, REQUEST_TIMEOUTS_MS.tags)
       );
       // Bookmarks saved while this download was in flight patched the old
-      // counts; fold their deltas into the fresh snapshot so it doesn't
-      // drop them (and stamp the cache fresh without them) for an hour.
-      const counts = (getState().tags.savedDuringTagFetch || []).reduce(
+      // counts; fold their deltas into the snapshot so it doesn't drop them.
+      // Pinboard may already have counted them, though, so if there were
+      // any, store the result as stale and let the next popup refetch.
+      const savedMeanwhile = getState().tags.savedDuringTagFetch || [];
+      const counts = savedMeanwhile.reduce(
         applyTagDelta,
         normalizeTagCounts(response.data)
       );
-      writeTagCache(user, counts);
+      writeTagCache(user, counts, { stale: savedMeanwhile.length > 0 });
       return counts;
     } catch (err) {
       const message =
@@ -339,6 +342,7 @@ const initialState: TagState = {
   recentTags: [],
   filteredRecentTags: [],
   savedDuringTagFetch: null,
+  tagFetchesInFlight: 0,
 };
 
 const tagSlice = createSlice({
@@ -431,16 +435,19 @@ const tagSlice = createSlice({
       .addCase(fetchTags.pending, (state) => {
         // Add error reset on pending if desired, though fulfilled/rejected handle it here
         state.error = null; // Explicitly reset error on new fetch attempt
-        state.savedDuringTagFetch = [];
+        state.tagFetchesInFlight = (state.tagFetchesInFlight || 0) + 1;
+        state.savedDuringTagFetch = state.savedDuringTagFetch ?? [];
       })
       .addCase(fetchTags.fulfilled, (state, action) => {
         state.tagCounts = action.payload || {};
         state.error = null;
-        state.savedDuringTagFetch = null;
+        state.tagFetchesInFlight = Math.max((state.tagFetchesInFlight || 0) - 1, 0);
+        if (state.tagFetchesInFlight === 0) state.savedDuringTagFetch = null;
       })
       .addCase(fetchTags.rejected, (state, action) => {
         state.error = (action.payload as string) || action.error.message || null;
-        state.savedDuringTagFetch = null;
+        state.tagFetchesInFlight = Math.max((state.tagFetchesInFlight || 0) - 1, 0);
+        if (state.tagFetchesInFlight === 0) state.savedDuringTagFetch = null;
       })
       // Suggested tags
       .addCase(fetchSuggestedTags.pending, (state) => {

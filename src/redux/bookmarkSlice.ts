@@ -139,12 +139,12 @@ const ERROR_MESSAGES: Record<string, string> = {
   URL_TOO_LONG: 'URL is too long.',
   GENERIC_ERROR: 'An unexpected error occurred. Please try again.',
   LOOKUP_TIMEOUT:
-    'Pinboard didn’t respond in time, so we couldn’t check for an existing bookmark. You can still save.',
+    'Pinboard didn’t respond in time, so we couldn’t check for an existing bookmark. New bookmarks still save; to edit an existing one, reopen the popup.',
   SAVE_TIMEOUT: 'Pinboard didn’t respond in time. Please try saving again.',
   // Only reachable when the lookup failed and the save went out with
   // replace=no, which stops it overwriting a bookmark we never loaded.
   'item already exists':
-    'This page is already in Pinboard, but we couldn’t load it. Reopen the popup to edit it.',
+    'This page is already in Pinboard, but we couldn’t load it, so we didn’t overwrite it. Reopen the popup to edit it.',
 };
 
 // Async thunk to submit bookmark via Pinboard API
@@ -212,8 +212,10 @@ export const submitBookmark = createAsyncThunk<
       // /tags/get. Only the delta counts: re-saving an existing bookmark
       // with the same tags must not inflate them, and a tag removed from
       // its last bookmark must drop out.
+      // With replace=no, success means the bookmark was new, so every tag
+      // counts as added.
       const delta = diffTagLists(existingBookmarkTags || [], formData.tags || []);
-      if (baselineKnown && !isEmptyDelta(delta)) {
+      if (!isEmptyDelta(delta)) {
         dispatch(recordSavedTags(delta));
         bumpTagCache(user, delta);
       }
@@ -319,6 +321,14 @@ const bookmarkSlice = createSlice({
       const updates = { ...action.payload };
       if (Object.prototype.hasOwnProperty.call(updates, 'tags')) {
         updates.tags = toTagArray(updates.tags);
+      }
+      if (
+        typeof updates.url === 'string' &&
+        updates.url.trim() !== state.formData.url.trim()
+      ) {
+        // The loaded bookmark (if any) was for the old URL; until a lookup
+        // for this one succeeds, we don't know what a save would replace.
+        state.existingBookmarkTags = null;
       }
       state.formData = { ...state.formData, ...updates };
       Object.keys(updates).forEach((fieldName) => {

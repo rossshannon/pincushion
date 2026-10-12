@@ -85,6 +85,7 @@ describe('tag slice', () => {
     recentTags: [],
     filteredRecentTags: [],
     savedDuringTagFetch: null,
+    tagFetchesInFlight: 0,
   };
 
   beforeEach(() => {
@@ -231,6 +232,8 @@ describe('tag slice', () => {
 
         expect(racingStore.getState().tags.tagCounts).toEqual({ tagA: 5, brandnew: 1 });
         expect(JSON.parse(localStorageMock.getItem('tags'))).toEqual({ tagA: 5, brandnew: 1 });
+        // Pinboard may already have counted that save, so the next popup refetches.
+        expect(localStorageMock.getItem('tagTimestamp')).toBe('0');
         expect(racingStore.getState().tags.savedDuringTagFetch).toBeNull();
       });
 

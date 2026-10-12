@@ -111,6 +111,8 @@ function App() {
   // The URL the bookmarklet opened us with. It is looked up straight away;
   // the debounce only applies to URLs the user types afterwards.
   const pendingInitialUrlRef = useRef<string | null>(null);
+  // The Pinboard user whose tags are in memory, to spot an account switch.
+  const tagsLoadedForRef = useRef<string | null>(null);
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
@@ -151,9 +153,15 @@ function App() {
   useEffect(() => {
     if (!user || !token) return;
     const cached = readTagCache(user);
-    // On a miss, clear whatever is in memory: after an account switch in
-    // Settings it is the previous account's tags.
-    dispatch(setTagCounts(cached ? cached.counts : {}));
+    const switchedAccount =
+      tagsLoadedForRef.current !== null && tagsLoadedForRef.current !== user;
+    tagsLoadedForRef.current = user;
+    if (cached) {
+      dispatch(setTagCounts(cached.counts));
+    } else if (switchedAccount) {
+      // What's in memory is the previous account's tags.
+      dispatch(setTagCounts({}));
+    }
 
     try {
       const recentTags = getRecentTags();

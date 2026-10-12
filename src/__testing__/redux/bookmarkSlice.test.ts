@@ -215,7 +215,7 @@ describe('bookmark slice', () => {
         expect(state.errors.generic).toEqual(errorMessage);
       });
 
-      it('sends the lookup with a timeout and tells the user they can still save on timeout', async () => {
+      it('sends the lookup with a timeout and tells the user new bookmarks still save on timeout', async () => {
         const timeoutError = Object.assign(new Error('timeout of 20000ms exceeded'), {
           code: 'ECONNABORTED',
         });
@@ -223,7 +223,7 @@ describe('bookmark slice', () => {
         await store.dispatch(fetchBookmarkDetails());
         const state = store.getState().bookmark;
         expect(state.initialLoading).toBe(false);
-        expect(state.errors.generic).toMatch(/You can still save/);
+        expect(state.errors.generic).toMatch(/New bookmarks still save/);
         expect(mockedAxios.get).toHaveBeenCalledWith(
           expect.any(String),
           expect.objectContaining({ timeout: 20000 })
@@ -249,6 +249,18 @@ describe('bookmark slice', () => {
         const state = lookupStore.getState().bookmark;
         expect(state.formData.tags).toEqual(['saved', 'old', 'typed']);
         expect(state.existingBookmarkTags).toEqual(['saved', 'old']);
+      });
+
+      it('forgets the loaded bookmark’s tags when the URL is edited', () => {
+        const editStore = createMockStore({
+          ...initialState,
+          formData: { ...initialState.formData, url: 'http://a.example' },
+          existingBookmarkTags: ['x'],
+        });
+        editStore.dispatch(setFormData({ title: 'same url' }));
+        expect(editStore.getState().bookmark.existingBookmarkTags).toEqual(['x']);
+        editStore.dispatch(setFormData({ url: 'http://c.example' }));
+        expect(editStore.getState().bookmark.existingBookmarkTags).toBeNull();
       });
 
       it('marks the existing tags as unknown when the lookup fails', async () => {
@@ -280,8 +292,13 @@ describe('bookmark slice', () => {
       const expectedParams =
         'format=json&url=http%3A%2F%2Fexample.com%2Fsubmit&description=Submit+Title&extended=Submit+Desc&shared=no&tags=submit+tag';
 
-      beforeEach(() => {
+      beforeEach(async () => {
         store.dispatch(setFormData(validFormData));
+        // A URL change makes the existing bookmark unknown until a lookup
+        // runs, as the popup does; this one finds no bookmark.
+        mockedAxios.get.mockResolvedValueOnce({ data: { posts: [] } });
+        await store.dispatch(fetchBookmarkDetails());
+        mockedAxios.get.mockClear();
       });
 
       it('should handle pending state', () => {
@@ -359,7 +376,7 @@ describe('bookmark slice', () => {
         expect(state.errors.generic).toMatch(/already in Pinboard/);
       });
 
-      it('refuses to overwrite and skips the tag delta when the lookup failed', async () => {
+      it('refuses to overwrite when the lookup failed, and counts the tags once the save proves it new', async () => {
         window.localStorage.setItem('tags', JSON.stringify({ submit: 4, tag: 2 }));
         window.localStorage.setItem('tagTimestamp', `${Date.now()}`);
         window.localStorage.setItem('tagCacheUser', 'testUser');
@@ -382,8 +399,13 @@ describe('bookmark slice', () => {
 
         const requestedUrl = mockedAxios.get.mock.calls.at(-1)[0];
         expect(new URL(requestedUrl).searchParams.get('replace')).toBe('no');
-        expect(recordingStore.getState().tags).toEqual([]);
-        expect(JSON.parse(window.localStorage.getItem('tags'))).toEqual({ submit: 4, tag: 2 });
+        expect(recordingStore.getState().tags).toEqual([
+          expect.objectContaining({
+            type: 'tags/recordSavedTags',
+            payload: { added: ['submit', 'tag'], removed: [] },
+          }),
+        ]);
+        expect(JSON.parse(window.localStorage.getItem('tags'))).toEqual({ submit: 5, tag: 3 });
         window.localStorage.clear();
       });
 

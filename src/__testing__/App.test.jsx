@@ -211,12 +211,11 @@ describe('App Component', () => {
       seedTagCache({ user: 'someoneElse' });
 
       const hydratedStore = renderWithSearch();
-      // The other account's tags never load; memory is cleared instead.
       expect(
         hydratedStore
           .getActions()
           .filter((action) => action.type === 'tags/setTagCounts')
-      ).toEqual([expect.objectContaining({ payload: {} })]);
+      ).toHaveLength(0);
       act(() => {
         vi.advanceTimersByTime(0);
       });
