@@ -432,6 +432,11 @@ describe('BookmarkForm Component', () => {
     expect(screen.getByText(/removed tracking/i)).toBeInTheDocument();
     expect(screen.getByText('utm_source, fbclid')).toBeInTheDocument();
 
+    // Tabs straight from the URL field, not after Save.
+    expect(screen.getByRole('button', { name: 'Undo' })).toHaveAttribute(
+      'tabindex',
+      '2'
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
     expect(store.getActions()).toContainEqual({
       type: 'bookmark/toggleTrackingStrip',

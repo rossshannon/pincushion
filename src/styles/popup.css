@@ -321,12 +321,12 @@ label.error {
   font: inherit;
   font-weight: 600;
 
-  /* 44px wide to press. Only 8px taller each way, so the target stays out
-     of the description label below. */
+  /* 44px wide to press. Only a little taller, so the target stays off the
+     URL input above and the description label below. */
   &::after {
     content: "";
     position: absolute;
-    inset-block: -8px;
+    inset-block: -2px -8px;
     inset-inline: min(0px, (100% - 44px) / 2);
   }
 }

@@ -389,6 +389,7 @@ function BookmarkForm() {
                 type="button"
                 className="tracking-note__toggle"
                 aria-describedby="tracking-note-status"
+                tabIndex={2}
                 onClick={() => dispatch(toggleTrackingStrip())}
               >
                 {trackingStrip.restored

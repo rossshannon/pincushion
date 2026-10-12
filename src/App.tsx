@@ -94,8 +94,13 @@ const isLikelyCompleteUrl = (value: string): boolean => {
 
 function App() {
   const dispatch = useDispatch<AppDispatch>();
-  const { formData, initialLoading, hasExistingBookmark, trackingStrip } =
-    useSelector((state: RootState) => state.bookmark);
+  const {
+    formData,
+    initialLoading,
+    hasExistingBookmark,
+    trackingStrip,
+    errors: bookmarkErrors,
+  } = useSelector((state: RootState) => state.bookmark);
   const { user, token, openAiToken } = useSelector(
     (state: RootState) => state.auth
   );
@@ -194,7 +199,9 @@ function App() {
     !trackingStrip.checkedOriginal &&
     lookupStartedFor === trackingStrip.stripped.trim() &&
     !initialLoading &&
-    !hasExistingBookmark;
+    !hasExistingBookmark &&
+    // A failed lookup (a 414, a timeout) would only fail again.
+    !bookmarkErrors?.generic;
   const trackedCheckInFlight = !!trackingStrip?.checkingOriginal;
 
   // Background tag refresh. A stale cache is refreshed only once the

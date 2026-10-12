@@ -65,11 +65,12 @@ export type TrackingStrip = {
   /** True when that lookup found a bookmark saved under the original URL. */
   savedWithTracking: boolean;
   /**
-   * The form as it was when the original URL was put back. If that loaded
-   * an old bookmark, Remove returns to this rather than carrying the old
-   * bookmark's title, notes and tags over to the clean URL.
+   * The form's other fields as the bookmarklet filled them in. Toggling away
+   * from a URL whose saved bookmark is loaded goes back to these, so that
+   * bookmark's title, notes and tags don't become a second bookmark under
+   * the other URL.
    */
-  formBeforeRestore?: Omit<BookmarkFormData, 'url'>;
+  pageFields: Omit<BookmarkFormData, 'url'>;
 };
 
 type BookmarkThunkState = {
@@ -393,9 +394,17 @@ const bookmarkSlice = createSlice({
     ) {
       const { original, stripped, removed } = action.payload;
       if (removed.length === 0 || state.formData.url !== original) return;
+      const { title, description, tags, toread } = state.formData;
       state.formData.url = stripped;
       state.errors.url = null;
       state.trackingStrip = {
+        pageFields: {
+          title,
+          description,
+          tags: [...tags],
+          private: state.formData.private,
+          toread,
+        },
         original,
         stripped,
         removed,
@@ -421,26 +430,18 @@ const bookmarkSlice = createSlice({
       const strip = state.trackingStrip;
       if (!strip) return;
       strip.restored = !strip.restored;
-      if (strip.restored) {
-        const { title, description, tags, toread } = state.formData;
-        strip.formBeforeRestore = {
-          title,
-          description,
-          tags: [...tags],
-          private: state.formData.private,
-          toread,
+      if (state.hasExistingBookmark) {
+        // The form shows the bookmark saved under the URL we're leaving.
+        // Start the other URL from the page's own details instead.
+        state.formData = {
+          ...state.formData,
+          ...strip.pageFields,
+          tags: [...strip.pageFields.tags],
         };
-      } else {
-        if (strip.formBeforeRestore && state.hasExistingBookmark) {
-          // The tracked URL's bookmark was loaded into the form: don't let
-          // its fields ride along to the clean URL as a second bookmark.
-          state.formData = { ...state.formData, ...strip.formBeforeRestore };
-          state.hasExistingBookmark = false;
-          state.existingBookmarkTime = null;
-          state.displayOriginalTimestamp = false;
-          state.existingBookmarkTags = [];
-        }
-        delete strip.formBeforeRestore;
+        state.hasExistingBookmark = false;
+        state.existingBookmarkTime = null;
+        state.displayOriginalTimestamp = false;
+        state.existingBookmarkTags = [];
       }
       state.formData.url = strip.restored ? strip.original : strip.stripped;
       state.errors.url = null;
@@ -541,9 +542,7 @@ const bookmarkSlice = createSlice({
         strip.checkingOriginal = false;
         if (strip.checkedOriginal) return; // A lookup of it answered first.
         strip.checkedOriginal = true;
-        // Saved in the meantime: offering the old bookmark now would only
-        // invite a second save.
-        strip.savedWithTracking = action.payload && state.status !== 'success';
+        strip.savedWithTracking = action.payload;
       })
       .addCase(checkTrackedBookmark.rejected, (state) => {
         if (!state.trackingStrip) return;
@@ -584,6 +583,13 @@ const bookmarkSlice = createSlice({
       })
       .addCase(submitBookmark.pending, (state) => {
         state.status = 'saving';
+        if (state.trackingStrip) {
+          // Once the user saves, don't offer the tracked URL's bookmark.
+          state.trackingStrip.checkedOriginal = true;
+          if (!state.trackingStrip.restored) {
+            state.trackingStrip.savedWithTracking = false;
+          }
+        }
         // Reset errors to the full initial structure
         state.errors = { ...initialState.errors };
       })
