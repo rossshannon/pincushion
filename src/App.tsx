@@ -127,6 +127,13 @@ function App() {
   // Bumped for every lookup (and when the URL is cleared), so a lookup that
   // settles after a newer one started knows it has been superseded.
   const lookupGenerationRef = useRef(0);
+  // What's in the URL field right now, which runs ahead of debouncedUrl while
+  // the user is typing.
+  const latestUrlRef = useRef('');
+  latestUrlRef.current = url?.trim() ?? '';
+  // Suggestions held back because the user was mid-edit when the lookup
+  // finished; sent if the debounce settles back on the same URL.
+  const deferredSuggestRef = useRef<{ url: string; generation: number } | null>(null);
   // The URL that has had fetchBookmarkDetails dispatched for it. Kept in
   // state (not a ref) so the GPT effect re-evaluates once the lookup starts.
   const [lookupStartedFor, setLookupStartedFor] = useState<string | null>(null);
@@ -267,6 +274,16 @@ function App() {
     const timer = window.setTimeout(() => {
       setDebouncedUrl(trimmedUrl);
       urlDebounceTimerRef.current = null;
+      const deferred = deferredSuggestRef.current;
+      if (
+        deferred &&
+        deferred.url === trimmedUrl &&
+        deferred.generation === lookupGenerationRef.current
+      ) {
+        // The user came back to the URL that was already looked up.
+        deferredSuggestRef.current = null;
+        dispatch(fetchSuggestedTags(trimmedUrl));
+      }
     }, URL_DEBOUNCE_MS);
     urlDebounceTimerRef.current = timer;
     return () => {
@@ -300,6 +317,12 @@ function App() {
     void Promise.resolve(lookup).then((result) => {
       // A newer lookup (or a cleared URL) owns the suggestions now.
       if (lookupGenerationRef.current !== generation) return;
+      if (latestUrlRef.current !== debouncedUrl) {
+        // The user is editing the URL: don't put this URL's suggest call in
+        // Pinboard's queue ahead of the next one's lookup.
+        deferredSuggestRef.current = { url: debouncedUrl, generation };
+        return;
+      }
       if (isUrlTooLongRejection(result)) {
         // Pinboard refused this URL as too long; suggest would fail the same way.
         dispatch(cancelSuggestionsPending());

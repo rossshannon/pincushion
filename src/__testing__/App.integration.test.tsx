@@ -453,4 +453,100 @@ describe('App integration', () => {
       vi.useRealTimers();
     }
   });
+
+  it('holds back suggestions while the user is editing the URL, and sends them if they come back', async () => {
+    vi.useFakeTimers();
+    try {
+      seedCredentials();
+      const calls = [];
+      const lookups = {};
+      mockedAxios.get.mockImplementation((url) => {
+        const target = decodeURIComponent(url.split('url=')[1] ?? '');
+        if (url.includes('posts/get')) {
+          calls.push(`lookup ${target}`);
+          return new Promise((resolve) => {
+            lookups[target] = resolve;
+          });
+        }
+        if (url.includes('/preview?')) return Promise.resolve({ data: { preview: null } });
+        if (url.includes('/v1/posts/suggest')) {
+          calls.push(`suggest ${target.split('&')[0]}`);
+          return new Promise(() => {});
+        }
+        if (url.includes('tags/get')) return Promise.resolve({ data: {} });
+        return Promise.reject(new Error(`Unhandled url ${url}`));
+      });
+      window.history.pushState({}, '', '?url=https%3A%2F%2Fa.example.com%2F&title=T');
+      const store = await renderAppWithStore();
+
+      // The user starts typing B; A's lookup lands inside B's debounce.
+      await act(async () => {
+        store.dispatch(setFormData({ url: 'https://b.example.com/' }));
+      });
+      await act(async () => {
+        lookups['https://a.example.com/']({ data: { posts: [] } });
+      });
+      expect(calls.some((c) => c.startsWith('suggest'))).toBe(false);
+      expect(store.getState().tags.suggestedLoading).toBe(true);
+
+      // They change their mind and go back to A: its suggestions go out once.
+      await act(async () => {
+        store.dispatch(setFormData({ url: 'https://a.example.com/' }));
+      });
+      await act(async () => {
+        vi.advanceTimersByTime(600);
+      });
+      expect(calls.filter((c) => c.startsWith('suggest'))).toEqual(['suggest https://a.example.com/']);
+      expect(calls.filter((c) => c.startsWith('lookup'))).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("doesn't send a stale URL's suggestions when the user moves on during the debounce", async () => {
+    vi.useFakeTimers();
+    try {
+      seedCredentials();
+      const calls = [];
+      const lookups = {};
+      mockedAxios.get.mockImplementation((url) => {
+        const target = decodeURIComponent(url.split('url=')[1] ?? '');
+        if (url.includes('posts/get')) {
+          calls.push(`lookup ${target}`);
+          return new Promise((resolve) => {
+            lookups[target] = resolve;
+          });
+        }
+        if (url.includes('/preview?')) return Promise.resolve({ data: { preview: null } });
+        if (url.includes('/v1/posts/suggest')) {
+          calls.push(`suggest ${target.split('&')[0]}`);
+          return new Promise(() => {});
+        }
+        if (url.includes('tags/get')) return Promise.resolve({ data: {} });
+        return Promise.reject(new Error(`Unhandled url ${url}`));
+      });
+      window.history.pushState({}, '', '?url=https%3A%2F%2Fa.example.com%2F&title=T');
+      const store = await renderAppWithStore();
+
+      await act(async () => {
+        store.dispatch(setFormData({ url: 'https://b.example.com/' }));
+      });
+      await act(async () => {
+        lookups['https://a.example.com/']({ data: { posts: [] } });
+      });
+      await act(async () => {
+        vi.advanceTimersByTime(600);
+      });
+      await act(async () => {
+        lookups['https://b.example.com/']({ data: { posts: [] } });
+      });
+      expect(calls).toEqual([
+        'lookup https://a.example.com/',
+        'lookup https://b.example.com/',
+        'suggest https://b.example.com/',
+      ]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
