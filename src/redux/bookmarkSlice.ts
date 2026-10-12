@@ -56,6 +56,9 @@ export type BookmarkState = {
   /** The URL and tags sent by the save in flight: the next baseline. */
   savingUrl: string;
   savingTags: string[];
+  // The lookup that was current when the save started; a save that ends
+  // after a newer lookup (a new URL or account) must not set the baseline.
+  savingLookupId: string | null;
 };
 
 type BookmarkThunkState = {
@@ -156,104 +159,112 @@ const ERROR_MESSAGES: Record<string, string> = {
 export const submitBookmark = createAsyncThunk<
   PinboardAddResponse,
   void,
-  { state: BookmarkThunkState; rejectValue: SubmitRejectValue }
->('bookmark/submit', async (_, { getState, dispatch, rejectWithValue }) => {
-  const {
-    auth: { user, token },
-    bookmark: { formData, existingBookmarkTags, existingBookmarkUrl },
-  } = getState();
-
-  // --- Client-side validation ---
-  const errors: BookmarkErrors = {
-    url: null,
-    title: null,
-    description: null,
-    generic: null,
-  };
-  let hasError = false;
-  if (!formData.url) {
-    errors.url = ERROR_MESSAGES.MISSING_URL;
-    hasError = true;
+  {
+    state: BookmarkThunkState;
+    rejectValue: SubmitRejectValue;
+    fulfilledMeta: { sameAccount: boolean };
   }
-  if (!formData.title) {
-    errors.title = ERROR_MESSAGES.MISSING_TITLE;
-    hasError = true;
-  }
-  if (
-    formData.description &&
-    formData.description.length > DESCRIPTION_CHAR_LIMIT
-  ) {
-    errors.description = `Description must be under ${DESCRIPTION_CHAR_LIMIT.toLocaleString()} characters.`;
-    hasError = true;
-  }
+>(
+  'bookmark/submit',
+  async (_, { getState, dispatch, rejectWithValue, fulfillWithValue }) => {
+    const {
+      auth: { user, token },
+      bookmark: { formData, existingBookmarkTags, existingBookmarkUrl },
+    } = getState();
 
-  if (hasError) {
-    // Reject immediately with the validation errors object
-    return rejectWithValue({ validationErrors: errors });
-  }
-  // --- End client-side validation ---
+    // --- Client-side validation ---
+    const errors: BookmarkErrors = {
+      url: null,
+      title: null,
+      description: null,
+      generic: null,
+    };
+    let hasError = false;
+    if (!formData.url) {
+      errors.url = ERROR_MESSAGES.MISSING_URL;
+      hasError = true;
+    }
+    if (!formData.title) {
+      errors.title = ERROR_MESSAGES.MISSING_TITLE;
+      hasError = true;
+    }
+    if (
+      formData.description &&
+      formData.description.length > DESCRIPTION_CHAR_LIMIT
+    ) {
+      errors.description = `Description must be under ${DESCRIPTION_CHAR_LIMIT.toLocaleString()} characters.`;
+      hasError = true;
+    }
 
-  const params = new URLSearchParams();
-  params.append('format', 'json');
-  params.append('url', formData.url);
-  params.append('description', formData.title);
-  params.append('extended', formData.description);
-  if (formData.private) params.append('shared', 'no');
-  if (formData.toread) params.append('toread', 'yes');
-  params.append('tags', (formData.tags || []).join(' '));
-  // posts/add replaces an existing bookmark wholesale. If the lookup failed
-  // we don't know whether one exists, so refuse to overwrite it.
-  const baselineKnown =
-    existingBookmarkTags !== null &&
-    existingBookmarkUrl === formData.url.trim();
-  if (!baselineKnown) params.append('replace', 'no');
+    if (hasError) {
+      // Reject immediately with the validation errors object
+      return rejectWithValue({ validationErrors: errors });
+    }
+    // --- End client-side validation ---
 
-  try {
-    const response = await axios.get(
-      bridgeUrl(`/v1/posts/add?${params.toString()}`),
-      bridgeRequestConfig(user, token, REQUEST_TIMEOUTS_MS.save)
-    );
-    if (response.data.result_code === 'done') {
-      // Fold the change in tags into the local tag counts so the next
-      // popup's autocomplete already reflects it without refetching
-      // /tags/get. Only the delta counts: re-saving an existing bookmark
-      // with the same tags must not inflate them, and a tag removed from
-      // its last bookmark must drop out.
-      // With replace=no, success means the bookmark was new, so every tag
-      // counts as added.
-      const delta = diffTagLists(
-        baselineKnown ? existingBookmarkTags || [] : [],
-        formData.tags || []
+    const params = new URLSearchParams();
+    params.append('format', 'json');
+    params.append('url', formData.url);
+    params.append('description', formData.title);
+    params.append('extended', formData.description);
+    if (formData.private) params.append('shared', 'no');
+    if (formData.toread) params.append('toread', 'yes');
+    params.append('tags', (formData.tags || []).join(' '));
+    // posts/add replaces an existing bookmark wholesale. If the lookup failed
+    // we don't know whether one exists, so refuse to overwrite it.
+    const baselineKnown =
+      existingBookmarkTags !== null &&
+      existingBookmarkUrl === formData.url.trim();
+    if (!baselineKnown) params.append('replace', 'no');
+
+    try {
+      const response = await axios.get(
+        bridgeUrl(`/v1/posts/add?${params.toString()}`),
+        bridgeRequestConfig(user, token, REQUEST_TIMEOUTS_MS.save)
       );
-      if (!isEmptyDelta(delta)) {
-        // In-memory counts are whoever is signed in now; skip them if the
+      if (response.data.result_code === 'done') {
+        // Fold the change in tags into the local tag counts so the next
+        // popup's autocomplete already reflects it without refetching
+        // /tags/get. Only the delta counts: re-saving an existing bookmark
+        // with the same tags must not inflate them, and a tag removed from
+        // its last bookmark must drop out.
+        // With replace=no, success means the bookmark was new, so every tag
+        // counts as added.
+        const delta = diffTagLists(
+          baselineKnown ? existingBookmarkTags || [] : [],
+          formData.tags || []
+        );
+        // In-memory state is whoever is signed in now; skip it if the
         // account changed in Settings while this save was in flight.
-        if (getState().auth.user === user) dispatch(recordSavedTags(delta));
-        bumpTagCache(user, delta);
+        const sameAccount = getState().auth.user === user;
+        if (!isEmptyDelta(delta)) {
+          if (sameAccount) dispatch(recordSavedTags(delta));
+          bumpTagCache(user, delta);
+        }
+        return fulfillWithValue(response.data, { sameAccount });
+      } else {
+        // Reject with API error message (e.g., 'item already exists')
+        return rejectWithValue({ apiError: response.data.result_code });
       }
-      return response.data;
-    } else {
-      // Reject with API error message (e.g., 'item already exists')
-      return rejectWithValue({ apiError: response.data.result_code });
-    }
-  } catch (err) {
-    if (isUrlTooLongError(err)) {
-      return rejectWithValue({ urlTooLongError: true });
-    }
-    if (isTimeoutError(err)) {
-      return rejectWithValue({ genericError: ERROR_MESSAGES.SAVE_TIMEOUT });
-    }
-    if (axios.isAxiosError(err)) {
-      return rejectWithValue({
-        genericError: err.message || ERROR_MESSAGES.GENERIC_ERROR,
-      });
-    }
+    } catch (err) {
+      if (isUrlTooLongError(err)) {
+        return rejectWithValue({ urlTooLongError: true });
+      }
+      if (isTimeoutError(err)) {
+        return rejectWithValue({ genericError: ERROR_MESSAGES.SAVE_TIMEOUT });
+      }
+      if (axios.isAxiosError(err)) {
+        return rejectWithValue({
+          genericError: err.message || ERROR_MESSAGES.GENERIC_ERROR,
+        });
+      }
 
-    const message =
-      err instanceof Error ? err.message : ERROR_MESSAGES.GENERIC_ERROR;
-    return rejectWithValue({ genericError: message });
+      const message =
+        err instanceof Error ? err.message : ERROR_MESSAGES.GENERIC_ERROR;
+      return rejectWithValue({ genericError: message });
+    }
   }
-});
+);
 
 // Fetch existing bookmark details if any
 export const fetchBookmarkDetails = createAsyncThunk<
@@ -332,6 +343,7 @@ const initialState: BookmarkState = {
   loadedTagsAtLookupStart: [],
   savingUrl: '',
   savingTags: [],
+  savingLookupId: null,
 };
 
 const bookmarkSlice = createSlice({
@@ -370,10 +382,18 @@ const bookmarkSlice = createSlice({
         // a previous lookup loaded. When Pinboard's href differs (no
         // fragment, say) a second lookup follows the first; measuring
         // against the loaded tags keeps what was typed during the first.
-        state.tagsAtLookupStart = state.existingBookmarkTags
-          ? [...state.existingBookmarkTags]
-          : [...state.formData.tags];
-        state.loadedTagsAtLookupStart = [...(state.existingBookmarkTags || [])];
+        // A lookup still in flight already took both readings; taking them
+        // again would see its cleared baseline and forget what it loaded.
+        if (!state.initialLoading) {
+          state.tagsAtLookupStart = state.existingBookmarkTags
+            ? [...state.existingBookmarkTags]
+            : [...state.formData.tags];
+        }
+        // Only a finished lookup knows which tags it loaded; after a failed
+        // one, keep the last known set so a later miss can still drop them.
+        if (state.existingBookmarkTags !== null) {
+          state.loadedTagsAtLookupStart = [...state.existingBookmarkTags];
+        }
         state.existingBookmarkTags = null;
         // Reset errors to the full initial structure
         state.errors = { ...initialState.errors };
@@ -485,6 +505,7 @@ const bookmarkSlice = createSlice({
         state.status = 'saving';
         state.savingUrl = state.formData.url.trim();
         state.savingTags = [...state.formData.tags];
+        state.savingLookupId = state.lastFetchRequestId;
         // Reset errors to the full initial structure
         state.errors = { ...initialState.errors };
       })
@@ -498,9 +519,16 @@ const bookmarkSlice = createSlice({
         }
         state.displayOriginalTimestamp = alreadyHadBookmark;
         // Whatever was just saved (not anything typed since) is now the
-        // bookmark's baseline for the next delta.
-        state.existingBookmarkTags = [...state.savingTags];
-        state.existingBookmarkUrl = state.savingUrl;
+        // bookmark's baseline for the next delta, unless the account or the
+        // lookup changed while it was in flight: then it describes some
+        // other bookmark, and the current baseline stays as it is.
+        if (
+          action.meta.sameAccount &&
+          state.savingLookupId === state.lastFetchRequestId
+        ) {
+          state.existingBookmarkTags = [...state.savingTags];
+          state.existingBookmarkUrl = state.savingUrl;
+        }
         // Reset errors to the full initial structure
         state.errors = { ...initialState.errors };
       })

@@ -7,6 +7,8 @@ import bookmarkReducer, {
   fetchBookmarkDetails,
 } from '../../redux/bookmarkSlice';
 import { configureStore } from '@reduxjs/toolkit'; // Needed for thunk testing
+import authReducer, { setAuth } from '../../redux/authSlice';
+import tagReducer from '../../redux/tagSlice';
 
 // Mock axios
 vi.mock('axios');
@@ -42,6 +44,7 @@ const initialState = {
   loadedTagsAtLookupStart: [],
   savingUrl: '',
   savingTags: [],
+  savingLookupId: null,
 };
 
 // Helper to create a mock store
@@ -279,6 +282,34 @@ describe('bookmark slice', () => {
         expect(lookupStore.getState().bookmark.formData.tags).toEqual(['saved', 'typed']);
       });
 
+      it('drops the previous bookmark’s tags when overlapping lookups end in a miss', async () => {
+        const lookupStore = createMockStore({
+          ...initialState,
+          formData: { ...initialState.formData, url: 'http://new.example', tags: ['old', 'typed'] },
+          existingBookmarkTags: ['old'],
+          existingBookmarkUrl: 'http://old.example',
+        });
+        mockedAxios.get.mockReturnValueOnce(new Promise(() => {}));
+        lookupStore.dispatch(fetchBookmarkDetails());
+        mockedAxios.get.mockResolvedValueOnce({ data: { posts: [] } });
+        await lookupStore.dispatch(fetchBookmarkDetails());
+        expect(lookupStore.getState().bookmark.formData.tags).toEqual(['typed']);
+      });
+
+      it('drops the previous bookmark’s tags after a failed lookup, once a later one misses', async () => {
+        const lookupStore = createMockStore({
+          ...initialState,
+          formData: { ...initialState.formData, url: 'http://new.example', tags: ['old', 'typed'] },
+          existingBookmarkTags: ['old'],
+          existingBookmarkUrl: 'http://old.example',
+        });
+        mockedAxios.get.mockRejectedValueOnce(new Error('Network Error'));
+        await lookupStore.dispatch(fetchBookmarkDetails());
+        mockedAxios.get.mockResolvedValueOnce({ data: { posts: [] } });
+        await lookupStore.dispatch(fetchBookmarkDetails());
+        expect(lookupStore.getState().bookmark.formData.tags).toEqual(['typed']);
+      });
+
       it('drops the previous bookmark’s tags, but not typed ones, when the next lookup finds none', async () => {
         const lookupStore = createMockStore({
           ...initialState,
@@ -496,6 +527,9 @@ describe('bookmark slice', () => {
       });
 
       it('replaces an existing bookmark the lookup found, with the right tag delta', async () => {
+        window.localStorage.setItem('tags', JSON.stringify({ submit: 3, old: 2, tag: 1 }));
+        window.localStorage.setItem('tagTimestamp', `${Date.now()}`);
+        window.localStorage.setItem('tagCacheUser', 'testUser');
         mockedAxios.get.mockResolvedValueOnce({
           data: { posts: [{ href: validFormData.url, description: 'Old', tags: 'submit old' }] },
         });
@@ -506,6 +540,82 @@ describe('bookmark slice', () => {
         await store.dispatch(submitBookmark());
         expect(new URL(mockedAxios.get.mock.calls.at(-1)[0]).searchParams.get('replace')).toBeNull();
         expect(store.getState().bookmark.existingBookmarkTags).toEqual(['submit', 'tag']);
+        // Gained "tag", lost "old"; "submit" was already there.
+        expect(JSON.parse(window.localStorage.getItem('tags'))).toEqual({ submit: 3, old: 1, tag: 2 });
+        window.localStorage.clear();
+      });
+
+      describe('when the account or lookup changes while a save is in flight', () => {
+        const createAppStore = (bookmarkState) =>
+          configureStore({
+            reducer: { auth: authReducer, bookmark: bookmarkReducer, tags: tagReducer },
+            preloadedState: {
+              auth: { user: 'alice', token: 'alice:TOKEN', openAiToken: '' },
+              bookmark: { ...initialState, ...bookmarkState },
+            },
+          });
+        const holdNextSave = () => {
+          let resolve;
+          mockedAxios.get.mockReturnValueOnce(
+            new Promise((r) => {
+              resolve = r;
+            })
+          );
+          return () => resolve({ data: { result_code: 'done' } });
+        };
+        const lastReplaceParam = () =>
+          new URL(mockedAxios.get.mock.calls.at(-1)[0]).searchParams.get('replace');
+
+        it('does not let the old account’s save mark the new account’s bookmark as known', async () => {
+          const appStore = createAppStore({
+            formData: { ...validFormData },
+            existingBookmarkTags: [],
+            existingBookmarkUrl: validFormData.url,
+          });
+          const finishSave = holdNextSave();
+          const saving = appStore.dispatch(submitBookmark());
+          appStore.dispatch(setAuth({ user: 'bob', token: 'bob:TOKEN' }));
+          mockedAxios.get.mockRejectedValueOnce(new Error('Network Error'));
+          await appStore.dispatch(fetchBookmarkDetails());
+          finishSave();
+          await saving;
+          expect(appStore.getState().bookmark.existingBookmarkTags).toBeNull();
+
+          mockedAxios.get.mockResolvedValueOnce({ data: { result_code: 'done' } });
+          await appStore.dispatch(submitBookmark());
+          expect(lastReplaceParam()).toBe('no');
+        });
+
+        it('keeps the baseline from a lookup that started after the save', async () => {
+          const appStore = createAppStore({
+            formData: { ...validFormData },
+            existingBookmarkTags: [],
+            existingBookmarkUrl: validFormData.url,
+          });
+          const finishSave = holdNextSave();
+          const saving = appStore.dispatch(submitBookmark());
+          mockedAxios.get.mockResolvedValueOnce({
+            data: { posts: [{ href: validFormData.url, tags: 'fresh' }] },
+          });
+          await appStore.dispatch(fetchBookmarkDetails());
+          finishSave();
+          await saving;
+          expect(appStore.getState().bookmark.existingBookmarkTags).toEqual(['fresh']);
+        });
+
+        it('leaves the new account’s in-memory tag counts alone', async () => {
+          const appStore = createAppStore({
+            formData: { ...validFormData, tags: ['alices-tag'] },
+            existingBookmarkTags: [],
+            existingBookmarkUrl: validFormData.url,
+          });
+          const finishSave = holdNextSave();
+          const saving = appStore.dispatch(submitBookmark());
+          appStore.dispatch(setAuth({ user: 'bob', token: 'bob:TOKEN' }));
+          finishSave();
+          await saving;
+          expect(appStore.getState().tags.tagCounts['alices-tag']).toBeUndefined();
+        });
       });
 
       it('lets a save replace the bookmark when the lookup succeeded', async () => {
