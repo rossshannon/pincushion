@@ -300,7 +300,11 @@ function App() {
     if (!debouncedUrl) return;
     const initialPage =
       initialPageCardRef.current?.url === debouncedUrl ? initialPageCardRef.current : null;
-    if (!initialPage?.card || !isShowablePageCard(initialPage.card)) return;
+    if (!initialPage?.card || !isShowablePageCard(initialPage.card)) {
+      // Another URL: the bookmarklet's card no longer applies.
+      dispatch(clearTwitterCard());
+      return;
+    }
     dispatch(
       showPageCard({
         url: debouncedUrl,
@@ -336,15 +340,16 @@ function App() {
     void Promise.resolve(lookup).then((result) => {
       // A newer lookup (or a cleared URL) owns the suggestions now.
       if (lookupGenerationRef.current !== generation) return;
+      if (isUrlTooLongRejection(result)) {
+        // Pinboard refused this URL as too long; suggest would fail the same
+        // way, now or if the user comes back to it.
+        dispatch(cancelSuggestionsPending());
+        return;
+      }
       if (latestUrlRef.current !== debouncedUrl) {
         // The user is editing the URL: don't put this URL's suggest call in
         // Pinboard's queue ahead of the next one's lookup.
         deferredSuggestRef.current = { url: debouncedUrl, generation };
-        return;
-      }
-      if (isUrlTooLongRejection(result)) {
-        // Pinboard refused this URL as too long; suggest would fail the same way.
-        dispatch(cancelSuggestionsPending());
         return;
       }
       dispatch(fetchSuggestedTags(debouncedUrl));

@@ -153,8 +153,10 @@ export const mergePreviewCards = (
     description: uncut('description'),
     imageUrl: pick('imageUrl'),
     siteName: pick('siteName'),
-    siteHandle: pick('siteHandle'),
-    siteHandleUrl: pick('siteHandleUrl'),
+    // The handle and its link come as a pair, so a page's prose handle is
+    // never given the bridge's link (or the other way round).
+    siteHandle: page.siteHandle ? page.siteHandle : fetched.siteHandle,
+    siteHandleUrl: page.siteHandle ? page.siteHandleUrl ?? null : fetched.siteHandleUrl ?? null,
     siteDomain: fetched.siteDomain ?? page.siteDomain,
     cardType: pick('cardType'),
     fetchedAt: fetched.fetchedAt ?? null,

@@ -93,6 +93,22 @@ describe('mergePreviewCards', () => {
     PAGE
   );
 
+  it('keeps a handle and its link together', () => {
+    const server = parsePreviewPayload(
+      { url: PAGE, siteHandle: '@real_site', siteHandleUrl: 'https://twitter.com/real_site' },
+      PAGE
+    );
+    // The page's handle isn't a real one, so it has no link of its own.
+    const prose = readPageMetadata(new URLSearchParams('meta_title=T&meta_site_handle=Our%20team'), PAGE);
+    const mergedProse = mergePreviewCards(prose, server);
+    expect(mergedProse?.siteHandle).toBe('Our team');
+    expect(mergedProse?.siteHandleUrl).toBeNull();
+    // With no handle on the page, both come from the bridge.
+    const mergedNone = mergePreviewCards(page, server);
+    expect(mergedNone?.siteHandle).toBe('@real_site');
+    expect(mergedNone?.siteHandleUrl).toBe('https://twitter.com/real_site');
+  });
+
   it('prefers the page, fills gaps from the bridge and takes its canonical URL', () => {
     const merged = mergePreviewCards(page, fetched);
     expect(merged?.title).toBe('Page');

@@ -380,6 +380,30 @@ describe('App integration', () => {
     expect(mockedAxios.get).not.toHaveBeenCalled();
   });
 
+  it('drops the bookmarklet card when the URL changes before credentials are saved', async () => {
+    vi.useFakeTimers();
+    try {
+      mockedAxios.get.mockImplementation((url) => Promise.reject(new Error(`Unexpected call to ${url}`)));
+      window.history.pushState(
+        {},
+        '',
+        '?url=https%3A%2F%2Ftesting.com%2Fpost&title=Doc%20Title&meta_description=From%20the%20page'
+      );
+      const store = await renderAppWithStore();
+      expect(store.getState().twitterCard.card?.description).toBe('From the page');
+
+      await act(async () => {
+        store.dispatch(setFormData({ url: 'https://other.example.com/' }));
+      });
+      await act(async () => {
+        vi.advanceTimersByTime(600);
+      });
+      expect(store.getState().twitterCard.card).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('fills a missing preview title from the document title when the page sent no card', async () => {
     mockedAxios.get.mockImplementation((url) => {
       if (url.includes('posts/get')) return Promise.resolve({ data: { posts: [] } });
@@ -535,6 +559,54 @@ describe('App integration', () => {
       });
       expect(calls.filter((c) => c.startsWith('suggest'))).toEqual(['suggest https://a.example.com/']);
       expect(calls.filter((c) => c.startsWith('lookup'))).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('never sends suggestions for a URL refused as too long, even after coming back to it', async () => {
+    vi.useFakeTimers();
+    try {
+      seedCredentials();
+      const calls = [];
+      const lookups = {};
+      mockedAxios.get.mockImplementation((url) => {
+        const target = decodeURIComponent(url.split('url=')[1] ?? '');
+        if (url.includes('posts/get')) {
+          calls.push(`lookup ${target}`);
+          return new Promise((resolve, reject) => {
+            lookups[target] = reject;
+          });
+        }
+        if (url.includes('/preview?')) return Promise.resolve({ data: { preview: null } });
+        if (url.includes('/v1/posts/suggest')) {
+          calls.push(`suggest ${target.split('&')[0]}`);
+          return new Promise(() => {});
+        }
+        if (url.includes('tags/get')) return Promise.resolve({ data: {} });
+        return Promise.reject(new Error(`Unhandled url ${url}`));
+      });
+      window.history.pushState({}, '', '?url=https%3A%2F%2Fa.example.com%2F&title=T');
+      const store = await renderAppWithStore();
+
+      // A's lookup is refused as too long while the user is typing B.
+      await act(async () => {
+        store.dispatch(setFormData({ url: 'https://b.example.com/' }));
+      });
+      await act(async () => {
+        lookups['https://a.example.com/'](
+          Object.assign(new Error('Request failed with status code 414'), { response: { status: 414 } })
+        );
+      });
+      // They go back to A: suggest would only be refused too.
+      await act(async () => {
+        store.dispatch(setFormData({ url: 'https://a.example.com/' }));
+      });
+      await act(async () => {
+        vi.advanceTimersByTime(600);
+      });
+      expect(calls.filter((c) => c.startsWith('suggest'))).toEqual([]);
+      expect(store.getState().tags.suggestedLoading).toBe(false);
     } finally {
       vi.useRealTimers();
     }
