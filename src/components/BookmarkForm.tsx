@@ -381,8 +381,11 @@ function BookmarkForm() {
             type="button"
             className={hashButtonLeaving ? 'remove-hash is-leaving' : 'remove-hash'}
             onClick={(event) => {
-              // It's about to be hidden from assistive tech, so let go of focus.
-              event.currentTarget.blur();
+              // It's about to be hidden from assistive tech, so hand focus to
+              // the URL it just edited; on touch, just let go, so no keyboard
+              // pops up.
+              if (shouldAutoFocusTags) urlRef.current?.focus({ preventScroll: true });
+              else event.currentTarget.blur();
               const cleanUrl = formData.url.replace(/#.*$/, '');
               dispatch(setFormData({ url: cleanUrl }));
             }}

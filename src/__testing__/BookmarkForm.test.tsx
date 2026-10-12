@@ -124,6 +124,7 @@ describe('BookmarkForm Component', () => {
     // The button stays to animate out, then unmounts when its exit ends
     const leavingButton = screen.getByTitle(/Remove hash from URL/i);
     expect(leavingButton).toHaveClass('is-leaving');
+    expect(leavingButton).toHaveAttribute('aria-hidden', 'true');
     endAnimation(leavingButton, 'bounce-in'); // can end mid-exit; ignored
     expect(leavingButton).toBeInTheDocument();
     endAnimation(leavingButton, 'hash-leave');
@@ -191,6 +192,56 @@ describe('BookmarkForm Component', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  test('times the fallback from the exit animation, not bounce-in', () => {
+    vi.useFakeTimers();
+    const realGetComputedStyle = window.getComputedStyle;
+    const spy = vi
+      .spyOn(window, 'getComputedStyle')
+      .mockImplementation((element, pseudo) => {
+        const style = realGetComputedStyle(element, pseudo);
+        if (!element.classList?.contains('remove-hash')) return style;
+        return {
+          ...style,
+          animationName: 'bounce-in, hash-leave',
+          animationDuration: '0.8s, 0.3s',
+        };
+      });
+    try {
+      const { rerender } = render(
+        <Provider store={storeWithUrl('https://example.com/page#a')}>
+          <BookmarkForm />
+        </Provider>
+      );
+      rerender(
+        <Provider store={storeWithUrl('https://example.com/page')}>
+          <BookmarkForm />
+        </Provider>
+      );
+      // 0.3s exit + 0.3s margin; bounce-in's 0.8s would push this to 1.1s.
+      act(() => {
+        vi.advanceTimersByTime(650);
+      });
+      expect(
+        screen.queryByTitle(/Remove hash from URL/i)
+      ).not.toBeInTheDocument();
+    } finally {
+      spy.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
+  test('hands focus to the URL field when # is pressed', () => {
+    render(
+      <Provider store={storeWithUrl('https://example.com/page#a')}>
+        <BookmarkForm />
+      </Provider>
+    );
+    const button = screen.getByTitle(/Remove hash from URL/i);
+    button.focus();
+    fireEvent.click(button);
+    expect(screen.getByLabelText(/URL/i)).toHaveFocus();
   });
 
   // Add more tests for other functionalities (submit, errors, checkboxes, tags, etc.)
