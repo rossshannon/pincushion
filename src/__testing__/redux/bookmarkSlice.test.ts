@@ -708,6 +708,52 @@ describe('tracking parameter stripping', () => {
       expect(mockedAxios.get).toHaveBeenCalledTimes(1);
     });
 
+    it("drops the old bookmark's fields when Remove follows Use that bookmark", async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          posts: [
+            {
+              href: tracked,
+              description: 'Old title',
+              extended: 'Old notes',
+              tags: 'old',
+              shared: 'no',
+              time: '2020-01-01T00:00:00Z',
+            },
+          ],
+        },
+      });
+      const store = storeWithStrip();
+      store.dispatch(setFormData({ title: 'Page title', tags: ['mine'] }));
+      store.dispatch(toggleTrackingStrip()); // Use that bookmark
+      await store.dispatch(fetchBookmarkDetails(tracked));
+      expect(store.getState().bookmark.formData.title).toBe('Old title');
+
+      store.dispatch(toggleTrackingStrip()); // Remove
+      const state = store.getState().bookmark;
+      expect(state.formData).toEqual({
+        url: clean,
+        title: 'Page title',
+        description: '',
+        tags: ['mine'],
+        private: false,
+        toread: false,
+      });
+      expect(state.hasExistingBookmark).toBe(false);
+      expect(state.existingBookmarkTags).toEqual([]);
+      expect(state.existingBookmarkTime).toBeNull();
+    });
+
+    it('keeps edits when Remove follows an Undo that found no bookmark', async () => {
+      mockedAxios.get.mockResolvedValueOnce({ data: { posts: [] } });
+      const store = storeWithStrip();
+      store.dispatch(toggleTrackingStrip()); // Undo
+      await store.dispatch(fetchBookmarkDetails(tracked));
+      store.dispatch(setFormData({ title: 'Typed after undo' }));
+      store.dispatch(toggleTrackingStrip()); // Remove
+      expect(store.getState().bookmark.formData.title).toBe('Typed after undo');
+    });
+
     it("keeps the toggle in step with Pinboard's stored href", async () => {
       const storedHref = 'https://example.com/post?id=7';
       mockedAxios.get.mockResolvedValueOnce({

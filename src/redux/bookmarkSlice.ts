@@ -64,6 +64,12 @@ export type TrackingStrip = {
   checkingOriginal: boolean;
   /** True when that lookup found a bookmark saved under the original URL. */
   savedWithTracking: boolean;
+  /**
+   * The form as it was when the original URL was put back. If that loaded
+   * an old bookmark, Remove returns to this rather than carrying the old
+   * bookmark's title, notes and tags over to the clean URL.
+   */
+  formBeforeRestore?: Omit<BookmarkFormData, 'url'>;
 };
 
 type BookmarkThunkState = {
@@ -415,6 +421,27 @@ const bookmarkSlice = createSlice({
       const strip = state.trackingStrip;
       if (!strip) return;
       strip.restored = !strip.restored;
+      if (strip.restored) {
+        const { title, description, tags, toread } = state.formData;
+        strip.formBeforeRestore = {
+          title,
+          description,
+          tags: [...tags],
+          private: state.formData.private,
+          toread,
+        };
+      } else {
+        if (strip.formBeforeRestore && state.hasExistingBookmark) {
+          // The tracked URL's bookmark was loaded into the form: don't let
+          // its fields ride along to the clean URL as a second bookmark.
+          state.formData = { ...state.formData, ...strip.formBeforeRestore };
+          state.hasExistingBookmark = false;
+          state.existingBookmarkTime = null;
+          state.displayOriginalTimestamp = false;
+          state.existingBookmarkTags = [];
+        }
+        delete strip.formBeforeRestore;
+      }
       state.formData.url = strip.restored ? strip.original : strip.stripped;
       state.errors.url = null;
     },
