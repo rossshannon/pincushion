@@ -82,6 +82,39 @@ describe('fetchPagePreview', () => {
     expect(state.previewError).toBe('timeout of 10000ms exceeded');
   });
 
+  it('uses the document title only when neither the page nor the bridge had one', async () => {
+    mockedAxios.get.mockResolvedValueOnce({ data: { preview: { url: URL_A, title: null } } });
+    const store = createStore();
+    const untitled = { ...pageCard, title: null };
+    const pending = store.dispatch(
+      fetchPagePreview({ url: URL_A, pageCard: untitled, fallbackTitle: 'Doc title' })
+    );
+    expect(store.getState().twitterCard.card?.title).toBe('Doc title');
+    await pending;
+    expect(store.getState().twitterCard.card?.title).toBe('Doc title');
+  });
+
+  it("prefers the bridge's title over the document title", async () => {
+    mockedAxios.get.mockResolvedValueOnce({ data: { preview: { url: URL_A, title: 'OG title' } } });
+    const store = createStore();
+    await store.dispatch(
+      fetchPagePreview({ url: URL_A, pageCard: { ...pageCard, title: null }, fallbackTitle: 'Doc title' })
+    );
+    expect(store.getState().twitterCard.card?.title).toBe('OG title');
+  });
+
+  it('skips the bridge when the page supplied a complete card', async () => {
+    const store = createStore();
+    await store.dispatch(
+      fetchPagePreview({
+        url: URL_A,
+        pageCard: { ...pageCard, imageUrl: 'https://example.com/i.png', siteName: 'Ex', faviconUrl: 'https://example.com/f.ico' },
+      })
+    );
+    expect(mockedAxios.get).not.toHaveBeenCalled();
+    expect(store.getState().twitterCard.card?.title).toBe('From the page');
+  });
+
   it('ignores a response for a URL the user has moved away from', async () => {
     let resolve: (value: unknown) => void = () => undefined;
     mockedAxios.get.mockReturnValueOnce(

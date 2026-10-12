@@ -34,6 +34,10 @@ const absoluteHttpUrl = (value: string | null, base: string): string | null => {
   }
 };
 
+// Only hex colours: TwitterCardPreview derives its shadow with hexToRgba.
+const hexColour = (value: string | null): string | null =>
+  value && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value) ? value : null;
+
 const domainOf = (pageUrl: string): string | null => {
   try {
     return new URL(pageUrl).hostname.replace(/^www\./i, '') || null;
@@ -62,7 +66,9 @@ export const readPageMetadata = (
 
   return {
     url: pageUrl,
-    title: read(params, PAGE_METADATA_PARAMS.title) || read(params, 'title'),
+    // Only the page's og/twitter title. The document <title> is a fallback
+    // the caller applies last, so it never hides the bridge's og:title.
+    title: read(params, PAGE_METADATA_PARAMS.title),
     description,
     imageUrl,
     siteName: read(params, PAGE_METADATA_PARAMS.siteName),
@@ -70,11 +76,25 @@ export const readPageMetadata = (
     siteHandleUrl: handle ? `https://twitter.com/${handle}` : null,
     siteDomain: domainOf(pageUrl),
     cardType: read(params, PAGE_METADATA_PARAMS.cardType),
-    themeColor: read(params, PAGE_METADATA_PARAMS.themeColor),
+    themeColor: hexColour(read(params, PAGE_METADATA_PARAMS.themeColor)),
     faviconUrl: absoluteHttpUrl(read(params, PAGE_METADATA_PARAMS.faviconUrl), pageUrl),
     fetchedAt: null,
   };
 };
+
+/**
+ * True when the page supplied everything the bridge's fetch could add, so
+ * the /preview request can be skipped.
+ */
+export const isCompletePageCard = (card: TwitterCardData | null): boolean =>
+  Boolean(
+    card &&
+      card.title &&
+      card.description &&
+      card.imageUrl &&
+      card.siteName &&
+      card.faviconUrl
+  );
 
 const stringOrNull = (value: unknown): string | null =>
   typeof value === 'string' ? value : null;

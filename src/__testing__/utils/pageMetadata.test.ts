@@ -1,4 +1,5 @@
 import {
+  isCompletePageCard,
   mergePreviewCards,
   parsePreviewPayload,
   readPageMetadata,
@@ -34,13 +35,39 @@ describe('readPageMetadata', () => {
     });
   });
 
-  it('falls back to the document title and drops non-http image URLs', () => {
+  it('leaves the document title to the caller and drops non-http image URLs', () => {
     const params = new URLSearchParams(
       'title=Doc%20title&meta_description=Desc&meta_image=javascript%3Aalert(1)'
     );
     const card = readPageMetadata(params, PAGE);
-    expect(card?.title).toBe('Doc title');
+    expect(card?.title).toBeNull();
     expect(card?.imageUrl).toBeNull();
+  });
+
+  it('keeps only hex theme colours, which the preview can tint with', () => {
+    const colour = (value: string) =>
+      readPageMetadata(
+        new URLSearchParams(`meta_description=D&meta_theme_color=${encodeURIComponent(value)}`),
+        PAGE
+      )?.themeColor;
+    expect(colour('#0a84ff')).toBe('#0a84ff');
+    expect(colour('#fff')).toBe('#fff');
+    expect(colour('rgb(20,20,20)')).toBeNull();
+    expect(colour('white')).toBeNull();
+  });
+});
+
+describe('isCompletePageCard', () => {
+  it('is true only when the page gave everything the bridge could add', () => {
+    const full = readPageMetadata(
+      new URLSearchParams(
+        'meta_title=T&meta_description=D&meta_image=%2Fi.png&meta_site_name=S&meta_favicon=%2Ff.ico'
+      ),
+      PAGE
+    );
+    expect(isCompletePageCard(full)).toBe(true);
+    expect(isCompletePageCard(full && { ...full, faviconUrl: null })).toBe(false);
+    expect(isCompletePageCard(null)).toBe(false);
   });
 });
 

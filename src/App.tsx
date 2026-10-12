@@ -9,6 +9,8 @@ import {
   fetchTags,
   fetchSuggestedTags,
   fetchGptSuggestions,
+  markSuggestionsPending,
+  cancelSuggestionsPending,
   setTagCounts,
   resetGptSuggestions,
   setRecentTags,
@@ -111,6 +113,9 @@ function App() {
   const [view, setView] = useState<ViewMode>(VIEW_FORM);
   const [credentialsMissing, setCredentialsMissing] = useState(false);
   const [debouncedUrl, setDebouncedUrl] = useState('');
+  // Mirrors debouncedUrl for callbacks that outlive the render that made them.
+  const debouncedUrlRef = useRef('');
+  debouncedUrlRef.current = debouncedUrl;
   // The URL that has had fetchBookmarkDetails dispatched for it. Kept in
   // state (not a ref) so the GPT effect re-evaluates once the lookup starts.
   const [lookupStartedFor, setLookupStartedFor] = useState<string | null>(null);
@@ -120,7 +125,11 @@ function App() {
   // the debounce only applies to URLs the user types afterwards.
   const pendingInitialUrlRef = useRef<string | null>(null);
   // Preview metadata the bookmarklet read off the page, for its URL only.
-  const initialPageCardRef = useRef<{ url: string; card: TwitterCardData } | null>(null);
+  const initialPageCardRef = useRef<{
+    url: string;
+    card: TwitterCardData;
+    fallbackTitle: string;
+  } | null>(null);
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
@@ -145,7 +154,7 @@ function App() {
     pendingInitialUrlRef.current = initial.url.trim() || null;
     const initialPageCard = readInitialPageCard(initial.url);
     initialPageCardRef.current = initialPageCard
-      ? { url: initial.url.trim(), card: initialPageCard }
+      ? { url: initial.url.trim(), card: initialPageCard, fallbackTitle: initial.title }
       : null;
     dispatch(setFormData(initial));
 
@@ -247,19 +256,31 @@ function App() {
     if (lastLookupUrlRef.current === debouncedUrl) return;
     lastLookupUrlRef.current = debouncedUrl;
     setLookupStartedFor(debouncedUrl);
-    const pageCard =
-      initialPageCardRef.current?.url === debouncedUrl
-        ? initialPageCardRef.current.card
-        : null;
+    const initialPage =
+      initialPageCardRef.current?.url === debouncedUrl ? initialPageCardRef.current : null;
     // The preview never touches Pinboard, so it goes out alongside the lookup.
     // Suggestions wait for the lookup: Pinboard allows one call per user every
     // three seconds and the bridge spaces them in arrival order, so this keeps
     // the lookup (which gates Save) first in line.
     const lookup = dispatch(fetchBookmarkDetails(debouncedUrl));
-    dispatch(fetchPagePreview({ url: debouncedUrl, pageCard }));
+    dispatch(
+      fetchPagePreview({
+        url: debouncedUrl,
+        pageCard: initialPage?.card ?? null,
+        fallbackTitle: initialPage?.fallbackTitle ?? null,
+      })
+    );
+    // Clear the previous URL's suggestions and show the spinner during the lookup.
+    dispatch(markSuggestionsPending());
     void Promise.resolve(lookup).finally(() => {
-      if (lastLookupUrlRef.current !== debouncedUrl) return;
-      dispatch(fetchSuggestedTags());
+      if (debouncedUrlRef.current !== debouncedUrl) {
+        // The user moved on while the lookup ran. Let the same URL be looked
+        // up again if they come back to it.
+        if (lastLookupUrlRef.current === debouncedUrl) lastLookupUrlRef.current = null;
+        dispatch(cancelSuggestionsPending());
+        return;
+      }
+      dispatch(fetchSuggestedTags(debouncedUrl));
     });
   }, [dispatch, user, token, debouncedUrl]);
 
@@ -282,8 +303,8 @@ function App() {
     if (!debouncedUrl) return;
     // Wait for the existing-bookmark lookup (it supplies the tags, title and
     // notes that form the prompt), but not for Pinboard's own suggestions:
-    // those include a page scrape that can take several seconds and the GPT
-    // request doesn't depend on them.
+    // those only start once the lookup settles, can take ~15s for a URL
+    // Pinboard hasn't seen, and the GPT request doesn't depend on them.
     if (lookupStartedFor !== debouncedUrl) return;
     if (initialLoading) return;
 

@@ -263,6 +263,8 @@ describe('App integration', () => {
       // No timers have been advanced: the lookup and the preview are already
       // out; suggestions wait for the lookup, so Pinboard sees the lookup first.
       expect(calls).toEqual(['lookup', 'preview']);
+      // The suggestions spinner shows from the start, not only once the lookup is back.
+      expect(store.getState().tags.suggestedLoading).toBe(true);
       expect(store.getState().tags.tagCounts).toEqual({ cached_tag: 7 });
       expect(store.getState().bookmark.initialLoading).toBe(true);
 

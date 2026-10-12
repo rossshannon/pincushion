@@ -76,6 +76,7 @@ describe('tag slice', () => {
     suggested: [],
     suggestedLoading: false,
     suggestedStatus: 'idle',
+    suggestedRequestId: null,
     gptSuggestions: [],
     gptStatus: 'idle',
     gptError: null,
@@ -306,6 +307,31 @@ describe('tag slice', () => {
         expect(state.suggested).toEqual([]); // Should reset or keep previous suggestions?\ Slice resets.
         expect(state.error).toEqual(errorMessage);
         expect(state.suggestedStatus).toBe('failed');
+      });
+
+      it('fetches suggestions for the URL it is given, not the live form field', async () => {
+        mockedAxios.get.mockResolvedValueOnce({ data: [] });
+        await store.dispatch(fetchSuggestedTags('http://looked.up'));
+        expect(mockedAxios.get).toHaveBeenCalledWith(
+          'https://pinboard-api.herokuapp.com/v1/posts/suggest?format=json&url=http://looked.up',
+          expect.anything()
+        );
+      });
+
+      it('drops a response from an older request', async () => {
+        const freshStore = createMockStore(initialState, { url: bookmarkUrl });
+        let resolveOld: (value: unknown) => void = () => undefined;
+        mockedAxios.get
+          .mockReturnValueOnce(new Promise((resolve) => { resolveOld = resolve; }))
+          .mockResolvedValueOnce({ data: [{ recommended: ['new_tag'] }] });
+
+        const oldRequest = freshStore.dispatch(fetchSuggestedTags('http://old.url'));
+        await freshStore.dispatch(fetchSuggestedTags('http://new.url'));
+        resolveOld({ data: [{ recommended: ['old_tag'] }] });
+        await oldRequest;
+
+        expect(freshStore.getState().tags.suggested).toEqual(['new_tag']);
+        expect(freshStore.getState().tags.suggestedStatus).toBe('succeeded');
       });
 
       it('preserves previous suggestions when request fails', async () => {

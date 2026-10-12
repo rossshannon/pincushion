@@ -24,6 +24,8 @@ export type TagState = {
   suggested: string[];
   suggestedLoading: boolean;
   suggestedStatus: 'idle' | 'loading' | 'succeeded' | 'failed';
+  /** The in-flight suggest request; responses from older ones are dropped. */
+  suggestedRequestId: string | null;
   gptSuggestions: string[];
   gptStatus: 'idle' | 'loading' | 'succeeded' | 'failed';
   gptError: string | null;
@@ -93,18 +95,19 @@ const readSuggestionLists = (
 // separate request (fetchPagePreview), so a slow Pinboard never holds it up.
 export const fetchSuggestedTags = createAsyncThunk<
   SuggestPayload,
-  void,
+  string | undefined,
   { state: TagThunkState; rejectValue: string }
 >(
   'tags/fetchSuggested',
-  async (_, { getState, rejectWithValue }) => {
+  async (targetUrl, { getState, rejectWithValue }) => {
     const {
       auth: { user, token },
       bookmark: {
-        formData: { url },
+        formData: { url: formUrl },
       },
       tags: { tagCounts },
     } = getState();
+    const url = targetUrl ?? formUrl;
     try {
       const response = await axios.get(
         bridgeUrl(`/v1/posts/suggest?format=json&url=${cleanUrl(url)}`),
@@ -223,6 +226,7 @@ const initialState: TagState = {
   suggested: [],
   suggestedLoading: false,
   suggestedStatus: 'idle',
+  suggestedRequestId: null,
   gptSuggestions: [],
   gptStatus: 'idle',
   gptError: null,
@@ -268,6 +272,22 @@ const tagSlice = createSlice({
       if (state.gptSuggestions.length === 0) {
         state.suggested = state.suggested.filter((tag) => tag !== '$separator');
       }
+    },
+    /**
+     * A new URL's lookup has started and its suggestions will follow it:
+     * drop the previous URL's suggestions and show the spinner now.
+     */
+    markSuggestionsPending(state) {
+      state.suggested = [];
+      state.suggestedLoading = true;
+      state.suggestedStatus = 'loading';
+      state.suggestedRequestId = null;
+    },
+    /** The pending suggestions were for a URL the user has since left. */
+    cancelSuggestionsPending(state) {
+      if (state.suggestedRequestId !== null) return;
+      state.suggestedLoading = false;
+      state.suggestedStatus = 'idle';
     },
     resetGptSuggestions(state) {
       state.gptSuggestions = [];
@@ -330,18 +350,23 @@ const tagSlice = createSlice({
         state.error = (action.payload as string) || action.error.message || null;
       })
       // Suggested tags
-      .addCase(fetchSuggestedTags.pending, (state) => {
+      .addCase(fetchSuggestedTags.pending, (state, action) => {
         state.suggestedLoading = true; // Ensure this is set
         state.suggestedStatus = 'loading';
+        state.suggestedRequestId = action.meta.requestId;
         state.error = null;
       })
       .addCase(fetchSuggestedTags.fulfilled, (state, action) => {
+        if (action.meta.requestId !== state.suggestedRequestId) return;
+        state.suggestedRequestId = null;
         state.suggestedLoading = false;
         state.suggested = action.payload.suggestions;
         state.suggestedStatus = 'succeeded';
         state.error = null; // Reset error on success
       })
       .addCase(fetchSuggestedTags.rejected, (state, action) => {
+        if (action.meta.requestId !== state.suggestedRequestId) return;
+        state.suggestedRequestId = null;
         state.suggestedLoading = false;
         state.suggestedStatus = 'failed';
         state.error = (action.payload as string) || action.error.message || null;
@@ -371,6 +396,8 @@ const tagSlice = createSlice({
 
 export const {
   addSuggestedTag,
+  markSuggestionsPending,
+  cancelSuggestionsPending,
   restoreSuggestedTag,
   setTagCounts,
   recordSavedTags,
