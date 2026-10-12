@@ -49,8 +49,10 @@ export type BookmarkState = {
   existingBookmarkTags: string[] | null;
   /** The URL existingBookmarkTags describes; a save for any other URL has no baseline. */
   existingBookmarkUrl: string | null;
-  /** formData.tags when the lookup started, to spot tags typed meanwhile. */
+  /** Tags not typed by the user when the lookup started, to spot ones typed meanwhile. */
   tagsAtLookupStart: string[];
+  /** Tags a previous lookup loaded, dropped if this lookup finds no bookmark. */
+  loadedTagsAtLookupStart: string[];
   /** The URL and tags sent by the save in flight: the next baseline. */
   savingUrl: string;
   savingTags: string[];
@@ -319,6 +321,7 @@ const initialState: BookmarkState = {
   existingBookmarkTags: [],
   existingBookmarkUrl: null,
   tagsAtLookupStart: [],
+  loadedTagsAtLookupStart: [],
   savingUrl: '',
   savingTags: [],
 };
@@ -362,6 +365,7 @@ const bookmarkSlice = createSlice({
         state.tagsAtLookupStart = state.existingBookmarkTags
           ? [...state.existingBookmarkTags]
           : [...state.formData.tags];
+        state.loadedTagsAtLookupStart = [...(state.existingBookmarkTags || [])];
         state.existingBookmarkTags = null;
         // Reset errors to the full initial structure
         state.errors = { ...initialState.errors };
@@ -428,6 +432,11 @@ const bookmarkSlice = createSlice({
           state.displayOriginalTimestamp = false;
           state.existingBookmarkTags = [];
           state.existingBookmarkUrl = currentUrl;
+          // Tags loaded from the previous URL's (or account's) bookmark
+          // don't belong to this new one; keep only what the user typed.
+          state.formData.tags = state.formData.tags.filter(
+            (tag) => !state.loadedTagsAtLookupStart.includes(tag)
+          );
         }
       })
       .addCase(fetchBookmarkDetails.rejected, (state, action) => {

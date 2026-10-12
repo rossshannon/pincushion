@@ -39,6 +39,7 @@ const initialState = {
   existingBookmarkTags: [],
   existingBookmarkUrl: null,
   tagsAtLookupStart: [],
+  loadedTagsAtLookupStart: [],
   savingUrl: '',
   savingTags: [],
 };
@@ -276,6 +277,18 @@ describe('bookmark slice', () => {
         });
         await lookupStore.dispatch(fetchBookmarkDetails());
         expect(lookupStore.getState().bookmark.formData.tags).toEqual(['saved', 'typed']);
+      });
+
+      it('drops the previous bookmark’s tags, but not typed ones, when the next lookup finds none', async () => {
+        const lookupStore = createMockStore({
+          ...initialState,
+          formData: { ...initialState.formData, url: 'http://new.example', tags: ['old', 'typed'] },
+          existingBookmarkTags: ['old'],
+          existingBookmarkUrl: 'http://old.example',
+        });
+        mockedAxios.get.mockResolvedValueOnce({ data: { posts: [] } });
+        await lookupStore.dispatch(fetchBookmarkDetails());
+        expect(lookupStore.getState().bookmark.formData.tags).toEqual(['typed']);
       });
 
       it('marks the existing tags as unknown when the lookup fails', async () => {
