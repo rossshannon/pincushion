@@ -253,6 +253,31 @@ describe('bookmark slice', () => {
         expect(state.existingBookmarkTags).toEqual(['saved', 'old']);
       });
 
+      it('keeps tags typed during the first lookup when Pinboard’s href triggers a second', async () => {
+        const lookupStore = createMockStore({
+          ...initialState,
+          formData: { ...initialState.formData, url: 'http://example.com/#frag' },
+        });
+        let resolveFirst;
+        mockedAxios.get.mockReturnValueOnce(
+          new Promise((resolve) => {
+            resolveFirst = resolve;
+          })
+        );
+        const first = lookupStore.dispatch(fetchBookmarkDetails());
+        lookupStore.dispatch(setFormData({ tags: ['typed'] }));
+        resolveFirst({ data: { posts: [{ href: 'http://example.com/', tags: 'saved' }] } });
+        await first;
+        expect(lookupStore.getState().bookmark.formData.tags).toEqual(['saved', 'typed']);
+
+        // The URL changed to Pinboard's href, so the popup looks it up again.
+        mockedAxios.get.mockResolvedValueOnce({
+          data: { posts: [{ href: 'http://example.com/', tags: 'saved' }] },
+        });
+        await lookupStore.dispatch(fetchBookmarkDetails());
+        expect(lookupStore.getState().bookmark.formData.tags).toEqual(['saved', 'typed']);
+      });
+
       it('marks the existing tags as unknown when the lookup fails', async () => {
         mockedAxios.get.mockRejectedValueOnce(new Error('Network Error'));
         await store.dispatch(fetchBookmarkDetails());

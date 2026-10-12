@@ -38,12 +38,13 @@ const isTagCounts = (value: unknown): value is TagCounts =>
  */
 export const normalizeTagCounts = (value: unknown): TagCounts => {
   if (!isTagCounts(value)) return {};
-  const counts: TagCounts = {};
-  Object.entries(value as Record<string, unknown>).forEach(([tag, count]) => {
-    const numeric = Number(count);
-    counts[tag] = Number.isFinite(numeric) ? numeric : 0;
-  });
-  return counts;
+  // fromEntries defines own properties, so a tag named __proto__ survives.
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([tag, count]) => {
+      const numeric = Number(count);
+      return [tag, Number.isFinite(numeric) ? numeric : 0];
+    })
+  );
 };
 
 export const readTagCache = (user: string): TagCacheEntry | null => {
@@ -152,17 +153,18 @@ export const bumpTagCache = (user: string, delta: TagDelta): boolean => {
  * Pinboard's /tags/get would report once the bookmark no longer uses it.
  */
 export const applyTagDelta = (counts: TagCounts, delta: TagDelta): TagCounts => {
-  const next: TagCounts = { ...counts };
+  // A Map, not object assignment, so a tag named __proto__ is counted.
+  const next = new Map(Object.entries(counts));
   normalizeTagList(delta.added).forEach((tag) => {
-    next[tag] = (Number(next[tag]) || 0) + 1;
+    next.set(tag, (Number(next.get(tag)) || 0) + 1);
   });
   normalizeTagList(delta.removed).forEach((tag) => {
-    const remaining = (Number(next[tag]) || 0) - 1;
+    const remaining = (Number(next.get(tag)) || 0) - 1;
     if (remaining > 0) {
-      next[tag] = remaining;
+      next.set(tag, remaining);
     } else {
-      delete next[tag];
+      next.delete(tag);
     }
   });
-  return next;
+  return Object.fromEntries(next);
 };

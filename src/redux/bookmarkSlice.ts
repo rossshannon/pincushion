@@ -355,8 +355,14 @@ const bookmarkSlice = createSlice({
         state.existingBookmarkTime = null;
         state.hasExistingBookmark = false;
         state.displayOriginalTimestamp = false;
+        // Tags already on the form that the user typed, as opposed to ones
+        // a previous lookup loaded. When Pinboard's href differs (no
+        // fragment, say) a second lookup follows the first; measuring
+        // against the loaded tags keeps what was typed during the first.
+        state.tagsAtLookupStart = state.existingBookmarkTags
+          ? [...state.existingBookmarkTags]
+          : [...state.formData.tags];
         state.existingBookmarkTags = null;
-        state.tagsAtLookupStart = [...state.formData.tags];
         // Reset errors to the full initial structure
         state.errors = { ...initialState.errors };
         state.lastFetchRequestId = action.meta.requestId;

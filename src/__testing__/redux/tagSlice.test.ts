@@ -264,6 +264,19 @@ describe('tag slice', () => {
         expect(localStorageMock.getItem('tags')).toBeNull();
       });
 
+      it('keeps a save that lands after the download but before it is stored', async () => {
+        mockedAxios.get.mockResolvedValueOnce({ data: { tagA: '5' } });
+        const racingStore = createMockStore({ ...initialState });
+        const pending = racingStore.dispatch(fetchTags());
+        // Let the response resolve inside the thunk, then save in the gap
+        // before fulfilled is reduced.
+        await Promise.resolve();
+        await Promise.resolve();
+        racingStore.dispatch(recordSavedTags({ added: ['late'], removed: [] }));
+        await pending;
+        expect(racingStore.getState().tags.tagCounts).toEqual({ tagA: 5, late: 1 });
+      });
+
       it('should handle fulfilled state with empty data', async () => {
         mockedAxios.get.mockResolvedValueOnce({ data: null }); // API returns null
         await store.dispatch(fetchTags());

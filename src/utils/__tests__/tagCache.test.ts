@@ -6,6 +6,7 @@ import {
   applyTagDelta,
   diffTagLists,
   isEmptyDelta,
+  normalizeTagCounts,
 } from '../tagCache';
 
 describe('tagCache', () => {
@@ -46,6 +47,14 @@ describe('tagCache', () => {
   it('reads string counts (as Pinboard sends them) as numbers', () => {
     writeTagCache('ross', { react: '12' } as unknown as Record<string, number>);
     expect(readTagCache('ross')?.counts).toEqual({ react: 12 });
+  });
+
+  it('keeps a tag named __proto__', () => {
+    const raw = JSON.parse('{"__proto__": "2"}');
+    const counts = applyTagDelta(normalizeTagCounts(raw), { added: ['__proto__'], removed: [] });
+    expect(Object.keys(counts)).toEqual(['__proto__']);
+    expect(counts.__proto__).toBe(3);
+    expect(Object.getPrototypeOf(counts)).toBe(Object.prototype);
   });
 
   it('adds to string counts instead of concatenating', () => {

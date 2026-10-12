@@ -80,13 +80,15 @@ export const fetchTags = createAsyncThunk<
       // counts; fold their deltas into the snapshot so it doesn't drop them.
       // Pinboard may already have counted them, though, so if there were
       // any, store the result as stale and let the next popup refetch.
+      // The reducer replays them again for the in-memory copy, so a save
+      // that lands between here and `fulfilled` isn't lost either (its
+      // bumpTagCache patches the cache written here).
+      const snapshot = normalizeTagCounts(response.data);
       const savedMeanwhile = getState().tags.savedDuringTagFetch || [];
-      const counts = savedMeanwhile.reduce(
-        applyTagDelta,
-        normalizeTagCounts(response.data)
-      );
-      writeTagCache(user, counts, { stale: savedMeanwhile.length > 0 });
-      return counts;
+      writeTagCache(user, savedMeanwhile.reduce(applyTagDelta, snapshot), {
+        stale: savedMeanwhile.length > 0,
+      });
+      return snapshot;
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Unable to fetch tags';
@@ -447,7 +449,10 @@ const tagSlice = createSlice({
         state.savedDuringTagFetch = state.savedDuringTagFetch ?? [];
       })
       .addCase(fetchTags.fulfilled, (state, action) => {
-        state.tagCounts = action.payload || {};
+        state.tagCounts = (state.savedDuringTagFetch || []).reduce(
+          applyTagDelta,
+          action.payload || {}
+        );
         state.error = null;
         state.tagFetchesInFlight = Math.max((state.tagFetchesInFlight || 0) - 1, 0);
         if (state.tagFetchesInFlight === 0) state.savedDuringTagFetch = null;

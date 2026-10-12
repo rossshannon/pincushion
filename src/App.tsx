@@ -238,8 +238,12 @@ function App() {
   useEffect(() => {
     if (!user || !token) return;
     if (!debouncedUrl) return;
-    if (lastLookupUrlRef.current === debouncedUrl) return;
-    lastLookupUrlRef.current = debouncedUrl;
+    // Keyed by account too: after a switch in Settings the loaded bookmark
+    // (and its tags, the save's baseline) belong to the old account, so look
+    // the page up again as the new one.
+    const lookupKey = `${user}\n${debouncedUrl}`;
+    if (lastLookupUrlRef.current === lookupKey) return;
+    lastLookupUrlRef.current = lookupKey;
     setLookupStartedFor(debouncedUrl);
     dispatch(fetchBookmarkDetails(debouncedUrl));
     dispatch(fetchSuggestedTags());
