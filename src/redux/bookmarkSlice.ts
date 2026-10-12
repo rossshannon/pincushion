@@ -374,6 +374,7 @@ const bookmarkSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(fetchBookmarkDetails.pending, (state, action) => {
+        const lookupInFlight = state.initialLoading;
         state.initialLoading = true;
         state.existingBookmarkTime = null;
         state.hasExistingBookmark = false;
@@ -384,7 +385,7 @@ const bookmarkSlice = createSlice({
         // against the loaded tags keeps what was typed during the first.
         // A lookup still in flight already took both readings; taking them
         // again would see its cleared baseline and forget what it loaded.
-        if (!state.initialLoading) {
+        if (!lookupInFlight) {
           state.tagsAtLookupStart = state.existingBookmarkTags
             ? [...state.existingBookmarkTags]
             : [...state.formData.tags];

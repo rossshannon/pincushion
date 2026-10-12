@@ -282,6 +282,36 @@ describe('bookmark slice', () => {
         expect(lookupStore.getState().bookmark.formData.tags).toEqual(['saved', 'typed']);
       });
 
+      it('replaces the previous bookmark’s tags with the next one’s, keeping typed ones', async () => {
+        const lookupStore = createMockStore({
+          ...initialState,
+          formData: { ...initialState.formData, url: 'http://new.example', tags: ['old', 'typed'] },
+          existingBookmarkTags: ['old'],
+          existingBookmarkUrl: 'http://old.example',
+        });
+        mockedAxios.get.mockResolvedValueOnce({
+          data: { posts: [{ href: 'http://new.example', tags: 'new' }] },
+        });
+        await lookupStore.dispatch(fetchBookmarkDetails());
+        expect(lookupStore.getState().bookmark.formData.tags).toEqual(['new', 'typed']);
+      });
+
+      it('keeps tags typed before overlapping lookups when the later one finds a bookmark', async () => {
+        const lookupStore = createMockStore({
+          ...initialState,
+          formData: { ...initialState.formData, url: 'http://new.example', tags: ['old', 'typed'] },
+          existingBookmarkTags: ['old'],
+          existingBookmarkUrl: 'http://old.example',
+        });
+        mockedAxios.get.mockReturnValueOnce(new Promise(() => {}));
+        lookupStore.dispatch(fetchBookmarkDetails());
+        mockedAxios.get.mockResolvedValueOnce({
+          data: { posts: [{ href: 'http://new.example', tags: 'new' }] },
+        });
+        await lookupStore.dispatch(fetchBookmarkDetails());
+        expect(lookupStore.getState().bookmark.formData.tags).toEqual(['new', 'typed']);
+      });
+
       it('drops the previous bookmark’s tags when overlapping lookups end in a miss', async () => {
         const lookupStore = createMockStore({
           ...initialState,
