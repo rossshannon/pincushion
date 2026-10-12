@@ -7,7 +7,7 @@ import axios from 'axios';
 vi.mock('axios');
 import App from '../App';
 import authReducer from '../redux/authSlice';
-import bookmarkReducer from '../redux/bookmarkSlice';
+import bookmarkReducer, { setFormData } from '../redux/bookmarkSlice';
 import tagReducer from '../redux/tagSlice';
 import twitterCardReducer from '../redux/twitterCardSlice';
 
@@ -362,5 +362,95 @@ describe('App integration', () => {
     expect(card?.siteName).toBe('Testing Site');
     expect(card?.faviconUrl).toBe('https://testing.com/icon.png');
     expect(card?.url).toBe('https://testing.com/canonical');
+  });
+
+  it('keeps the suggestions spinner for a new URL while a stale lookup settles', async () => {
+    vi.useFakeTimers();
+    try {
+      seedCredentials();
+      const calls = [];
+      const lookups = {};
+      mockedAxios.get.mockImplementation((url) => {
+        if (url.includes('posts/get')) {
+          const target = decodeURIComponent(url.split('url=')[1] ?? '');
+          calls.push(`lookup ${target}`);
+          return new Promise((resolve) => {
+            lookups[target] = resolve;
+          });
+        }
+        if (url.includes('/preview?')) return Promise.resolve({ data: { preview: null } });
+        if (url.includes('/v1/posts/suggest')) {
+          calls.push('suggest');
+          return new Promise(() => {});
+        }
+        if (url.includes('tags/get')) return Promise.resolve({ data: {} });
+        return Promise.reject(new Error(`Unhandled url ${url}`));
+      });
+      window.history.pushState({}, '', '?url=https%3A%2F%2Fa.example.com%2F&title=T');
+      const store = await renderAppWithStore();
+
+      await act(async () => {
+        store.dispatch(setFormData({ url: 'https://b.example.com/' }));
+      });
+      await act(async () => {
+        vi.advanceTimersByTime(600);
+      });
+      expect(calls.filter((c) => c.startsWith('lookup'))).toHaveLength(2);
+
+      // A's lookup comes back after the user has moved on to B.
+      await act(async () => {
+        lookups['https://a.example.com/']({ data: { posts: [] } });
+      });
+      expect(store.getState().tags.suggestedLoading).toBe(true);
+      expect(calls).not.toContain('suggest');
+
+      await act(async () => {
+        lookups['https://b.example.com/']({ data: { posts: [] } });
+      });
+      expect(calls.filter((c) => c === 'suggest')).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('fetches the preview again when the URL is cleared and the same one re-entered', async () => {
+    vi.useFakeTimers();
+    try {
+      seedCredentials();
+      let previews = 0;
+      mockedAxios.get.mockImplementation((url) => {
+        if (url.includes('posts/get')) return Promise.resolve({ data: { posts: [] } });
+        if (url.includes('/preview?')) {
+          previews += 1;
+          return Promise.resolve({ data: { preview: { url: 'https://a.example.com/', title: 'Card' } } });
+        }
+        if (url.includes('/v1/posts/suggest')) return Promise.resolve({ data: [] });
+        if (url.includes('tags/get')) return Promise.resolve({ data: {} });
+        return Promise.reject(new Error(`Unhandled url ${url}`));
+      });
+      window.history.pushState({}, '', '?url=https%3A%2F%2Fa.example.com%2F&title=T');
+      const store = await renderAppWithStore();
+      await act(async () => {
+        vi.advanceTimersByTime(10);
+      });
+      expect(store.getState().twitterCard.card?.title).toBe('Card');
+
+      await act(async () => {
+        store.dispatch(setFormData({ url: '' }));
+      });
+      expect(store.getState().twitterCard.card).toBeNull();
+      expect(store.getState().tags.suggestedLoading).toBe(false);
+
+      await act(async () => {
+        store.dispatch(setFormData({ url: 'https://a.example.com/' }));
+      });
+      await act(async () => {
+        vi.advanceTimersByTime(600);
+      });
+      expect(previews).toBe(2);
+      expect(store.getState().twitterCard.card?.title).toBe('Card');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

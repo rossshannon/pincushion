@@ -103,3 +103,43 @@ describe('mergePreviewCards', () => {
     expect(mergePreviewCards(null, null)).toBeNull();
   });
 });
+
+describe('parsePreviewPayload', () => {
+  it('holds the bridge to the same link and colour rules as the page', () => {
+    const card = parsePreviewPayload(
+      {
+        url: 'javascript:alert(1)',
+        imageUrl: 'javascript:alert(1)',
+        faviconUrl: '/icon.png',
+        siteHandleUrl: 'data:text/html,x',
+        themeColor: 'red; background: url(x)',
+      },
+      PAGE
+    );
+    expect(card?.url).toBe(PAGE);
+    expect(card?.imageUrl).toBeNull();
+    expect(card?.faviconUrl).toBe(new URL('/icon.png', PAGE).toString());
+    expect(card?.siteHandleUrl).toBeNull();
+    expect(card?.themeColor).toBeNull();
+  });
+});
+
+describe('page metadata edge cases', () => {
+  it('only links a twitter:site value that is a real handle', () => {
+    const good = readPageMetadata(new URLSearchParams('meta_description=x&meta_site_handle=%40foo_1'), PAGE);
+    expect(good?.siteHandleUrl).toBe('https://twitter.com/foo_1');
+    const bad = readPageMetadata(
+      new URLSearchParams('meta_description=x&meta_site_handle=https%3A%2F%2Ftwitter.com%2Ffoo'),
+      PAGE
+    );
+    expect(bad?.siteHandleUrl).toBeNull();
+  });
+
+  it("prefers the bridge's description when the bookmarklet cut the page's short", () => {
+    const page = readPageMetadata(new URLSearchParams('meta_description=Long%20text%20cut%E2%80%A6'), PAGE);
+    const fetched = parsePreviewPayload({ description: 'Long text cut here in full.' }, PAGE);
+    expect(mergePreviewCards(page, fetched)?.description).toBe('Long text cut here in full.');
+    const whole = readPageMetadata(new URLSearchParams('meta_description=Whole'), PAGE);
+    expect(mergePreviewCards(whole, fetched)?.description).toBe('Whole');
+  });
+});

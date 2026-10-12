@@ -38,6 +38,12 @@ const absoluteHttpUrl = (value: string | null, base: string): string | null => {
 const hexColour = (value: string | null): string | null =>
   value && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value) ? value : null;
 
+// twitter:site is meant to be "@handle", but some sites put a URL or prose there.
+const twitterHandle = (value: string | null): string | null => {
+  const handle = value ? value.replace(/^@/, '').trim() : '';
+  return /^[A-Za-z0-9_]{1,15}$/.test(handle) ? handle : null;
+};
+
 const domainOf = (pageUrl: string): string | null => {
   try {
     return new URL(pageUrl).hostname.replace(/^www\./i, '') || null;
@@ -62,7 +68,7 @@ export const readPageMetadata = (
   if (!imageUrl && !description) return null;
 
   const siteHandle = read(params, PAGE_METADATA_PARAMS.siteHandle);
-  const handle = siteHandle ? siteHandle.replace(/^@/, '').trim() : '';
+  const handle = twitterHandle(siteHandle);
 
   return {
     url: pageUrl,
@@ -108,19 +114,21 @@ export const parsePreviewPayload = (
 ): TwitterCardData | null => {
   if (!previewRaw || typeof previewRaw !== 'object') return null;
   const raw = previewRaw as Record<string, unknown>;
+  // Held to the same rules as the page's own metadata: http(s) links only.
+  const url = absoluteHttpUrl(stringOrNull(raw.url), fallbackUrl) ?? fallbackUrl;
   return {
-    url: stringOrNull(raw.url) ?? fallbackUrl,
+    url,
     title: stringOrNull(raw.title),
     description: stringOrNull(raw.description),
-    imageUrl: stringOrNull(raw.imageUrl),
+    imageUrl: absoluteHttpUrl(stringOrNull(raw.imageUrl), url),
     siteName: stringOrNull(raw.siteName),
     siteHandle: stringOrNull(raw.siteHandle),
-    siteHandleUrl: stringOrNull(raw.siteHandleUrl),
+    siteHandleUrl: absoluteHttpUrl(stringOrNull(raw.siteHandleUrl), url),
     siteDomain: stringOrNull(raw.siteDomain),
     cardType: stringOrNull(raw.cardType),
     fetchedAt: stringOrNull(raw.fetchedAt),
-    themeColor: stringOrNull(raw.themeColor),
-    faviconUrl: stringOrNull(raw.faviconUrl),
+    themeColor: hexColour(stringOrNull(raw.themeColor)),
+    faviconUrl: absoluteHttpUrl(stringOrNull(raw.faviconUrl), url),
   };
 };
 
@@ -140,7 +148,14 @@ export const mergePreviewCards = (
   return {
     url: fetched.url || page.url,
     title: pick('title'),
-    description: pick('description'),
+    // The bookmarklet cuts long descriptions and marks the cut with "…";
+    // the bridge's full text is better then.
+    description:
+      page.description?.endsWith('…') &&
+      fetched.description &&
+      fetched.description.length >= page.description.length
+        ? fetched.description
+        : pick('description'),
     imageUrl: pick('imageUrl'),
     siteName: pick('siteName'),
     siteHandle: pick('siteHandle'),

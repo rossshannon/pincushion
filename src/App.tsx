@@ -77,6 +77,16 @@ const readInitialPageCard = (pageUrl: string): TwitterCardData | null =>
     pageUrl.trim()
   );
 
+// fetchBookmarkDetails rejects with this message when Pinboard answers 414.
+const isUrlTooLongRejection = (result: unknown): boolean => {
+  const action = result as { meta?: { requestStatus?: string }; payload?: unknown } | undefined;
+  return (
+    action?.meta?.requestStatus === 'rejected' &&
+    typeof action.payload === 'string' &&
+    action.payload.includes('(HTTP 414)')
+  );
+};
+
 const isLikelyCompleteUrl = (value: string): boolean => {
   try {
     const parsed = new URL(value);
@@ -114,8 +124,9 @@ function App() {
   const [credentialsMissing, setCredentialsMissing] = useState(false);
   const [debouncedUrl, setDebouncedUrl] = useState('');
   // Mirrors debouncedUrl for callbacks that outlive the render that made them.
-  const debouncedUrlRef = useRef('');
-  debouncedUrlRef.current = debouncedUrl;
+  // Bumped for every lookup (and when the URL is cleared), so a lookup that
+  // settles after a newer one started knows it has been superseded.
+  const lookupGenerationRef = useRef(0);
   // The URL that has had fetchBookmarkDetails dispatched for it. Kept in
   // state (not a ref) so the GPT effect re-evaluates once the lookup starts.
   const [lookupStartedFor, setLookupStartedFor] = useState<string | null>(null);
@@ -216,6 +227,15 @@ function App() {
   }, [dispatch, tagRefreshPlan, user, token, initialLoading, suggestedStatus]);
 
   useEffect(() => {
+    // The URL field was emptied or broken: drop the last lookup so re-entering
+    // the same URL fetches its preview and suggestions again.
+    const forgetLookup = () => {
+      if (lastLookupUrlRef.current === null) return;
+      lastLookupUrlRef.current = null;
+      lookupGenerationRef.current += 1;
+      dispatch(markSuggestionsPending());
+      dispatch(cancelSuggestionsPending());
+    };
     if (urlDebounceTimerRef.current !== null) {
       window.clearTimeout(urlDebounceTimerRef.current);
       urlDebounceTimerRef.current = null;
@@ -224,11 +244,13 @@ function App() {
     if (!trimmedUrl) {
       setDebouncedUrl('');
       dispatch(clearTwitterCard());
+      forgetLookup();
       return;
     }
     if (!isLikelyCompleteUrl(trimmedUrl)) {
       setDebouncedUrl('');
       dispatch(clearTwitterCard());
+      forgetLookup();
       return;
     }
     if (
@@ -272,11 +294,12 @@ function App() {
     );
     // Clear the previous URL's suggestions and show the spinner during the lookup.
     dispatch(markSuggestionsPending());
-    void Promise.resolve(lookup).finally(() => {
-      if (debouncedUrlRef.current !== debouncedUrl) {
-        // The user moved on while the lookup ran. Let the same URL be looked
-        // up again if they come back to it.
-        if (lastLookupUrlRef.current === debouncedUrl) lastLookupUrlRef.current = null;
+    const generation = ++lookupGenerationRef.current;
+    void Promise.resolve(lookup).then((result) => {
+      // A newer lookup (or a cleared URL) owns the suggestions now.
+      if (lookupGenerationRef.current !== generation) return;
+      if (isUrlTooLongRejection(result)) {
+        // Pinboard refused this URL as too long; suggest would fail the same way.
         dispatch(cancelSuggestionsPending());
         return;
       }

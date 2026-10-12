@@ -155,7 +155,8 @@ export const fetchPagePreview = createAsyncThunk<
       setTwitterCardPreview({
         card: null,
         error: message,
-        url: null,
+        // Keep the URL so a sibling request for it can still land.
+        url: trimmedUrl,
         previewStatus: 'error',
         previewError: message,
       })
