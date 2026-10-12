@@ -226,7 +226,9 @@ export const submitBookmark = createAsyncThunk<
         formData.tags || []
       );
       if (!isEmptyDelta(delta)) {
-        dispatch(recordSavedTags(delta));
+        // In-memory counts are whoever is signed in now; skip them if the
+        // account changed in Settings while this save was in flight.
+        if (getState().auth.user === user) dispatch(recordSavedTags(delta));
         bumpTagCache(user, delta);
       }
       return response.data;
