@@ -31,6 +31,7 @@ const supportsFieldSizing =
   typeof CSS.supports === 'function' &&
   CSS.supports('field-sizing', 'content');
 export const __TEST_MIN_SPINNER_DURATION = MIN_SPINNER_DURATION_MS;
+const HASH_EXIT_FALLBACK_MS = 600;
 
 type ErrorField = keyof Pick<BookmarkFormData, 'url' | 'title' | 'description'>;
 
@@ -74,16 +75,14 @@ function BookmarkForm() {
   // Keep the # button mounted after the fragment goes so it can animate out
   // while the URL input straightens; onAnimationEnd then unmounts it.
   const [hashButtonShown, setHashButtonShown] = useState(hasHash);
+  if (hasHash && !hashButtonShown) setHashButtonShown(true);
   const hashButtonLeaving = hashButtonShown && !hasHash;
 
-  useEffect(() => {
-    if (hasHash) setHashButtonShown(true);
-  }, [hasHash]);
-
-  // Fallback in case animationend never fires (e.g. the tab is hidden).
+  // Fallback in case animationend never fires (hidden tab, reduced motion).
+  // Keep it longer than --hash-exit in popup.css.
   useEffect(() => {
     if (!hashButtonLeaving) return undefined;
-    const timer = setTimeout(() => setHashButtonShown(false), 600);
+    const timer = setTimeout(() => setHashButtonShown(false), HASH_EXIT_FALLBACK_MS);
     return () => clearTimeout(timer);
   }, [hashButtonLeaving]);
 
@@ -367,16 +366,20 @@ function BookmarkForm() {
           ref={urlRef}
           tabIndex={2}
         />
-        {(hasHash || hashButtonShown) && (
+        {hashButtonShown && (
           <button
             type="button"
             className={hashButtonLeaving ? 'remove-hash is-leaving' : 'remove-hash'}
+            // Don't take focus: the button is about to leave the page.
+            onMouseDown={(event) => event.preventDefault()}
             onClick={() => {
               const cleanUrl = formData.url.replace(/#.*$/, '');
               dispatch(setFormData({ url: cleanUrl }));
             }}
-            onAnimationEnd={() => {
-              if (hashButtonLeaving) setHashButtonShown(false);
+            onAnimationEnd={(event) => {
+              if (hashButtonLeaving && event.animationName === 'hash-leave') {
+                setHashButtonShown(false);
+              }
             }}
             title="Remove hash from URL"
             tabIndex={-1}

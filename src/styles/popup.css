@@ -526,8 +526,19 @@ input#url.hash-detected {
   border-inline-end-color: transparent;
 }
 
+/* The diagonal follows the border colour of each state. */
+@media (hover: hover) and (pointer: fine) {
+  input#url.hash-detected:hover {
+    --slant-colour: var(--pincushion-border-hover);
+  }
+}
+
 input#url.hash-detected:focus {
   --slant-colour: var(--pincushion-border-focus);
+}
+
+input#url.hash-detected[aria-invalid="true"] {
+  --slant-colour: var(--pincushion-error);
 }
 
 /* The outline can't follow the clip, so carry it down the slant. */
@@ -547,13 +558,9 @@ input#url.hash-detected:focus-visible {
       border-inline-end-color calc(var(--hash-exit) / 2) linear calc(var(--hash-exit) / 4);
   }
 
+  /* Slanting in needs no staging: drop the delays. */
   input#url.hash-detected {
-    transition:
-      border-color 0.1s var(--ease-out),
-      background-color 0.1s var(--ease-out),
-      --slant var(--hash-exit) var(--ease-out),
-      --slant-slack 0s,
-      border-inline-end-color 0s;
+    transition-delay: 0s;
   }
 }
 
@@ -595,11 +602,13 @@ input#url.hash-detected:focus-visible {
 
 /*
  * Once pressed, the button stays mounted with .is-leaving until its exit
- * animation ends, so it can fade out while the input straightens.
+ * animation ends, so it can fade out while the input straightens. Without
+ * motion it goes at once and BookmarkForm's fallback timer unmounts it.
  */
-.remove-hash.is-leaving {
-  pointer-events: none;
-  animation: hash-fade-out var(--hash-exit) var(--ease-out) forwards;
+@media (prefers-reduced-motion: reduce) {
+  .remove-hash.is-leaving {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -611,13 +620,8 @@ input#url.hash-detected:focus-visible {
   /* Collapse the button's column so the input glides out to full width. */
   .remove-hash.is-leaving {
     overflow: clip;
+    pointer-events: none;
     animation: hash-leave var(--hash-exit) var(--ease-out) forwards;
-  }
-}
-
-@keyframes hash-fade-out {
-  to {
-    opacity: 0;
   }
 }
 
@@ -625,7 +629,7 @@ input#url.hash-detected:focus-visible {
   from {
     opacity: 1;
     transform: skew(-15deg);
-    max-inline-size: 2em;
+    max-inline-size: 1.6em;
   }
 
   to {
