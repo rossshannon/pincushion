@@ -67,12 +67,15 @@ export type TrackingStrip = {
   /** What checkTrackedBookmark found, so "Use that bookmark" needn't ask again. */
   trackedPost?: PinboardPost;
   /**
-   * The form's other fields as the bookmarklet filled them in. Toggling away
-   * from a URL whose saved bookmark is loaded goes back to these, so that
-   * bookmark's title, notes and tags don't become a second bookmark under
-   * the other URL.
+   * The user's own draft of the form's other fields: the bookmarklet's
+   * values at first, then whatever the form held the last time the user
+   * toggled away while no saved bookmark was loaded. Toggling away from a
+   * loaded bookmark goes back to this, so that bookmark's title, notes and
+   * tags don't become a second bookmark under the other URL.
    */
-  pageFields: Omit<BookmarkFormData, 'url'>;
+  draftFields: Omit<BookmarkFormData, 'url'>;
+  /** Set once the user saves; the tracked-URL offer no longer applies. */
+  savedAfterStrip: boolean;
 };
 
 type BookmarkThunkState = {
@@ -408,13 +411,14 @@ const bookmarkSlice = createSlice({
       state.formData.url = stripped;
       state.errors.url = null;
       state.trackingStrip = {
-        pageFields: {
+        draftFields: {
           title,
           description,
           tags: [...tags],
           private: state.formData.private,
           toread,
         },
+        savedAfterStrip: false,
         original,
         stripped,
         removed,
@@ -440,13 +444,23 @@ const bookmarkSlice = createSlice({
       const strip = state.trackingStrip;
       if (!strip) return;
       strip.restored = !strip.restored;
-      if (state.hasExistingBookmark) {
+      if (!state.hasExistingBookmark) {
+        // No saved bookmark loaded, so the form is the user's own draft.
+        const { title, description, tags, toread } = state.formData;
+        strip.draftFields = {
+          title,
+          description,
+          tags: [...tags],
+          private: state.formData.private,
+          toread,
+        };
+      } else {
         // The form shows the bookmark saved under the URL we're leaving.
-        // Start the other URL from the page's own details instead.
+        // Start the other URL from the user's draft instead.
         state.formData = {
           ...state.formData,
-          ...strip.pageFields,
-          tags: [...strip.pageFields.tags],
+          ...strip.draftFields,
+          tags: [...strip.draftFields.tags],
         };
         state.hasExistingBookmark = false;
         state.existingBookmarkTime = null;
@@ -552,6 +566,7 @@ const bookmarkSlice = createSlice({
         strip.checkingOriginal = false;
         if (strip.checkedOriginal) return; // A lookup of it answered first.
         strip.checkedOriginal = true;
+        if (strip.savedAfterStrip) return;
         strip.savedWithTracking = action.payload !== null;
         if (action.payload) strip.trackedPost = action.payload;
       })
@@ -584,6 +599,16 @@ const bookmarkSlice = createSlice({
           return;
         }
 
+        const strip = state.trackingStrip;
+        if (
+          strip &&
+          normalizedUrl === strip.stripped.trim() &&
+          action.payload?.startsWith(ERROR_MESSAGES.URL_TOO_LONG)
+        ) {
+          // The tracked URL is longer still: checking it would only 414 too.
+          strip.checkedOriginal = true;
+        }
+
         // Set generic error, ensure full errors object exists
         state.errors = {
           ...initialState.errors,
@@ -594,19 +619,19 @@ const bookmarkSlice = createSlice({
       })
       .addCase(submitBookmark.pending, (state) => {
         state.status = 'saving';
-        if (state.trackingStrip) {
-          // Once the user saves, don't offer the tracked URL's bookmark.
-          state.trackingStrip.checkedOriginal = true;
-          if (!state.trackingStrip.restored) {
-            state.trackingStrip.savedWithTracking = false;
-          }
-        }
         // Reset errors to the full initial structure
         state.errors = { ...initialState.errors };
       })
       .addCase(submitBookmark.fulfilled, (state, action) => {
         const alreadyHadBookmark = state.displayOriginalTimestamp;
         state.status = 'success';
+        const strip = state.trackingStrip;
+        if (strip) {
+          // Saved: the tracked URL's bookmark is no longer worth offering.
+          strip.savedAfterStrip = true;
+          delete strip.trackedPost;
+          if (!strip.restored) strip.savedWithTracking = false;
+        }
         state.data = action.payload;
         state.hasExistingBookmark = true;
         if (!state.existingBookmarkTime) {

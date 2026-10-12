@@ -99,7 +99,7 @@ function App() {
     initialLoading,
     hasExistingBookmark,
     trackingStrip,
-    errors: bookmarkErrors,
+    status: bookmarkStatus,
   } = useSelector((state: RootState) => state.bookmark);
   const { user, token, openAiToken } = useSelector(
     (state: RootState) => state.auth
@@ -200,8 +200,9 @@ function App() {
     lookupStartedFor === trackingStrip.stripped.trim() &&
     !initialLoading &&
     !hasExistingBookmark &&
-    // A failed lookup (a 414, a timeout) would only fail again.
-    !bookmarkErrors?.generic;
+    // Never alongside a save, nor once the user has saved.
+    bookmarkStatus !== 'saving' &&
+    !trackingStrip.savedAfterStrip;
   const trackedCheckInFlight = !!trackingStrip?.checkingOriginal;
 
   // Background tag refresh. A stale cache is refreshed only once the

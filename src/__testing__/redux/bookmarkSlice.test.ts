@@ -539,13 +539,14 @@ describe('tracking parameter stripping', () => {
       checkedOriginal: false,
       checkingOriginal: false,
       savedWithTracking: false,
-      pageFields: {
+      draftFields: {
         title: '',
         description: '',
         tags: [],
         private: false,
         toread: false,
       },
+      savedAfterStrip: false,
     });
   });
 
@@ -795,26 +796,90 @@ describe('tracking parameter stripping', () => {
       );
       const store = storeWithStrip({ title: 'A title' });
       const check = store.dispatch(checkTrackedBookmark());
-      let resolveSave;
-      mockedAxios.get.mockReturnValueOnce(
-        new Promise((resolve) => {
-          resolveSave = resolve;
-        })
-      );
-      const save = store.dispatch(submitBookmark());
-      expect(store.getState().bookmark.status).toBe('saving');
-      // The check answers mid-save.
+      mockedAxios.get.mockResolvedValueOnce({ data: { result_code: 'done' } });
+      await store.dispatch(submitBookmark());
+      store.dispatch(resetStatus());
+      // The check answers late, after the save and resetStatus.
       resolveCheck({ data: { posts: [{ href: tracked }] } });
       await check;
+      const strip = store.getState().bookmark.trackingStrip;
+      expect(strip?.savedWithTracking).toBe(false);
+      expect(strip?.trackedPost).toBeUndefined();
+    });
+
+    it('forgets the cached tracked bookmark once the user saves', async () => {
+      mockedAxios.get
+        .mockResolvedValueOnce({ data: { posts: [{ href: tracked }] } })
+        .mockResolvedValueOnce({ data: { result_code: 'done' } });
+      const store = storeWithStrip({ title: 'A title' });
+      await store.dispatch(checkTrackedBookmark());
+      expect(store.getState().bookmark.trackingStrip?.trackedPost).toBeDefined();
+      await store.dispatch(submitBookmark());
+      const strip = store.getState().bookmark.trackingStrip;
+      expect(strip?.trackedPost).toBeUndefined();
+      expect(strip?.savedWithTracking).toBe(false);
+      expect(strip?.savedAfterStrip).toBe(true);
+    });
+
+    it('still runs the check after a failed save', async () => {
+      mockedAxios.get.mockRejectedValueOnce(new Error('Network Error'));
+      const store = storeWithStrip({ title: 'A title' });
+      await store.dispatch(submitBookmark());
+      expect(store.getState().bookmark.status).toBe('error');
+      expect(store.getState().bookmark.trackingStrip).toMatchObject({
+        checkedOriginal: false,
+        savedAfterStrip: false,
+      });
+      mockedAxios.get.mockResolvedValueOnce({
+        data: { posts: [{ href: tracked }] },
+      });
+      await store.dispatch(checkTrackedBookmark());
       expect(store.getState().bookmark.trackingStrip?.savedWithTracking).toBe(
+        true
+      );
+    });
+
+    it('skips the check after a 414 on the clean URL, but not after a timeout', async () => {
+      const tooLong = Object.assign(new Error('Request failed'), {
+        response: { status: 414 },
+      });
+      mockedAxios.get.mockRejectedValueOnce(tooLong);
+      const store = storeWithStrip();
+      await store.dispatch(fetchBookmarkDetails(clean));
+      expect(store.getState().bookmark.trackingStrip?.checkedOriginal).toBe(
+        true
+      );
+
+      const timeout = Object.assign(new Error('timeout of 20000ms exceeded'), {
+        code: 'ECONNABORTED',
+      });
+      mockedAxios.get.mockRejectedValueOnce(timeout);
+      const other = storeWithStrip();
+      await other.dispatch(fetchBookmarkDetails(clean));
+      expect(other.getState().bookmark.errors.generic).toBeTruthy();
+      expect(other.getState().bookmark.trackingStrip?.checkedOriginal).toBe(
         false
       );
-      resolveSave({ data: { result_code: 'done' } });
-      await save;
-      store.dispatch(resetStatus());
-      expect(store.getState().bookmark.trackingStrip?.savedWithTracking).toBe(
-        false
-      );
+    });
+
+    it("keeps the user's edits to the clean form across Use that bookmark and Remove", async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          posts: [{ href: tracked, description: 'Old title', tags: 'old' }],
+        },
+      });
+      const store = storeWithStrip({ title: 'Page title' });
+      // The user edits the clean form before deciding.
+      store.dispatch(setFormData({ title: 'My title', tags: ['mine'] }));
+      store.dispatch(toggleTrackingStrip()); // Use that bookmark
+      await store.dispatch(fetchBookmarkDetails(tracked));
+      expect(store.getState().bookmark.formData.title).toBe('Old title');
+      store.dispatch(toggleTrackingStrip()); // Remove
+      expect(store.getState().bookmark.formData).toMatchObject({
+        url: clean,
+        title: 'My title',
+        tags: ['mine'],
+      });
     });
 
     it('keeps edits when Remove follows an Undo that found no bookmark', async () => {
