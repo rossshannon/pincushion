@@ -151,9 +151,9 @@ function App() {
   useEffect(() => {
     if (!user || !token) return;
     const cached = readTagCache(user);
-    if (cached) {
-      dispatch(setTagCounts(cached.counts));
-    }
+    // On a miss, clear whatever is in memory: after an account switch in
+    // Settings it is the previous account's tags.
+    dispatch(setTagCounts(cached ? cached.counts : {}));
 
     try {
       const recentTags = getRecentTags();

@@ -29,6 +29,23 @@ const getStorage = (): Storage | null => {
 const isTagCounts = (value: unknown): value is TagCounts =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
+/**
+ * Pinboard's /v1/tags/get JSON gives each count as a string ("12"), and the
+ * bridge passes it through untouched. Coerce to numbers once, on the way in,
+ * so incrementing a count adds rather than concatenates ("12" + 1 = "121").
+ * Anything that isn't a tag-to-count object (an empty account can come back
+ * as []) becomes {}.
+ */
+export const normalizeTagCounts = (value: unknown): TagCounts => {
+  if (!isTagCounts(value)) return {};
+  const counts: TagCounts = {};
+  Object.entries(value as Record<string, unknown>).forEach(([tag, count]) => {
+    const numeric = Number(count);
+    counts[tag] = Number.isFinite(numeric) ? numeric : 0;
+  });
+  return counts;
+};
+
 export const readTagCache = (user: string): TagCacheEntry | null => {
   const storage = getStorage();
   if (!storage) return null;
@@ -36,18 +53,20 @@ export const readTagCache = (user: string): TagCacheEntry | null => {
     const raw = storage.getItem(TAGS_KEY);
     if (!raw) return null;
     const cachedUser = storage.getItem(USER_KEY);
-    // Entries written before the cache was keyed by user have no owner
-    // recorded; treat them as belonging to the current user rather than
-    // throwing away a perfectly good cache on upgrade.
     if (cachedUser && cachedUser !== user) return null;
     const parsed: unknown = JSON.parse(raw);
     if (!isTagCounts(parsed)) return null;
     const timestampRaw = storage.getItem(TIMESTAMP_KEY);
     const timestamp = timestampRaw ? parseInt(timestampRaw, 10) : NaN;
-    const ageMs = Number.isFinite(timestamp)
-      ? Math.max(Date.now() - timestamp, 0)
-      : Number.POSITIVE_INFINITY;
-    return { counts: parsed, ageMs };
+    // Entries written before the cache was keyed by user have no owner
+    // recorded. Show them rather than throw away a good cache on upgrade,
+    // but treat them as stale so they are replaced by this user's own tags
+    // on the next refresh: they may belong to a different account.
+    const ageMs =
+      cachedUser && Number.isFinite(timestamp)
+        ? Math.max(Date.now() - timestamp, 0)
+        : Number.POSITIVE_INFINITY;
+    return { counts: normalizeTagCounts(parsed), ageMs };
   } catch {
     return null;
   }
@@ -126,10 +145,10 @@ export const bumpTagCache = (user: string, delta: TagDelta): boolean => {
 export const applyTagDelta = (counts: TagCounts, delta: TagDelta): TagCounts => {
   const next: TagCounts = { ...counts };
   normalizeTagList(delta.added).forEach((tag) => {
-    next[tag] = (next[tag] || 0) + 1;
+    next[tag] = (Number(next[tag]) || 0) + 1;
   });
   normalizeTagList(delta.removed).forEach((tag) => {
-    const remaining = (next[tag] || 0) - 1;
+    const remaining = (Number(next[tag]) || 0) - 1;
     if (remaining > 0) {
       next[tag] = remaining;
     } else {

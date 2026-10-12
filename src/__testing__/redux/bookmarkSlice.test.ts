@@ -37,6 +37,8 @@ const initialState = {
   hasExistingBookmark: false,
   displayOriginalTimestamp: false,
   existingBookmarkTags: [],
+  tagsAtLookupStart: [],
+  savingTags: [],
 };
 
 // Helper to create a mock store
@@ -228,6 +230,33 @@ describe('bookmark slice', () => {
         );
       });
 
+      it('keeps tags typed while the lookup was in flight', async () => {
+        let resolveLookup;
+        mockedAxios.get.mockReturnValueOnce(
+          new Promise((resolve) => {
+            resolveLookup = resolve;
+          })
+        );
+        const lookupStore = createMockStore({
+          ...initialState,
+          formData: { ...initialState.formData, url: 'http://example.com' },
+        });
+        const pending = lookupStore.dispatch(fetchBookmarkDetails());
+        lookupStore.dispatch(setFormData({ tags: ['typed', 'saved'] }));
+        resolveLookup({ data: { posts: [{ href: 'http://example.com', tags: 'saved old' }] } });
+        await pending;
+
+        const state = lookupStore.getState().bookmark;
+        expect(state.formData.tags).toEqual(['saved', 'old', 'typed']);
+        expect(state.existingBookmarkTags).toEqual(['saved', 'old']);
+      });
+
+      it('marks the existing tags as unknown when the lookup fails', async () => {
+        mockedAxios.get.mockRejectedValueOnce(new Error('Network Error'));
+        await store.dispatch(fetchBookmarkDetails());
+        expect(store.getState().bookmark.existingBookmarkTags).toBeNull();
+      });
+
       it('surfaces friendly message for HTTP 414 errors', async () => {
         const error = new Error('Request failed with status code 414');
         error.response = { status: 414 };
@@ -327,7 +356,42 @@ describe('bookmark slice', () => {
         await store.dispatch(submitBookmark());
         const state = store.getState().bookmark;
         expect(state.status).toEqual('error');
-        expect(state.errors.generic).toEqual('item already exists');
+        expect(state.errors.generic).toMatch(/already in Pinboard/);
+      });
+
+      it('refuses to overwrite and skips the tag delta when the lookup failed', async () => {
+        window.localStorage.setItem('tags', JSON.stringify({ submit: 4, tag: 2 }));
+        window.localStorage.setItem('tagTimestamp', `${Date.now()}`);
+        window.localStorage.setItem('tagCacheUser', 'testUser');
+        mockedAxios.get.mockResolvedValueOnce({ data: { result_code: 'done' } });
+
+        const recordingStore = configureStore({
+          reducer: {
+            auth: (state = { user: 'testUser', token: 'testToken' }) => state,
+            bookmark: bookmarkReducer,
+            tags: (state = [], action) =>
+              action.type.startsWith('tags/') ? [...state, action] : state,
+          },
+          preloadedState: {
+            bookmark: { ...initialState, formData: validFormData, existingBookmarkTags: null },
+            auth: { user: 'testUser', token: 'testToken' },
+            tags: [],
+          },
+        });
+        await recordingStore.dispatch(submitBookmark());
+
+        const requestedUrl = mockedAxios.get.mock.calls.at(-1)[0];
+        expect(new URL(requestedUrl).searchParams.get('replace')).toBe('no');
+        expect(recordingStore.getState().tags).toEqual([]);
+        expect(JSON.parse(window.localStorage.getItem('tags'))).toEqual({ submit: 4, tag: 2 });
+        window.localStorage.clear();
+      });
+
+      it('lets a save replace the bookmark when the lookup succeeded', async () => {
+        mockedAxios.get.mockResolvedValueOnce({ data: { result_code: 'done' } });
+        await store.dispatch(submitBookmark());
+        const requestedUrl = mockedAxios.get.mock.calls.at(-1)[0];
+        expect(new URL(requestedUrl).searchParams.get('replace')).toBeNull();
       });
 
       it('validates description length client-side', async () => {

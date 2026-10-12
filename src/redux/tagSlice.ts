@@ -10,7 +10,12 @@ import {
   bridgeUrl,
   REQUEST_TIMEOUTS_MS,
 } from '../services/pinboardApi';
-import { applyTagDelta, writeTagCache, type TagDelta } from '../utils/tagCache';
+import {
+  applyTagDelta,
+  normalizeTagCounts,
+  writeTagCache,
+  type TagDelta,
+} from '../utils/tagCache';
 import {
   fetchGptTagSuggestions,
   filterRecentTagsForRelevance,
@@ -33,6 +38,11 @@ export type TagState = {
   error: string | null;
   recentTags: string[];
   filteredRecentTags: string[];
+  /**
+   * Tag deltas saved while fetchTags is in flight, replayed onto its result;
+   * null when no fetch is running.
+   */
+  savedDuringTagFetch: TagDelta[] | null;
 };
 
 type TagThunkState = {
@@ -57,9 +67,15 @@ export const fetchTags = createAsyncThunk<
         bridgeUrl('/v1/tags/get?format=json'),
         bridgeRequestConfig(user, token, REQUEST_TIMEOUTS_MS.tags)
       );
-      const data = response.data || {};
-      writeTagCache(user, data);
-      return data;
+      // Bookmarks saved while this download was in flight patched the old
+      // counts; fold their deltas into the fresh snapshot so it doesn't
+      // drop them (and stamp the cache fresh without them) for an hour.
+      const counts = (getState().tags.savedDuringTagFetch || []).reduce(
+        applyTagDelta,
+        normalizeTagCounts(response.data)
+      );
+      writeTagCache(user, counts);
+      return counts;
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Unable to fetch tags';
@@ -322,6 +338,7 @@ const initialState: TagState = {
   error: null,
   recentTags: [],
   filteredRecentTags: [],
+  savedDuringTagFetch: null,
 };
 
 const tagSlice = createSlice({
@@ -386,6 +403,7 @@ const tagSlice = createSlice({
       const delta = action.payload;
       if (!delta || !Array.isArray(delta.added) || !Array.isArray(delta.removed)) return;
       state.tagCounts = applyTagDelta(state.tagCounts, delta);
+      state.savedDuringTagFetch?.push(delta);
     },
     /**
      * Load recent tags from localStorage
@@ -413,13 +431,16 @@ const tagSlice = createSlice({
       .addCase(fetchTags.pending, (state) => {
         // Add error reset on pending if desired, though fulfilled/rejected handle it here
         state.error = null; // Explicitly reset error on new fetch attempt
+        state.savedDuringTagFetch = [];
       })
       .addCase(fetchTags.fulfilled, (state, action) => {
         state.tagCounts = action.payload || {};
         state.error = null;
+        state.savedDuringTagFetch = null;
       })
       .addCase(fetchTags.rejected, (state, action) => {
         state.error = (action.payload as string) || action.error.message || null;
+        state.savedDuringTagFetch = null;
       })
       // Suggested tags
       .addCase(fetchSuggestedTags.pending, (state) => {

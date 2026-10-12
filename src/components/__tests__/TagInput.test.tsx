@@ -43,6 +43,27 @@ describe('TagInput Component', () => {
     expect(screen.getByText('typescript')).toBeInTheDocument();
   });
 
+  test('marks a chip selected with the arrow keys so its remove button shows', async () => {
+    render(
+      <TagInput
+        userTags={mockUserTags}
+        value={['react', 'typescript']}
+        onChange={mockOnChange}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('combobox'));
+    await userEvent.keyboard('{ArrowLeft}');
+
+    const chip = screen.getByText('typescript').closest(
+      '.pincushion-tag-select__multi-value'
+    );
+    expect(chip).toHaveClass('pincushion-tag-select__multi-value--is-focused');
+    expect(
+      screen.getByText('react').closest('.pincushion-tag-select__multi-value')
+    ).not.toHaveClass('pincushion-tag-select__multi-value--is-focused');
+  });
+
   test('shows placeholder when no tags are selected', () => {
     render(
       <TagInput userTags={mockUserTags} value={[]} onChange={mockOnChange} />

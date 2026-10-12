@@ -8,6 +8,7 @@ import tagReducer, {
   fetchSuggestedTags,
   fetchGptSuggestions,
   resetGptSuggestions,
+  recordSavedTags,
 } from '../../redux/tagSlice';
 import { configureStore } from '@reduxjs/toolkit';
 import { cleanUrl } from '../../utils/url';
@@ -83,6 +84,7 @@ describe('tag slice', () => {
     error: null,
     recentTags: [],
     filteredRecentTags: [],
+    savedDuringTagFetch: null,
   };
 
   beforeEach(() => {
@@ -204,6 +206,32 @@ describe('tag slice', () => {
           JSON.stringify(mockTagData)
         );
         expect(localStorageMock.getItem('tagTimestamp')).not.toBeNull();
+      });
+
+      it('stores Pinboard’s string counts as numbers', async () => {
+        mockedAxios.get.mockResolvedValueOnce({ data: { tagA: '12', tagB: '1' } });
+        await store.dispatch(fetchTags());
+        expect(store.getState().tags.tagCounts).toEqual({ tagA: 12, tagB: 1 });
+        store.dispatch(recordSavedTags({ added: ['tagA'], removed: [] }));
+        expect(store.getState().tags.tagCounts.tagA).toBe(13);
+      });
+
+      it('keeps tags saved while the download was in flight', async () => {
+        let resolveTags;
+        mockedAxios.get.mockReturnValueOnce(
+          new Promise((resolve) => {
+            resolveTags = resolve;
+          })
+        );
+        const racingStore = createMockStore({ ...initialState });
+        const pending = racingStore.dispatch(fetchTags());
+        racingStore.dispatch(recordSavedTags({ added: ['brandnew'], removed: [] }));
+        resolveTags({ data: { tagA: '5' } });
+        await pending;
+
+        expect(racingStore.getState().tags.tagCounts).toEqual({ tagA: 5, brandnew: 1 });
+        expect(JSON.parse(localStorageMock.getItem('tags'))).toEqual({ tagA: 5, brandnew: 1 });
+        expect(racingStore.getState().tags.savedDuringTagFetch).toBeNull();
       });
 
       it('should handle fulfilled state with empty data', async () => {

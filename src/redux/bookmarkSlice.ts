@@ -42,8 +42,15 @@ export type BookmarkState = {
   existingBookmarkTime: string | null;
   hasExistingBookmark: boolean;
   displayOriginalTimestamp: boolean;
-  /** Tags the bookmark had on Pinboard when it was loaded; [] if new. */
-  existingBookmarkTags: string[];
+  /**
+   * Tags the bookmark had on Pinboard when it was loaded; [] if new, null
+   * if unknown because the lookup is pending or failed.
+   */
+  existingBookmarkTags: string[] | null;
+  /** formData.tags when the lookup started, to spot tags typed meanwhile. */
+  tagsAtLookupStart: string[];
+  /** The tags sent by the save in flight, the next delta's baseline. */
+  savingTags: string[];
 };
 
 type BookmarkThunkState = {
@@ -134,8 +141,10 @@ const ERROR_MESSAGES: Record<string, string> = {
   LOOKUP_TIMEOUT:
     'Pinboard didn’t respond in time, so we couldn’t check for an existing bookmark. You can still save.',
   SAVE_TIMEOUT: 'Pinboard didn’t respond in time. Please try saving again.',
-  // Add more specific API error codes if needed, e.g.:
-  // 'item already exists': 'This bookmark already exists.'
+  // Only reachable when the lookup failed and the save went out with
+  // replace=no, which stops it overwriting a bookmark we never loaded.
+  'item already exists':
+    'This page is already in Pinboard, but we couldn’t load it. Reopen the popup to edit it.',
 };
 
 // Async thunk to submit bookmark via Pinboard API
@@ -187,6 +196,10 @@ export const submitBookmark = createAsyncThunk<
   if (formData.private) params.append('shared', 'no');
   if (formData.toread) params.append('toread', 'yes');
   params.append('tags', (formData.tags || []).join(' '));
+  // posts/add replaces an existing bookmark wholesale. If the lookup failed
+  // we don't know whether one exists, so refuse to overwrite it.
+  const baselineKnown = existingBookmarkTags !== null;
+  if (!baselineKnown) params.append('replace', 'no');
 
   try {
     const response = await axios.get(
@@ -200,7 +213,7 @@ export const submitBookmark = createAsyncThunk<
       // with the same tags must not inflate them, and a tag removed from
       // its last bookmark must drop out.
       const delta = diffTagLists(existingBookmarkTags || [], formData.tags || []);
-      if (!isEmptyDelta(delta)) {
+      if (baselineKnown && !isEmptyDelta(delta)) {
         dispatch(recordSavedTags(delta));
         bumpTagCache(user, delta);
       }
@@ -294,6 +307,8 @@ const initialState: BookmarkState = {
   hasExistingBookmark: false,
   displayOriginalTimestamp: false,
   existingBookmarkTags: [],
+  tagsAtLookupStart: [],
+  savingTags: [],
 };
 
 const bookmarkSlice = createSlice({
@@ -328,7 +343,8 @@ const bookmarkSlice = createSlice({
         state.existingBookmarkTime = null;
         state.hasExistingBookmark = false;
         state.displayOriginalTimestamp = false;
-        state.existingBookmarkTags = [];
+        state.existingBookmarkTags = null;
+        state.tagsAtLookupStart = [...state.formData.tags];
         // Reset errors to the full initial structure
         state.errors = { ...initialState.errors };
         state.lastFetchRequestId = action.meta.requestId;
@@ -370,8 +386,17 @@ const bookmarkSlice = createSlice({
           state.formData.url = post.href || state.formData.url;
           state.formData.description =
             post.extended || state.formData.description;
-          state.formData.tags = toTagArray(post.tags);
-          state.existingBookmarkTags = [...state.formData.tags];
+          const savedTags = toTagArray(post.tags);
+          // Autocomplete is live while the lookup runs; keep any tags the
+          // user added meanwhile rather than replacing them.
+          const typedMeanwhile = state.formData.tags.filter(
+            (tag) => !state.tagsAtLookupStart.includes(tag)
+          );
+          state.formData.tags = [
+            ...savedTags,
+            ...typedMeanwhile.filter((tag) => !savedTags.includes(tag)),
+          ];
+          state.existingBookmarkTags = savedTags;
           state.formData.private = post.shared === 'no';
           state.formData.toread = post.toread === 'yes';
           state.existingBookmarkTime =
@@ -404,6 +429,7 @@ const bookmarkSlice = createSlice({
         state.hasExistingBookmark = false;
         state.displayOriginalTimestamp = false;
         state.lastFetchTargetUrl = null;
+        state.existingBookmarkTags = null;
 
         if (normalizedUrl && normalizedUrl !== currentUrl) {
           return;
@@ -419,6 +445,7 @@ const bookmarkSlice = createSlice({
       })
       .addCase(submitBookmark.pending, (state) => {
         state.status = 'saving';
+        state.savingTags = [...state.formData.tags];
         // Reset errors to the full initial structure
         state.errors = { ...initialState.errors };
       })
@@ -431,9 +458,9 @@ const bookmarkSlice = createSlice({
           state.existingBookmarkTime = new Date().toISOString();
         }
         state.displayOriginalTimestamp = alreadyHadBookmark;
-        // Whatever was just saved is now the bookmark's baseline for the
-        // next delta.
-        state.existingBookmarkTags = [...state.formData.tags];
+        // Whatever was just saved (not anything typed since) is now the
+        // bookmark's baseline for the next delta.
+        state.existingBookmarkTags = [...state.savingTags];
         // Reset errors to the full initial structure
         state.errors = { ...initialState.errors };
       })

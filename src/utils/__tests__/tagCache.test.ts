@@ -34,10 +34,23 @@ describe('tagCache', () => {
     expect(readTagCache('someone-else')).toBeNull();
   });
 
-  it('still serves a legacy cache that was written before user keying', () => {
+  it('still serves a legacy cache that was written before user keying, as stale', () => {
     window.localStorage.setItem('tags', JSON.stringify({ legacy: 2 }));
     window.localStorage.setItem('tagTimestamp', `${Date.now()}`);
-    expect(readTagCache('ross')?.counts).toEqual({ legacy: 2 });
+    const entry = readTagCache('ross');
+    expect(entry?.counts).toEqual({ legacy: 2 });
+    // It may be another account's, so it must be refreshed, not trusted.
+    expect(entry?.ageMs).toBe(Number.POSITIVE_INFINITY);
+  });
+
+  it('reads string counts (as Pinboard sends them) as numbers', () => {
+    writeTagCache('ross', { react: '12' } as unknown as Record<string, number>);
+    expect(readTagCache('ross')?.counts).toEqual({ react: 12 });
+  });
+
+  it('adds to string counts instead of concatenating', () => {
+    const counts = { react: '12' } as unknown as Record<string, number>;
+    expect(applyTagDelta(counts, { added: ['react'], removed: [] })).toEqual({ react: 13 });
   });
 
   it('treats a missing timestamp as infinitely old', () => {
