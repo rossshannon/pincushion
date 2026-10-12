@@ -138,7 +138,11 @@ export function stripTrackingParams(input: string): TrackingStripResult {
 
   if (removed.length === 0) return unchanged;
 
-  const query = kept.some((pair) => pair !== '') ? kept.join('&') : '';
+  // Empty segments between kept parameters stay; ones left dangling at
+  // either end by a removal go.
+  const first = kept.findIndex((pair) => pair !== '');
+  const last = kept.length - 1 - [...kept].reverse().findIndex((p) => p !== '');
+  const query = first === -1 ? '' : kept.slice(first, last + 1).join('&');
   return {
     url: `${base}${query ? `?${query}` : ''}${fragment}`,
     removed,

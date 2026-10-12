@@ -303,7 +303,7 @@ label.error {
   color: var(--pincushion-text-muted);
   overflow-wrap: anywhere;
 
-  &:empty {
+  &:not(:has(button)) {
     margin: 0;
   }
 }

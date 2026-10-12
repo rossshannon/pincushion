@@ -366,22 +366,25 @@ function BookmarkForm() {
           </button>
         )}
         {errors?.url && <span className="helptext">{errors.url}</span>}
-        {/* Always mounted so screen readers announce what gets put in it. */}
-        <p className="tracking-note" role="status">
+        <p className="tracking-note">
+          {/* Always mounted so screen readers announce what gets put in it. */}
+          <span role="status">
+            {trackingStrip?.savedWithTracking ? (
+              <>You saved this with its tracking parameters</>
+            ) : trackingStrip?.restored ? (
+              <>Kept tracking parameters</>
+            ) : trackingStrip ? (
+              <>
+                Removed tracking:{' '}
+                <span className="tracking-note__params">
+                  {trackingStrip.removed.join(', ')}
+                </span>
+              </>
+            ) : null}
+          </span>
           {trackingStrip && (
             <>
-              {trackingStrip.savedWithTracking ? (
-                <>You saved this with its tracking parameters</>
-              ) : trackingStrip.restored ? (
-                <>Kept tracking parameters</>
-              ) : (
-                <>
-                  Removed tracking:{' '}
-                  <span className="tracking-note__params">
-                    {trackingStrip.removed.join(', ')}
-                  </span>
-                </>
-              )}{' '}
+              {' '}
               <button
                 type="button"
                 className="tracking-note__toggle"

@@ -537,6 +537,7 @@ describe('tracking parameter stripping', () => {
       ...strip,
       restored: false,
       savedWithTracking: false,
+      checkedOriginal: false,
     });
   });
 
@@ -640,14 +641,72 @@ describe('tracking parameter stripping', () => {
       expect(state.trackingStrip?.restored).toBe(false);
     });
 
-    it('makes one request when the clean URL is bookmarked', async () => {
-      mockedAxios.get.mockResolvedValueOnce({
-        data: { posts: [{ href: clean, description: 'Clean' }] },
-      });
+    it('prefers the clean URL when both were bookmarked', async () => {
+      mockedAxios.get
+        .mockResolvedValueOnce({
+          data: { posts: [{ href: clean, description: 'Clean' }] },
+        })
+        .mockResolvedValueOnce({
+          data: { posts: [{ href: tracked, description: 'Old' }] },
+        });
       const store = storeWithStrip();
+      await store.dispatch(fetchBookmarkDetails(clean));
+      expect(store.getState().bookmark.formData.url).toBe(clean);
+      expect(store.getState().bookmark.formData.title).toBe('Clean');
+    });
+
+    it('treats a failed tracked-URL lookup as "not bookmarked"', async () => {
+      mockedAxios.get
+        .mockResolvedValueOnce({ data: { posts: [] } })
+        .mockRejectedValueOnce(
+          Object.assign(new Error('Too long'), { response: { status: 414 } })
+        );
+      const store = storeWithStrip();
+      await store.dispatch(fetchBookmarkDetails(clean));
+      const state = store.getState().bookmark;
+      expect(state.errors.generic).toBeNull();
+      expect(state.errors.url).toBeNull();
+      expect(state.formData.url).toBe(clean);
+    });
+
+    it('checks the tracked URL only once, so Remove sticks', async () => {
+      mockedAxios.get
+        .mockResolvedValueOnce({ data: { posts: [] } })
+        .mockResolvedValueOnce({
+          data: { posts: [{ href: tracked, description: 'Old' }] },
+        });
+      const store = storeWithStrip();
+      await store.dispatch(fetchBookmarkDetails(clean));
+      expect(store.getState().bookmark.formData.url).toBe(tracked);
+
+      // The user chooses the clean URL after all.
+      mockedAxios.get.mockClear();
+      mockedAxios.get.mockResolvedValue({ data: { posts: [] } });
+      store.dispatch(toggleTrackingStrip());
       await store.dispatch(fetchBookmarkDetails(clean));
       expect(mockedAxios.get).toHaveBeenCalledTimes(1);
       expect(store.getState().bookmark.formData.url).toBe(clean);
+      expect(store.getState().bookmark.trackingStrip?.restored).toBe(false);
+    });
+
+    it('clears the resolved URL while a lookup is in flight', async () => {
+      mockedAxios.get.mockResolvedValue({ data: { posts: [] } });
+      const store = storeWithStrip();
+      await store.dispatch(fetchBookmarkDetails(clean));
+      expect(store.getState().bookmark.resolvedLookupUrl).toBe(clean);
+      store.dispatch(setFormData({ url: 'https://other.com/' }));
+      const pending = store.dispatch(fetchBookmarkDetails('https://other.com/'));
+      expect(store.getState().bookmark.resolvedLookupUrl).toBeNull();
+      await pending;
+    });
+
+    it('ignores a strip computed for a URL the form no longer has', () => {
+      const state = bookmarkReducer(
+        bookmarkReducer(initialState, setFormData({ url: 'https://typed.com/' })),
+        applyTrackingStrip(strip)
+      );
+      expect(state.formData.url).toBe('https://typed.com/');
+      expect(state.trackingStrip).toBeNull();
     });
 
     it('does not fall back after the user has restored the original', async () => {
@@ -660,9 +719,11 @@ describe('tracking parameter stripping', () => {
 
     it("keeps the toggle in step with Pinboard's stored href", async () => {
       const storedHref = 'https://example.com/post?id=7';
-      mockedAxios.get.mockResolvedValueOnce({
-        data: { posts: [{ href: storedHref, description: 'Clean' }] },
-      });
+      mockedAxios.get
+        .mockResolvedValueOnce({
+          data: { posts: [{ href: storedHref, description: 'Clean' }] },
+        })
+        .mockResolvedValueOnce({ data: { posts: [] } });
       const store = storeWithStrip();
       await store.dispatch(fetchBookmarkDetails(clean));
       store.dispatch(toggleTrackingStrip());

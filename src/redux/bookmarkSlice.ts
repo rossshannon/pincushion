@@ -65,6 +65,8 @@ export type TrackingStrip = {
    * bookmarked it with its tracking parameters.
    */
   savedWithTracking: boolean;
+  /** Whether the original URL has been looked up on Pinboard yet. */
+  checkedOriginal: boolean;
 };
 
 type BookmarkThunkState = {
@@ -282,20 +284,24 @@ export const fetchBookmarkDetails = createAsyncThunk<
       }
       return null;
     };
+    // Bookmarks saved before tracking parameters were stripped live under
+    // the tracked URL. Look that up too, once and alongside the clean URL,
+    // so they aren't saved twice. It's best-effort: a failure means "no".
+    const checkTracked =
+      trackingStrip !== null &&
+      !trackingStrip.restored &&
+      !trackingStrip.checkedOriginal &&
+      targetUrl.trim() === trackingStrip.stripped.trim();
     try {
-      const post = await lookup(targetUrl);
+      const [post, trackedPost] = await Promise.all([
+        lookup(targetUrl),
+        checkTracked && trackingStrip
+          ? lookup(trackingStrip.original).catch(() => null)
+          : Promise.resolve(null),
+      ]);
       if (post) return post;
-      // Bookmarks saved before tracking parameters were stripped live under
-      // the tracked URL. Look that up too, so they aren't saved twice.
-      if (
-        trackingStrip &&
-        !trackingStrip.restored &&
-        targetUrl.trim() === trackingStrip.stripped.trim()
-      ) {
-        const trackedPost = await lookup(trackingStrip.original);
-        if (trackedPost) {
-          return { ...trackedPost, matchedTrackedUrl: trackingStrip.original };
-        }
+      if (trackedPost && trackingStrip) {
+        return { ...trackedPost, matchedTrackedUrl: trackingStrip.original };
       }
       return null;
     } catch (err) {
@@ -375,7 +381,7 @@ const bookmarkSlice = createSlice({
       }>
     ) {
       const { original, stripped, removed } = action.payload;
-      if (removed.length === 0) return;
+      if (removed.length === 0 || state.formData.url !== original) return;
       state.formData.url = stripped;
       state.errors.url = null;
       state.trackingStrip = {
@@ -384,6 +390,7 @@ const bookmarkSlice = createSlice({
         removed,
         restored: false,
         savedWithTracking: false,
+        checkedOriginal: false,
       };
     },
     // The "#" button. Drops the fragment from both versions of a stripped
@@ -419,6 +426,7 @@ const bookmarkSlice = createSlice({
     builder
       .addCase(fetchBookmarkDetails.pending, (state, action) => {
         state.initialLoading = true;
+        state.resolvedLookupUrl = null;
         state.existingBookmarkTime = null;
         state.hasExistingBookmark = false;
         state.displayOriginalTimestamp = false;
@@ -459,6 +467,9 @@ const bookmarkSlice = createSlice({
         state.errors = { ...initialState.errors };
         const post = action.payload;
         const strip = state.trackingStrip;
+        if (strip && normalizedUrl === strip.stripped.trim()) {
+          strip.checkedOriginal = true;
+        }
         if (post?.matchedTrackedUrl && strip) {
           // Already bookmarked with its tracking parameters: keep that URL
           // rather than saving a second copy under the clean one.

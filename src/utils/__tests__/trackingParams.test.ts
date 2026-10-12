@@ -41,6 +41,12 @@ describe('stripTrackingParams', () => {
     expect(stripTrackingParams('https://example.com/p?&utm_source=x').url).toBe(
       'https://example.com/p'
     );
+    expect(
+      stripTrackingParams('https://example.com/p?id=7&utm_source=x&').url
+    ).toBe('https://example.com/p?id=7');
+    expect(
+      stripTrackingParams('https://example.com/?&&utm_source=x&id=1').url
+    ).toBe('https://example.com/?id=1');
   });
 
   it('lists a repeated parameter once', () => {
