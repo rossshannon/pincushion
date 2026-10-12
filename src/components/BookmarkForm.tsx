@@ -72,22 +72,14 @@ function BookmarkForm() {
   const [shouldAutoFocusTags] = useState(() => !isLikelyTouchDevice());
   const hasHash = !!formData.url?.includes('#');
   // Keep the # button mounted after the fragment goes so it can animate out
-  // while the URL input straightens; onAnimationEnd then unmounts it. A button
-  // that never finished bouncing in (e.g. the lookup dropped the fragment
-  // first) just goes, rather than flashing up only to fade out.
+  // while the URL input straightens; onAnimationEnd then unmounts it.
   const hashButtonRef = useRef<HTMLButtonElement | null>(null);
   const [hashButtonShown, setHashButtonShown] = useState(hasHash);
-  const [hashButtonEntered, setHashButtonEntered] = useState(false);
-  if (hasHash && !hashButtonShown) {
-    setHashButtonShown(true);
-    setHashButtonEntered(false);
-  } else if (!hasHash && hashButtonShown && !hashButtonEntered) {
-    setHashButtonShown(false);
-  }
+  if (hasHash && !hashButtonShown) setHashButtonShown(true);
   const hashButtonLeaving = hashButtonShown && !hasHash;
 
-  // Fallback in case animationend never fires (hidden tab, reduced motion):
-  // wait out the exit animation's own duration, plus a margin.
+  // Fallback for when animationend never fires (a hidden tab, or reduced
+  // motion, where the button just hides): wait out the exit, plus a margin.
   useEffect(() => {
     if (!hashButtonLeaving) return undefined;
     const button = hashButtonRef.current;
@@ -387,7 +379,7 @@ function BookmarkForm() {
               dispatch(setFormData({ url: cleanUrl }));
             }}
             onAnimationEnd={(event) => {
-              if (event.animationName === 'bounce-in') setHashButtonEntered(true);
+              // bounce-in can also end mid-exit; only the exit unmounts.
               if (event.animationName === 'hash-leave') setHashButtonShown(false);
             }}
             title="Remove hash from URL"

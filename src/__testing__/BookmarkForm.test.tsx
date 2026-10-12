@@ -101,7 +101,6 @@ describe('BookmarkForm Component', () => {
     expect(removeHashButton).toBeInTheDocument();
     expect(urlInput).toHaveValue(testUrlWithHash);
     expect(urlInput).toHaveClass('hash-detected');
-    endAnimation(removeHashButton, 'bounce-in');
 
     // Simulate clicking the remove hash button
     fireEvent.click(removeHashButton);
@@ -125,6 +124,8 @@ describe('BookmarkForm Component', () => {
     // The button stays to animate out, then unmounts when its exit ends
     const leavingButton = screen.getByTitle(/Remove hash from URL/i);
     expect(leavingButton).toHaveClass('is-leaving');
+    endAnimation(leavingButton, 'bounce-in'); // can end mid-exit; ignored
+    expect(leavingButton).toBeInTheDocument();
     endAnimation(leavingButton, 'hash-leave');
     expect(
       screen.queryByTitle(/Remove hash from URL/i)
@@ -136,41 +137,26 @@ describe('BookmarkForm Component', () => {
     expect(urlInput).not.toHaveClass('hash-detected');
   });
 
-  const renderWithUrl = (url) => {
-    initialState.bookmark.formData.url = url;
-    return mockStore(initialState);
-  };
-
-  test('removes a # button that never finished entering at once', () => {
-    const { rerender } = render(
-      <Provider store={renderWithUrl('https://example.com/page#a')}>
-        <BookmarkForm />
-      </Provider>
-    );
-    expect(screen.getByTitle(/Remove hash from URL/i)).toBeInTheDocument();
-
-    rerender(
-      <Provider store={renderWithUrl('https://example.com/page')}>
-        <BookmarkForm />
-      </Provider>
-    );
-    expect(
-      screen.queryByTitle(/Remove hash from URL/i)
-    ).not.toBeInTheDocument();
-  });
+  const storeWithUrl = (url) =>
+    mockStore({
+      ...initialState,
+      bookmark: {
+        ...initialState.bookmark,
+        formData: { ...initialState.bookmark.formData, url },
+      },
+    });
 
   test('unmounts a leaving # button on a timer if animationend never fires', () => {
     vi.useFakeTimers();
     try {
       const { rerender } = render(
-        <Provider store={renderWithUrl('https://example.com/page#a')}>
+        <Provider store={storeWithUrl('https://example.com/page#a')}>
           <BookmarkForm />
         </Provider>
       );
-      endAnimation(screen.getByTitle(/Remove hash from URL/i), 'bounce-in');
 
       rerender(
-        <Provider store={renderWithUrl('https://example.com/page')}>
+        <Provider store={storeWithUrl('https://example.com/page')}>
           <BookmarkForm />
         </Provider>
       );
@@ -180,7 +166,7 @@ describe('BookmarkForm Component', () => {
 
       // Typing a # again mid-exit brings the button back.
       rerender(
-        <Provider store={renderWithUrl('https://example.com/page#b')}>
+        <Provider store={storeWithUrl('https://example.com/page#b')}>
           <BookmarkForm />
         </Provider>
       );
@@ -192,7 +178,7 @@ describe('BookmarkForm Component', () => {
       );
 
       rerender(
-        <Provider store={renderWithUrl('https://example.com/page')}>
+        <Provider store={storeWithUrl('https://example.com/page')}>
           <BookmarkForm />
         </Provider>
       );

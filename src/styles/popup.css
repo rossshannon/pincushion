@@ -529,18 +529,23 @@ input#url.hash-detected {
   border-right-color: transparent; /* physical, like the clip it pairs with */
 }
 
-/* The diagonal follows the border colour of each state. */
-@media (hover: hover) and (pointer: fine) {
-  input#url.hash-detected:hover {
-    --slant-colour: var(--pincushion-border-hover);
-  }
+/* The diagonal follows the border colour of each state, in the same
+   precedence as the other edges: hover beats error unless focused. */
+input#url.hash-detected[aria-invalid="true"] {
+  --slant-colour: var(--pincushion-error);
 }
 
 input#url.hash-detected:focus {
   --slant-colour: var(--pincushion-border-focus);
 }
 
-input#url.hash-detected[aria-invalid="true"] {
+@media (hover: hover) and (pointer: fine) {
+  input#url.hash-detected:hover {
+    --slant-colour: var(--pincushion-border-hover);
+  }
+}
+
+input#url.hash-detected[aria-invalid="true"]:focus {
   --slant-colour: var(--pincushion-error);
 }
 
@@ -561,9 +566,14 @@ input#url.hash-detected:focus-visible {
       border-right-color calc(var(--hash-exit) / 2) linear calc(var(--hash-exit) / 4);
   }
 
-  /* Slanting in needs no staging: drop the delays. */
+  /* Slanting in needs no staging: the end border goes at once. */
   input#url.hash-detected {
-    transition-delay: 0s;
+    transition:
+      border-color 0.1s var(--ease-out),
+      background-color 0.1s var(--ease-out),
+      --slant var(--hash-exit) var(--ease-out),
+      --slant-slack 0s,
+      border-right-color 0s;
   }
 }
 
@@ -605,9 +615,13 @@ input#url.hash-detected:focus-visible {
 
 /*
  * Once pressed, the button stays mounted with .is-leaving until its exit
- * animation ends, so it can fade out while the input straightens. Without
- * motion it never bounces in, so BookmarkForm unmounts it at once.
+ * animation ends, so it can fade out while the input straightens.
  */
+@media (prefers-reduced-motion: reduce) {
+  .remove-hash.is-leaving {
+    display: none;
+  }
+}
 
 @media (prefers-reduced-motion: no-preference) {
   .remove-hash {
@@ -619,14 +633,16 @@ input#url.hash-detected:focus-visible {
   .remove-hash.is-leaving {
     overflow: clip;
     pointer-events: none;
-    animation: hash-leave var(--hash-exit) var(--ease-out) forwards;
+    /* bounce-in stays in the list so hash-leave starts from wherever it
+       had got to: a button still waiting to bounce in leaves from opacity 0. */
+    animation:
+      bounce-in 0.8s var(--ease-out) 0.4s forwards,
+      hash-leave var(--hash-exit) var(--ease-out) forwards;
   }
 }
 
 @keyframes hash-leave {
   from {
-    opacity: 1;
-    transform: skew(-15deg);
     max-inline-size: 1.7em;
   }
 
