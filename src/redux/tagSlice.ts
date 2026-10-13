@@ -10,7 +10,12 @@ import {
   bridgeUrl,
   REQUEST_TIMEOUTS_MS,
 } from '../services/pinboardApi';
-import { applyTagDelta, writeTagCache, type TagDelta } from '../utils/tagCache';
+import {
+  applyTagDelta,
+  normalizeTagCounts,
+  writeTagCache,
+  type TagDelta,
+} from '../utils/tagCache';
 import {
   fetchGptTagSuggestions,
   filterRecentTagsForRelevance,
@@ -33,6 +38,47 @@ export type TagState = {
   error: string | null;
   recentTags: string[];
   filteredRecentTags: string[];
+  /**
+   * Tag deltas saved while any fetchTags is in flight. Each fetch replays
+   * only those saved after it started (its entry in tagFetchStarts), so
+   * overlapping fetches don't count a save twice.
+   */
+  savedDuringTagFetch: TagDelta[];
+  /** Absolute position of savedDuringTagFetch[0] in the stream of saves. */
+  savedDuringTagFetchBase: number;
+  /** For each in-flight fetchTags request, the save position it started at. */
+  tagFetchStarts: Record<string, number>;
+};
+
+/** Fill in the replay bookkeeping if a preloaded state left it out. */
+const ensureTagFetchState = (state: TagState) => {
+  state.savedDuringTagFetch ??= [];
+  state.savedDuringTagFetchBase ??= 0;
+  state.tagFetchStarts ??= {};
+};
+
+/** The saves a given fetchTags must replay: those made after it started. */
+const deltasSince = (state: TagState, requestId: string): TagDelta[] => {
+  const start = state.tagFetchStarts?.[requestId];
+  if (start === undefined) return [];
+  return state.savedDuringTagFetch.slice(
+    Math.max(start - state.savedDuringTagFetchBase, 0)
+  );
+};
+
+/** Forget a finished fetch, and any saves no remaining fetch still needs. */
+const finishTagFetch = (state: TagState, requestId: string) => {
+  ensureTagFetchState(state);
+  delete state.tagFetchStarts[requestId];
+  const starts = Object.values(state.tagFetchStarts);
+  const keepFrom = starts.length
+    ? Math.min(...starts)
+    : state.savedDuringTagFetchBase + state.savedDuringTagFetch.length;
+  const drop = keepFrom - state.savedDuringTagFetchBase;
+  if (drop > 0) {
+    state.savedDuringTagFetch = state.savedDuringTagFetch.slice(drop);
+    state.savedDuringTagFetchBase = keepFrom;
+  }
 };
 
 type TagThunkState = {
@@ -41,6 +87,9 @@ type TagThunkState = {
   tags: TagState;
 };
 
+// Rejection for a refresh that outlived an account switch: not an error.
+const ACCOUNT_CHANGED = 'Account changed during tag refresh';
+
 // Fetch user's tags from Pinboard
 export const fetchTags = createAsyncThunk<
   Record<string, number>,
@@ -48,7 +97,7 @@ export const fetchTags = createAsyncThunk<
   { state: TagThunkState; rejectValue: string }
 >(
   'tags/fetchTags',
-  async (_, { getState, rejectWithValue }) => {
+  async (_, { getState, rejectWithValue, requestId }) => {
     const {
       auth: { user, token },
     } = getState();
@@ -57,9 +106,24 @@ export const fetchTags = createAsyncThunk<
         bridgeUrl('/v1/tags/get?format=json'),
         bridgeRequestConfig(user, token, REQUEST_TIMEOUTS_MS.tags)
       );
-      const data = response.data || {};
-      writeTagCache(user, data);
-      return data;
+      // The account changed in Settings while this was downloading: these
+      // are someone else's tags now, so drop them.
+      if (getState().auth.user !== user) {
+        return rejectWithValue(ACCOUNT_CHANGED);
+      }
+      // Bookmarks saved while this download was in flight patched the old
+      // counts; fold their deltas into the snapshot so it doesn't drop them.
+      // Pinboard may already have counted them, though, so if there were
+      // any, store the result as stale and let the next popup refetch.
+      // The reducer replays them again for the in-memory copy, so a save
+      // that lands between here and `fulfilled` isn't lost either (its
+      // bumpTagCache patches the cache written here).
+      const snapshot = normalizeTagCounts(response.data);
+      const savedMeanwhile = deltasSince(getState().tags, requestId);
+      writeTagCache(user, savedMeanwhile.reduce(applyTagDelta, snapshot), {
+        stale: savedMeanwhile.length > 0,
+      });
+      return snapshot;
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Unable to fetch tags';
@@ -234,6 +298,9 @@ const initialState: TagState = {
   error: null,
   recentTags: [],
   filteredRecentTags: [],
+  savedDuringTagFetch: [],
+  savedDuringTagFetchBase: 0,
+  tagFetchStarts: {},
 };
 
 const tagSlice = createSlice({
@@ -314,6 +381,10 @@ const tagSlice = createSlice({
       const delta = action.payload;
       if (!delta || !Array.isArray(delta.added) || !Array.isArray(delta.removed)) return;
       state.tagCounts = applyTagDelta(state.tagCounts, delta);
+      ensureTagFetchState(state);
+      if (Object.keys(state.tagFetchStarts).length > 0) {
+        state.savedDuringTagFetch.push(delta);
+      }
     },
     /**
      * Load recent tags from localStorage
@@ -338,16 +409,26 @@ const tagSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchTags.pending, (state) => {
+      .addCase(fetchTags.pending, (state, action) => {
         // Add error reset on pending if desired, though fulfilled/rejected handle it here
         state.error = null; // Explicitly reset error on new fetch attempt
+        ensureTagFetchState(state);
+        state.tagFetchStarts[action.meta.requestId] =
+          state.savedDuringTagFetchBase + state.savedDuringTagFetch.length;
       })
       .addCase(fetchTags.fulfilled, (state, action) => {
-        state.tagCounts = action.payload || {};
+        state.tagCounts = deltasSince(state, action.meta.requestId).reduce(
+          applyTagDelta,
+          action.payload || {}
+        );
         state.error = null;
+        finishTagFetch(state, action.meta.requestId);
       })
       .addCase(fetchTags.rejected, (state, action) => {
-        state.error = (action.payload as string) || action.error.message || null;
+        if (action.payload !== ACCOUNT_CHANGED) {
+          state.error = (action.payload as string) || action.error.message || null;
+        }
+        finishTagFetch(state, action.meta.requestId);
       })
       // Suggested tags
       .addCase(fetchSuggestedTags.pending, (state, action) => {

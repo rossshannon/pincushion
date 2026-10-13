@@ -8,6 +8,7 @@ import tagReducer, {
   fetchSuggestedTags,
   fetchGptSuggestions,
   resetGptSuggestions,
+  recordSavedTags,
 } from '../../redux/tagSlice';
 import { configureStore } from '@reduxjs/toolkit';
 import { cleanUrl } from '../../utils/url';
@@ -84,6 +85,9 @@ describe('tag slice', () => {
     error: null,
     recentTags: [],
     filteredRecentTags: [],
+    savedDuringTagFetch: [],
+    savedDuringTagFetchBase: 0,
+    tagFetchStarts: {},
   };
 
   beforeEach(() => {
@@ -205,6 +209,103 @@ describe('tag slice', () => {
           JSON.stringify(mockTagData)
         );
         expect(localStorageMock.getItem('tagTimestamp')).not.toBeNull();
+      });
+
+      it('stores Pinboard’s string counts as numbers', async () => {
+        mockedAxios.get.mockResolvedValueOnce({ data: { tagA: '12', tagB: '1' } });
+        await store.dispatch(fetchTags());
+        expect(store.getState().tags.tagCounts).toEqual({ tagA: 12, tagB: 1 });
+        store.dispatch(recordSavedTags({ added: ['tagA'], removed: [] }));
+        expect(store.getState().tags.tagCounts.tagA).toBe(13);
+      });
+
+      it('keeps tags saved while the download was in flight', async () => {
+        let resolveTags;
+        mockedAxios.get.mockReturnValueOnce(
+          new Promise((resolve) => {
+            resolveTags = resolve;
+          })
+        );
+        const racingStore = createMockStore({ ...initialState });
+        const pending = racingStore.dispatch(fetchTags());
+        racingStore.dispatch(recordSavedTags({ added: ['brandnew'], removed: [] }));
+        resolveTags({ data: { tagA: '5' } });
+        await pending;
+
+        expect(racingStore.getState().tags.tagCounts).toEqual({ tagA: 5, brandnew: 1 });
+        expect(JSON.parse(localStorageMock.getItem('tags'))).toEqual({ tagA: 5, brandnew: 1 });
+        // Pinboard may already have counted that save, so the next popup refetches.
+        expect(localStorageMock.getItem('tagTimestamp')).toBe('0');
+        expect(racingStore.getState().tags.savedDuringTagFetch).toEqual([]);
+      });
+
+      it('drops a refresh that finishes after the account changed', async () => {
+        let resolveTags;
+        mockedAxios.get.mockReturnValueOnce(
+          new Promise((resolve) => {
+            resolveTags = resolve;
+          })
+        );
+        let currentUser = 'accountA';
+        const switchingStore = configureStore({
+          reducer: {
+            auth: () => ({ user: currentUser, token: 'token' }),
+            tags: tagReducer,
+            bookmark: (state = { formData: {} }) => state,
+          },
+        });
+        const pending = switchingStore.dispatch(fetchTags());
+        currentUser = 'accountB';
+        switchingStore.dispatch({ type: 'auth/switched' });
+        resolveTags({ data: { onlyA: '3' } });
+        await pending;
+
+        expect(switchingStore.getState().tags.tagCounts).toEqual({});
+        expect(switchingStore.getState().tags.error).toBeNull();
+        expect(switchingStore.getState().tags.tagFetchStarts).toEqual({});
+        expect(localStorageMock.getItem('tags')).toBeNull();
+      });
+
+      it('keeps a save that lands after the download but before it is stored', async () => {
+        mockedAxios.get.mockResolvedValueOnce({ data: { tagA: '5' } });
+        const racingStore = createMockStore({ ...initialState });
+        const pending = racingStore.dispatch(fetchTags());
+        // Let the response resolve inside the thunk, then save in the gap
+        // before fulfilled is reduced.
+        await Promise.resolve();
+        await Promise.resolve();
+        racingStore.dispatch(recordSavedTags({ added: ['late'], removed: [] }));
+        await pending;
+        expect(racingStore.getState().tags.tagCounts).toEqual({ tagA: 5, late: 1 });
+      });
+
+      it('replays a save only onto refreshes that started before it', async () => {
+        const resolvers = [];
+        mockedAxios.get.mockImplementation(
+          () =>
+            new Promise((resolve) => {
+              resolvers.push(resolve);
+            })
+        );
+        const overlapStore = createMockStore({ ...initialState });
+        const first = overlapStore.dispatch(fetchTags());
+        overlapStore.dispatch(recordSavedTags({ added: ['early'], removed: [] }));
+        const second = overlapStore.dispatch(fetchTags());
+        overlapStore.dispatch(recordSavedTags({ added: ['late'], removed: [] }));
+        await vi.waitFor(() => expect(resolvers).toHaveLength(2));
+
+        // The second snapshot was taken after 'early' was saved, so it
+        // already counts it; only 'late' is replayed onto it.
+        resolvers[1]({ data: { early: '1' } });
+        await second;
+        expect(overlapStore.getState().tags.tagCounts).toEqual({ early: 1, late: 1 });
+
+        resolvers[0]({ data: {} });
+        await first;
+        expect(overlapStore.getState().tags.tagCounts).toEqual({ early: 1, late: 1 });
+        expect(overlapStore.getState().tags.savedDuringTagFetch).toEqual([]);
+        expect(overlapStore.getState().tags.tagFetchStarts).toEqual({});
+        mockedAxios.get.mockReset();
       });
 
       it('should handle fulfilled state with empty data', async () => {

@@ -105,6 +105,9 @@
 }
 
 .pincushion-tag-select__option .item__label {
+  /* A flex item won't shrink below its content without this, so a long tag
+     name would push the count out instead of ending in an ellipsis. */
+  min-inline-size: 0;
   overflow: clip;
   text-overflow: ellipsis;
   white-space: nowrap;

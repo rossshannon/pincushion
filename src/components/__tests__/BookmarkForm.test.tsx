@@ -381,14 +381,107 @@ describe('BookmarkForm Component', () => {
     const removeHashButton = screen.getByTitle('Remove hash from URL');
     fireEvent.click(removeHashButton);
 
-    // Verify the action was dispatched with the cleaned URL
-    const actions = store.getActions();
-    expect(actions).toContainEqual(
-      expect.objectContaining({
-        type: 'bookmark/setFormData',
-        payload: { url: 'https://example.com' },
-      })
+    // The reducer drops the fragment (from the tracking toggle's URLs too)
+    expect(store.getActions()).toContainEqual(
+      expect.objectContaining({ type: 'bookmark/removeUrlFragment' })
     );
+  });
+
+  const renderWithTrackingStrip = (
+    restored: boolean,
+    savedWithTracking = false,
+    checkingOriginal = false
+  ) => {
+    store = mockStore({
+      bookmark: {
+        formData: {
+          title: 'Tracked',
+          url: restored
+            ? 'https://example.com/?id=1&utm_source=x&fbclid=y'
+            : 'https://example.com/?id=1',
+          description: '',
+          tags: [],
+          private: false,
+          toread: false,
+        },
+        status: 'idle',
+        errors: {},
+        initialLoading: false,
+        existingBookmarkTime: null,
+        hasExistingBookmark: false,
+        displayOriginalTimestamp: false,
+        trackingStrip: {
+          original: 'https://example.com/?id=1&utm_source=x&fbclid=y',
+          stripped: 'https://example.com/?id=1',
+          removed: ['utm_source', 'fbclid'],
+          restored,
+          savedWithTracking,
+          checkingOriginal,
+        },
+      },
+      tags: { ...baseTagsState },
+      auth: baseAuthState,
+    });
+    render(
+      <Provider store={store}>
+        <BookmarkForm />
+      </Provider>
+    );
+  };
+
+  test('says which tracking parameters were removed and offers to undo', () => {
+    renderWithTrackingStrip(false);
+    expect(screen.getByText(/removed tracking/i)).toBeInTheDocument();
+    expect(screen.getByText('utm_source, fbclid')).toBeInTheDocument();
+
+    // Tabs straight from the URL field, not after Save.
+    expect(screen.getByRole('button', { name: 'Undo' })).toHaveAttribute(
+      'tabindex',
+      '2'
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(store.getActions()).toContainEqual({
+      type: 'bookmark/toggleTrackingStrip',
+      payload: undefined,
+    });
+  });
+
+  test('offers to strip again after the original URL was restored', () => {
+    renderWithTrackingStrip(true);
+    expect(screen.getByText(/kept tracking parameters/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Remove' })).toBeInTheDocument();
+  });
+
+  test('holds Save while checking for a bookmark under the tracked URL', () => {
+    renderWithTrackingStrip(false, false, true);
+    const save = screen.getByRole('button', { name: /add bookmark/i });
+    expect(save).toBeDisabled();
+    fireEvent.submit(screen.getByRole('form'));
+    expect(
+      store.getActions().some(({ type }) => type.startsWith('bookmark/submit'))
+    ).toBe(false);
+  });
+
+  test('offers the tracked URL when it was bookmarked before', () => {
+    renderWithTrackingStrip(false, true);
+    expect(
+      screen.getByText(/you bookmarked this before with tracking parameters/i)
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Use that bookmark' }));
+    expect(store.getActions()).toContainEqual({
+      type: 'bookmark/toggleTrackingStrip',
+      payload: undefined,
+    });
+  });
+
+  test('keeps an empty status region when nothing was stripped', () => {
+    render(
+      <Provider store={store}>
+        <BookmarkForm />
+      </Provider>
+    );
+    expect(screen.queryByText(/tracking/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
   });
 
   test('clicking a suggested tag updates tags and removes chip', async () => {

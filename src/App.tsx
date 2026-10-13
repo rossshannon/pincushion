@@ -4,7 +4,12 @@ import BookmarkForm from './components/BookmarkForm';
 import TwitterCardPreview from './components/TwitterCardPreview';
 import './styles/popup.css';
 import { setAuth } from './redux/authSlice';
-import { setFormData, fetchBookmarkDetails } from './redux/bookmarkSlice';
+import {
+  setFormData,
+  fetchBookmarkDetails,
+  applyTrackingStrip,
+  checkTrackedBookmark,
+} from './redux/bookmarkSlice';
 import {
   fetchTags,
   fetchSuggestedTags,
@@ -18,6 +23,7 @@ import {
 import { enforceMinimumPopupSize } from './utils/popupAffordances';
 import { getRecentTags } from './utils/recentTagStorage';
 import { readTagCache } from './utils/tagCache';
+import { stripTrackingParams } from './utils/trackingParams';
 import Settings from './components/Settings';
 import { clearTwitterCard, fetchPagePreview, showPageCard } from './redux/twitterCardSlice';
 import { isShowablePageCard, readPageMetadata } from './utils/pageMetadata';
@@ -106,9 +112,13 @@ const isLikelyCompleteUrl = (value: string): boolean => {
 
 function App() {
   const dispatch = useDispatch<AppDispatch>();
-  const { formData, initialLoading } = useSelector(
-    (state: RootState) => state.bookmark
-  );
+  const {
+    formData,
+    initialLoading,
+    hasExistingBookmark,
+    trackingStrip,
+    status: bookmarkStatus,
+  } = useSelector((state: RootState) => state.bookmark);
   const { user, token, openAiToken } = useSelector(
     (state: RootState) => state.auth
   );
@@ -147,6 +157,8 @@ function App() {
     card: TwitterCardData | null;
     fallbackTitle: string;
   } | null>(null);
+  // The Pinboard user whose tags are in memory, to spot an account switch.
+  const tagsLoadedForRef = useRef<string | null>(null);
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
@@ -168,15 +180,19 @@ function App() {
       setCredentialsMissing(true);
     }
     const initial = readInitialParams();
-    pendingInitialUrlRef.current = initial.url.trim() || null;
-    initialPageCardRef.current = initial.url.trim()
+    const { url: stripped, removed } = stripTrackingParams(initial.url);
+    pendingInitialUrlRef.current = stripped.trim() || null;
+    // Keyed on the URL the form shows (tracking parameters removed), which is
+    // the one that gets looked up and previewed.
+    initialPageCardRef.current = stripped.trim()
       ? {
-          url: initial.url.trim(),
-          card: readInitialPageCard(initial.url),
+          url: stripped.trim(),
+          card: readInitialPageCard(stripped),
           fallbackTitle: initial.title,
         }
       : null;
     dispatch(setFormData(initial));
+    dispatch(applyTrackingStrip({ original: initial.url, stripped, removed }));
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -194,8 +210,14 @@ function App() {
   useEffect(() => {
     if (!user || !token) return;
     const cached = readTagCache(user);
+    const switchedAccount =
+      tagsLoadedForRef.current !== null && tagsLoadedForRef.current !== user;
+    tagsLoadedForRef.current = user;
     if (cached) {
       dispatch(setTagCounts(cached.counts));
+    } else if (switchedAccount) {
+      // What's in memory is the previous account's tags.
+      dispatch(setTagCounts({}));
     }
 
     try {
@@ -218,12 +240,34 @@ function App() {
     }
   }, [dispatch, user, token]);
 
+  // If the clean URL isn't bookmarked, check whether the tracked one was, so
+  // the form can offer it rather than save a duplicate. It runs once the
+  // lookup has settled rather than alongside it, so it never slows the
+  // lookup down, and the tag refresh waits for it.
+  const shouldCheckTrackedUrl =
+    !!user &&
+    !!token &&
+    !!trackingStrip &&
+    !trackingStrip.restored &&
+    !trackingStrip.checkedOriginal &&
+    lookupStartedFor === trackingStrip.stripped.trim() &&
+    !initialLoading &&
+    !hasExistingBookmark &&
+    // Never alongside a save, nor once the user has saved.
+    bookmarkStatus !== 'saving' &&
+    !trackingStrip.savedAfterStrip;
+  const trackedCheckInFlight = !!trackingStrip?.checkingOriginal;
+
   // Background tag refresh. A stale cache is refreshed only once the
   // bookmark lookup and suggestions have settled, plus a short gap, so the
   // large /tags/get download never delays what the user is waiting on.
   useEffect(() => {
     if (tagRefreshPlan === 'none' || !user || !token) return;
-    const lookupsInFlight = initialLoading || suggestedStatus === 'loading';
+    const lookupsInFlight =
+      initialLoading ||
+      suggestedStatus === 'loading' ||
+      shouldCheckTrackedUrl ||
+      trackedCheckInFlight;
     if (tagRefreshPlan === 'after-lookups' && lookupsInFlight) return;
     const delay = tagRefreshPlan === 'immediate' ? 0 : TAG_REFRESH_GAP_MS;
     const timer = window.setTimeout(() => {
@@ -233,7 +277,16 @@ function App() {
     return () => {
       window.clearTimeout(timer);
     };
-  }, [dispatch, tagRefreshPlan, user, token, initialLoading, suggestedStatus]);
+  }, [
+    dispatch,
+    tagRefreshPlan,
+    user,
+    token,
+    initialLoading,
+    suggestedStatus,
+    shouldCheckTrackedUrl,
+    trackedCheckInFlight,
+  ]);
 
   useEffect(() => {
     // The URL field was emptied or broken: drop the last lookup so re-entering
@@ -273,6 +326,16 @@ function App() {
       setDebouncedUrl(trimmedUrl);
       return;
     }
+    if (
+      trackingStrip &&
+      (trimmedUrl === trackingStrip.original.trim() ||
+        trimmedUrl === trackingStrip.stripped.trim())
+    ) {
+      // The tracking toggle set this URL, not typing: look it up now, so
+      // there's no window to save before the bookmark's details load.
+      setDebouncedUrl(trimmedUrl);
+      return;
+    }
     const timer = window.setTimeout(() => {
       setDebouncedUrl(trimmedUrl);
       urlDebounceTimerRef.current = null;
@@ -291,7 +354,7 @@ function App() {
     return () => {
       window.clearTimeout(timer);
     };
-  }, [dispatch, url]);
+  }, [dispatch, url, trackingStrip]);
 
   // The bookmarklet's own card needs no credentials, so it shows before
   // they're saved too. Once they are, the lookup below asks the bridge.
@@ -317,8 +380,12 @@ function App() {
   useEffect(() => {
     if (!user || !token) return;
     if (!debouncedUrl) return;
-    if (lastLookupUrlRef.current === debouncedUrl) return;
-    lastLookupUrlRef.current = debouncedUrl;
+    // Keyed by account too: after a switch in Settings the loaded bookmark
+    // (and its tags, the save's baseline) belong to the old account, so look
+    // the page up again as the new one.
+    const lookupKey = `${user}\n${debouncedUrl}`;
+    if (lastLookupUrlRef.current === lookupKey) return;
+    lastLookupUrlRef.current = lookupKey;
     setLookupStartedFor(debouncedUrl);
     const initialPage =
       initialPageCardRef.current?.url === debouncedUrl ? initialPageCardRef.current : null;
@@ -355,6 +422,10 @@ function App() {
       dispatch(fetchSuggestedTags(debouncedUrl));
     });
   }, [dispatch, user, token, debouncedUrl]);
+
+  useEffect(() => {
+    if (shouldCheckTrackedUrl) dispatch(checkTrackedBookmark());
+  }, [dispatch, shouldCheckTrackedUrl]);
 
   const initialTagSignatureRef = useRef<string | null>(null);
   const previousUrlRef = useRef<string | null>(null);

@@ -6,9 +6,9 @@ import { configureStore } from '@reduxjs/toolkit';
 import axios from 'axios';
 vi.mock('axios');
 import App from '../App';
-import authReducer from '../redux/authSlice';
+import authReducer, { setAuth } from '../redux/authSlice';
 import bookmarkReducer, { setFormData } from '../redux/bookmarkSlice';
-import tagReducer from '../redux/tagSlice';
+import tagReducer, { setTagCounts } from '../redux/tagSlice';
 import twitterCardReducer from '../redux/twitterCardSlice';
 
 vi.mock('ladda');
@@ -183,6 +183,155 @@ describe('App integration', () => {
     expect(screen.getByText('server_tag')).toBeInTheDocument();
     expect(screen.getByText('Testing Preview')).toBeInTheDocument();
     expect(store.getState().tags.tagCounts).toEqual({ coding: 5 });
+  });
+
+  it('strips tracking parameters from the bookmarklet URL before looking it up', async () => {
+    mockPinboardApi();
+    seedCredentials();
+    window.history.pushState(
+      {},
+      '',
+      '?url=' +
+        encodeURIComponent('https://testing.com/?utm_source=rss&utm_medium=feed')
+    );
+
+    const store = await renderAppWithStore();
+
+    expect(store.getState().bookmark.formData.url).toBe('https://testing.com/');
+    expect(screen.getByText('utm_source, utm_medium')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        expect.stringContaining('posts/get'),
+        expect.anything()
+      )
+    );
+    const lookup = mockedAxios.get.mock.calls.find(([url]) =>
+      url.includes('posts/get')
+    );
+    expect(lookup[0]).toContain(encodeURIComponent('https://testing.com/'));
+    expect(lookup[0]).not.toContain('utm_source');
+  });
+
+  describe('bookmarks saved under the tracked URL', () => {
+    const tracked = 'https://testing.com/?utm_source=rss';
+    let releaseCleanLookup = () => {};
+    const mockLookups = ({ cleanSaved = false, trackedSaved = false, holdClean = false } = {}) => {
+      const cleanHeld = holdClean
+        ? new Promise((resolve) => {
+            releaseCleanLookup = resolve;
+          })
+        : Promise.resolve();
+      mockedAxios.get.mockImplementation(async (url) => {
+        if (url.includes('posts/get')) {
+          const isTracked = url.includes('utm_source');
+          if (!isTracked) await cleanHeld;
+          const posts =
+            isTracked && trackedSaved
+              ? [{ href: tracked, description: 'Saved with tracking', tags: 'old' }]
+              : !isTracked && cleanSaved
+                ? [{ href: 'https://testing.com/', description: 'Saved clean' }]
+                : [];
+          return Promise.resolve({ data: { posts } });
+        }
+        if (url.includes('posts/suggest-with-preview')) {
+          return Promise.resolve({ data: { suggestions: { popular: [], recommended: [] } } });
+        }
+        if (url.includes('tags/get')) {
+          return Promise.resolve({ data: { old: 1 } });
+        }
+        return Promise.reject(new Error(`Unhandled url ${url}`));
+      });
+    };
+    const lookups = () =>
+      mockedAxios.get.mock.calls.map(([url]) => url).filter((url) => url.includes('posts/get'));
+
+    it('checks the tracked URL after the lookup and offers that bookmark', async () => {
+      mockLookups({ trackedSaved: true, holdClean: true });
+      seedCredentials();
+      window.history.pushState({}, '', '?url=' + encodeURIComponent(tracked));
+
+      const store = await renderAppWithStore();
+
+      // Nothing goes to the tracked URL while the clean lookup is in flight.
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+      expect(lookups()).toHaveLength(1);
+      await act(async () => {
+        releaseCleanLookup();
+      });
+
+      await waitFor(() =>
+        expect(
+          screen.getByText(/you bookmarked this before with tracking parameters/i)
+        ).toBeInTheDocument()
+      );
+      expect(lookups()).toHaveLength(2);
+      expect(lookups()[0]).not.toContain('utm_source');
+      expect(lookups()[1]).toContain('utm_source');
+      expect(store.getState().bookmark.formData.url).toBe('https://testing.com/');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Use that bookmark' }));
+      // Loaded straight away from what the check found: no debounce, and no
+      // second request for the same URL.
+      await waitFor(() =>
+        expect(screen.getByDisplayValue('Saved with tracking')).toBeInTheDocument()
+      );
+      expect(lookups()).toHaveLength(2);
+      expect(store.getState().bookmark.formData.url).toBe(tracked);
+      expect(store.getState().bookmark.hasExistingBookmark).toBe(true);
+    });
+
+    it('skips the check when the clean URL is already bookmarked', async () => {
+      mockLookups({ cleanSaved: true, trackedSaved: true });
+      seedCredentials();
+      window.history.pushState({}, '', '?url=' + encodeURIComponent(tracked));
+
+      await renderAppWithStore();
+
+      await waitFor(() => expect(screen.getByDisplayValue('Saved clean')).toBeInTheDocument());
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(lookups()).toHaveLength(1);
+      expect(screen.queryByText(/bookmarked this before/i)).not.toBeInTheDocument();
+    });
+  });
+
+  it('looks the page up again after an account switch, so a save never uses the old account’s bookmark', async () => {
+    mockPinboardApi();
+    seedCredentials();
+    window.history.pushState({}, '', '?url=https%3A%2F%2Ftesting.com%2F');
+    const store = await renderAppWithStore();
+    await waitFor(() =>
+      expect(store.getState().bookmark.existingBookmarkTags).toEqual(['pinboard_tag'])
+    );
+    const lookups = () =>
+      mockedAxios.get.mock.calls.filter(([url]) => url.includes('posts/get')).length;
+    const lookupsBefore = lookups();
+
+    store.dispatch(setTagCounts({ only_old_account: 3 }));
+
+    let resolveSecondLookup;
+    mockedAxios.get.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveSecondLookup = resolve;
+        })
+    );
+    await act(async () => {
+      store.dispatch(setAuth({ user: 'someoneElse', token: 'def' }));
+    });
+
+    expect(lookups()).toBe(lookupsBefore + 1);
+    // The new account has no tag cache, so the old account's tags are cleared.
+    expect(store.getState().tags.tagCounts).not.toHaveProperty('only_old_account');
+    // Until the new account's lookup answers, the old baseline is gone.
+    expect(store.getState().bookmark.existingBookmarkTags).toBeNull();
+    await act(async () => {
+      resolveSecondLookup({ data: { posts: [] } });
+    });
+    expect(store.getState().bookmark.existingBookmarkTags).toEqual([]);
   });
 
   it('submits bookmark successfully and closes the window', async () => {
@@ -402,6 +551,19 @@ describe('App integration', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('shows the bookmarklet card for a URL that had its tracking parameters removed', async () => {
+    mockedAxios.get.mockImplementation((url) => Promise.reject(new Error(`Unexpected call to ${url}`)));
+    window.history.pushState(
+      {},
+      '',
+      '?url=' + encodeURIComponent('https://testing.com/post?utm_source=feed') +
+        '&title=Doc%20Title&meta_description=From%20the%20page'
+    );
+    const store = await renderAppWithStore();
+    expect(store.getState().bookmark.formData.url).toBe('https://testing.com/post');
+    await waitFor(() => expect(store.getState().twitterCard.card?.description).toBe('From the page'));
   });
 
   it('fills a missing preview title from the document title when the page sent no card', async () => {
