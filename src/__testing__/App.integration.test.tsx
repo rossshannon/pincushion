@@ -6,9 +6,9 @@ import { configureStore } from '@reduxjs/toolkit';
 import axios from 'axios';
 vi.mock('axios');
 import App from '../App';
-import authReducer from '../redux/authSlice';
+import authReducer, { setAuth } from '../redux/authSlice';
 import bookmarkReducer from '../redux/bookmarkSlice';
-import tagReducer from '../redux/tagSlice';
+import tagReducer, { setTagCounts } from '../redux/tagSlice';
 import twitterCardReducer from '../redux/twitterCardSlice';
 
 vi.mock('ladda');
@@ -179,6 +179,42 @@ describe('App integration', () => {
     expect(screen.getByText('coding')).toBeInTheDocument();
     expect(screen.getByText('server_tag')).toBeInTheDocument();
     expect(store.getState().tags.tagCounts).toEqual({ coding: 5 });
+  });
+
+  it('looks the page up again after an account switch, so a save never uses the old account’s bookmark', async () => {
+    mockPinboardApi();
+    seedCredentials();
+    window.history.pushState({}, '', '?url=https%3A%2F%2Ftesting.com%2F');
+    const store = await renderAppWithStore();
+    await waitFor(() =>
+      expect(store.getState().bookmark.existingBookmarkTags).toEqual(['pinboard_tag'])
+    );
+    const lookups = () =>
+      mockedAxios.get.mock.calls.filter(([url]) => url.includes('posts/get')).length;
+    const lookupsBefore = lookups();
+
+    store.dispatch(setTagCounts({ only_old_account: 3 }));
+
+    let resolveSecondLookup;
+    mockedAxios.get.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveSecondLookup = resolve;
+        })
+    );
+    await act(async () => {
+      store.dispatch(setAuth({ user: 'someoneElse', token: 'def' }));
+    });
+
+    expect(lookups()).toBe(lookupsBefore + 1);
+    // The new account has no tag cache, so the old account's tags are cleared.
+    expect(store.getState().tags.tagCounts).not.toHaveProperty('only_old_account');
+    // Until the new account's lookup answers, the old baseline is gone.
+    expect(store.getState().bookmark.existingBookmarkTags).toBeNull();
+    await act(async () => {
+      resolveSecondLookup({ data: { posts: [] } });
+    });
+    expect(store.getState().bookmark.existingBookmarkTags).toEqual([]);
   });
 
   it('submits bookmark successfully and closes the window', async () => {

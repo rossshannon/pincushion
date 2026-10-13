@@ -105,6 +105,12 @@ const TagInput: React.FC<TagInputProps> = ({
         paddingLeft: 0,
         paddingRight: 0,
         borderRadius: 0,
+        // Override react-select's red hover; TagInput.css draws the hover
+        // background, only for devices that can really hover.
+        ':hover': {
+          backgroundColor: 'transparent',
+          color: 'inherit',
+        },
       }),
     }),
     []
@@ -217,6 +223,12 @@ const TagInput: React.FC<TagInputProps> = ({
         MultiValueRemove,
       }}
       styles={selectStyles}
+      // react-select has no --is-focused modifier for chips; add one so the
+      // CSS can reveal the remove button on a chip picked with the arrow keys.
+      classNames={{
+        multiValue: ({ isFocused }) =>
+          isFocused ? 'pincushion-tag-select__multi-value--is-focused' : '',
+      }}
       loadOptions={loadOptions}
       defaultOptions={defaultOptionsList}
       createOptionPosition="last"

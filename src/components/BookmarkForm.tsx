@@ -257,7 +257,9 @@ function BookmarkForm() {
     const el = descRef.current;
     if (!el || supportsFieldSizing) return;
     el.style.height = 'auto';
-    el.style.height = `${el.scrollHeight}px`;
+    // scrollHeight excludes the border, but box-sizing is border-box, so add
+    // it back or the box comes up short and overflow-y shows a scrollbar.
+    el.style.height = `${el.scrollHeight + el.offsetHeight - el.clientHeight}px`;
   };
 
   useEffect(() => {

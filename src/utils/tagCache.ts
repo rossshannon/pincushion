@@ -29,6 +29,24 @@ const getStorage = (): Storage | null => {
 const isTagCounts = (value: unknown): value is TagCounts =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
+/**
+ * Pinboard's /v1/tags/get JSON gives each count as a string ("12"), and the
+ * bridge passes it through untouched. Coerce to numbers once, on the way in,
+ * so incrementing a count adds rather than concatenates ("12" + 1 = "121").
+ * Anything that isn't a tag-to-count object (an empty account can come back
+ * as []) becomes {}.
+ */
+export const normalizeTagCounts = (value: unknown): TagCounts => {
+  if (!isTagCounts(value)) return {};
+  // fromEntries defines own properties, so a tag named __proto__ survives.
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([tag, count]) => {
+      const numeric = Number(count);
+      return [tag, Number.isFinite(numeric) ? numeric : 0];
+    })
+  );
+};
+
 export const readTagCache = (user: string): TagCacheEntry | null => {
   const storage = getStorage();
   if (!storage) return null;
@@ -36,29 +54,39 @@ export const readTagCache = (user: string): TagCacheEntry | null => {
     const raw = storage.getItem(TAGS_KEY);
     if (!raw) return null;
     const cachedUser = storage.getItem(USER_KEY);
-    // Entries written before the cache was keyed by user have no owner
-    // recorded; treat them as belonging to the current user rather than
-    // throwing away a perfectly good cache on upgrade.
     if (cachedUser && cachedUser !== user) return null;
     const parsed: unknown = JSON.parse(raw);
     if (!isTagCounts(parsed)) return null;
     const timestampRaw = storage.getItem(TIMESTAMP_KEY);
     const timestamp = timestampRaw ? parseInt(timestampRaw, 10) : NaN;
-    const ageMs = Number.isFinite(timestamp)
-      ? Math.max(Date.now() - timestamp, 0)
-      : Number.POSITIVE_INFINITY;
-    return { counts: parsed, ageMs };
+    // Entries written before the cache was keyed by user have no owner
+    // recorded. Show them rather than throw away a good cache on upgrade,
+    // but treat them as stale so they are replaced by this user's own tags
+    // on the next refresh: they may belong to a different account.
+    const ageMs =
+      cachedUser && Number.isFinite(timestamp)
+        ? Math.max(Date.now() - timestamp, 0)
+        : Number.POSITIVE_INFINITY;
+    return { counts: normalizeTagCounts(parsed), ageMs };
   } catch {
     return null;
   }
 };
 
-export const writeTagCache = (user: string, counts: TagCounts): boolean => {
+/**
+ * Store a fresh snapshot. Pass `stale` when the counts may be off (a save
+ * landed while they downloaded), so the next popup refreshes them.
+ */
+export const writeTagCache = (
+  user: string,
+  counts: TagCounts,
+  { stale = false }: { stale?: boolean } = {}
+): boolean => {
   const storage = getStorage();
   if (!storage) return false;
   try {
     storage.setItem(TAGS_KEY, JSON.stringify(counts));
-    storage.setItem(TIMESTAMP_KEY, Date.now().toString());
+    storage.setItem(TIMESTAMP_KEY, stale ? '0' : Date.now().toString());
     storage.setItem(USER_KEY, user);
     return true;
   } catch {
@@ -110,8 +138,9 @@ export const bumpTagCache = (user: string, delta: TagDelta): boolean => {
   if (!entry) return false;
   const counts = applyTagDelta(entry.counts, delta);
   try {
+    // Leaves the owner alone too: stamping a legacy, ownerless cache with
+    // this user would make it look fresh and theirs when it may be neither.
     storage.setItem(TAGS_KEY, JSON.stringify(counts));
-    storage.setItem(USER_KEY, user);
     return true;
   } catch {
     return false;
@@ -124,17 +153,18 @@ export const bumpTagCache = (user: string, delta: TagDelta): boolean => {
  * Pinboard's /tags/get would report once the bookmark no longer uses it.
  */
 export const applyTagDelta = (counts: TagCounts, delta: TagDelta): TagCounts => {
-  const next: TagCounts = { ...counts };
+  // A Map, not object assignment, so a tag named __proto__ is counted.
+  const next = new Map(Object.entries(counts));
   normalizeTagList(delta.added).forEach((tag) => {
-    next[tag] = (next[tag] || 0) + 1;
+    next.set(tag, (Number(next.get(tag)) || 0) + 1);
   });
   normalizeTagList(delta.removed).forEach((tag) => {
-    const remaining = (next[tag] || 0) - 1;
+    const remaining = (Number(next.get(tag)) || 0) - 1;
     if (remaining > 0) {
-      next[tag] = remaining;
+      next.set(tag, remaining);
     } else {
-      delete next[tag];
+      next.delete(tag);
     }
   });
-  return next;
+  return Object.fromEntries(next);
 };
