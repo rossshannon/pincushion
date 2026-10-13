@@ -6,7 +6,7 @@ import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 
 import BookmarkForm from '../components/BookmarkForm';
-import { setFormData } from '../redux/bookmarkSlice';
+import { setFormData, removeUrlFragment } from '../redux/bookmarkSlice';
 
 const mockStore = configureStore([]);
 
@@ -106,9 +106,7 @@ describe('BookmarkForm Component', () => {
     fireEvent.click(removeHashButton);
 
     // Check dispatch on the current store instance
-    expect(store.dispatch).toHaveBeenCalledWith(
-      setFormData({ url: testUrlWithoutHash })
-    );
+    expect(store.dispatch).toHaveBeenCalledWith(removeUrlFragment());
 
     // --- Simulate state update after clicking ---
     initialState.bookmark.formData.url = testUrlWithoutHash;

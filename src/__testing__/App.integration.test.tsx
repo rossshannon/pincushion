@@ -181,6 +181,119 @@ describe('App integration', () => {
     expect(store.getState().tags.tagCounts).toEqual({ coding: 5 });
   });
 
+  it('strips tracking parameters from the bookmarklet URL before looking it up', async () => {
+    mockPinboardApi();
+    seedCredentials();
+    window.history.pushState(
+      {},
+      '',
+      '?url=' +
+        encodeURIComponent('https://testing.com/?utm_source=rss&utm_medium=feed')
+    );
+
+    const store = await renderAppWithStore();
+
+    expect(store.getState().bookmark.formData.url).toBe('https://testing.com/');
+    expect(screen.getByText('utm_source, utm_medium')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        expect.stringContaining('posts/get'),
+        expect.anything()
+      )
+    );
+    const lookup = mockedAxios.get.mock.calls.find(([url]) =>
+      url.includes('posts/get')
+    );
+    expect(lookup[0]).toContain(encodeURIComponent('https://testing.com/'));
+    expect(lookup[0]).not.toContain('utm_source');
+  });
+
+  describe('bookmarks saved under the tracked URL', () => {
+    const tracked = 'https://testing.com/?utm_source=rss';
+    let releaseCleanLookup = () => {};
+    const mockLookups = ({ cleanSaved = false, trackedSaved = false, holdClean = false } = {}) => {
+      const cleanHeld = holdClean
+        ? new Promise((resolve) => {
+            releaseCleanLookup = resolve;
+          })
+        : Promise.resolve();
+      mockedAxios.get.mockImplementation(async (url) => {
+        if (url.includes('posts/get')) {
+          const isTracked = url.includes('utm_source');
+          if (!isTracked) await cleanHeld;
+          const posts =
+            isTracked && trackedSaved
+              ? [{ href: tracked, description: 'Saved with tracking', tags: 'old' }]
+              : !isTracked && cleanSaved
+                ? [{ href: 'https://testing.com/', description: 'Saved clean' }]
+                : [];
+          return Promise.resolve({ data: { posts } });
+        }
+        if (url.includes('posts/suggest-with-preview')) {
+          return Promise.resolve({ data: { suggestions: { popular: [], recommended: [] } } });
+        }
+        if (url.includes('tags/get')) {
+          return Promise.resolve({ data: { old: 1 } });
+        }
+        return Promise.reject(new Error(`Unhandled url ${url}`));
+      });
+    };
+    const lookups = () =>
+      mockedAxios.get.mock.calls.map(([url]) => url).filter((url) => url.includes('posts/get'));
+
+    it('checks the tracked URL after the lookup and offers that bookmark', async () => {
+      mockLookups({ trackedSaved: true, holdClean: true });
+      seedCredentials();
+      window.history.pushState({}, '', '?url=' + encodeURIComponent(tracked));
+
+      const store = await renderAppWithStore();
+
+      // Nothing goes to the tracked URL while the clean lookup is in flight.
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+      expect(lookups()).toHaveLength(1);
+      await act(async () => {
+        releaseCleanLookup();
+      });
+
+      await waitFor(() =>
+        expect(
+          screen.getByText(/you bookmarked this before with tracking parameters/i)
+        ).toBeInTheDocument()
+      );
+      expect(lookups()).toHaveLength(2);
+      expect(lookups()[0]).not.toContain('utm_source');
+      expect(lookups()[1]).toContain('utm_source');
+      expect(store.getState().bookmark.formData.url).toBe('https://testing.com/');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Use that bookmark' }));
+      // Loaded straight away from what the check found: no debounce, and no
+      // second request for the same URL.
+      await waitFor(() =>
+        expect(screen.getByDisplayValue('Saved with tracking')).toBeInTheDocument()
+      );
+      expect(lookups()).toHaveLength(2);
+      expect(store.getState().bookmark.formData.url).toBe(tracked);
+      expect(store.getState().bookmark.hasExistingBookmark).toBe(true);
+    });
+
+    it('skips the check when the clean URL is already bookmarked', async () => {
+      mockLookups({ cleanSaved: true, trackedSaved: true });
+      seedCredentials();
+      window.history.pushState({}, '', '?url=' + encodeURIComponent(tracked));
+
+      await renderAppWithStore();
+
+      await waitFor(() => expect(screen.getByDisplayValue('Saved clean')).toBeInTheDocument());
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(lookups()).toHaveLength(1);
+      expect(screen.queryByText(/bookmarked this before/i)).not.toBeInTheDocument();
+    });
+  });
+
   it('looks the page up again after an account switch, so a save never uses the old account’s bookmark', async () => {
     mockPinboardApi();
     seedCredentials();

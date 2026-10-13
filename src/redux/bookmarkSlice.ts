@@ -59,6 +59,38 @@ export type BookmarkState = {
   // The lookup that was current when the save started; a save that ends
   // after a newer lookup (a new URL or account) must not set the baseline.
   savingLookupId: string | null;
+  /**
+   * Set when tracking parameters were stripped from the URL, so the form can
+   * say what went and offer to put it back. Cleared once the user edits the
+   * URL by hand.
+   */
+  trackingStrip: TrackingStrip | null;
+};
+
+export type TrackingStrip = {
+  original: string;
+  stripped: string;
+  removed: string[];
+  /** True while the original URL is in the form. */
+  restored: boolean;
+  /** Whether the original URL has been looked up on Pinboard yet. */
+  checkedOriginal: boolean;
+  /** True while checkTrackedBookmark is waiting on Pinboard. */
+  checkingOriginal: boolean;
+  /** True when that lookup found a bookmark saved under the original URL. */
+  savedWithTracking: boolean;
+  /** What checkTrackedBookmark found, so "Use that bookmark" needn't ask again. */
+  trackedPost?: PinboardPost;
+  /**
+   * The user's own draft of the form's other fields: the bookmarklet's
+   * values at first, then whatever the form held the last time the user
+   * toggled away while no saved bookmark was loaded. Toggling away from a
+   * loaded bookmark goes back to this, so that bookmark's title, notes and
+   * tags don't become a second bookmark under the other URL.
+   */
+  draftFields: Omit<BookmarkFormData, 'url'>;
+  /** Set once the user saves; the tracked-URL offer no longer applies. */
+  savedAfterStrip: boolean;
 };
 
 type BookmarkThunkState = {
@@ -266,6 +298,28 @@ export const submitBookmark = createAsyncThunk<
   }
 );
 
+const lookupPost = async (
+  url: string,
+  user: string,
+  token: string
+): Promise<PinboardPost | null> => {
+  const lookup = async (encodedUrl: string) => {
+    const response = await axios.get(
+      bridgeUrl(`/v1/posts/get?format=json&url=${encodedUrl}`),
+      bridgeRequestConfig(user, token, REQUEST_TIMEOUTS_MS.lookup)
+    );
+    const posts = response.data.posts;
+    return posts && posts.length === 1 ? (posts[0] as PinboardPost) : null;
+  };
+  // Look the page up without its #fragment first. Pinboard keeps the
+  // href exactly as saved, though, so a miss for a URL with a fragment
+  // doesn't rule out a bookmark saved with that fragment: check that too
+  // before reporting "not found", which lets the save overwrite.
+  const post = await lookup(cleanUrl(url));
+  if (post || !url.includes('#')) return post;
+  return await lookup(encodeURIComponent(url));
+};
+
 // Fetch existing bookmark details if any
 export const fetchBookmarkDetails = createAsyncThunk<
   PinboardPost | null,
@@ -278,26 +332,20 @@ export const fetchBookmarkDetails = createAsyncThunk<
       auth: { user, token },
       bookmark: {
         formData: { url },
+        trackingStrip,
       },
     } = getState();
     const targetUrl = overrideUrl || url;
     if (!user || !token || !targetUrl) return null;
+    if (
+      trackingStrip?.trackedPost &&
+      targetUrl.trim() === trackingStrip.original.trim()
+    ) {
+      // checkTrackedBookmark already fetched this one.
+      return trackingStrip.trackedPost;
+    }
     try {
-      const lookup = async (encodedUrl: string) => {
-        const response = await axios.get(
-          bridgeUrl(`/v1/posts/get?format=json&url=${encodedUrl}`),
-          bridgeRequestConfig(user, token, REQUEST_TIMEOUTS_MS.lookup)
-        );
-        const posts = response.data.posts;
-        return posts && posts.length === 1 ? (posts[0] as PinboardPost) : null;
-      };
-      // Look the page up without its #fragment first. Pinboard keeps the
-      // href exactly as saved, though, so a miss for a URL with a fragment
-      // doesn't rule out a bookmark saved with that fragment: check that too
-      // before reporting "not found", which lets the save overwrite.
-      const post = await lookup(cleanUrl(targetUrl));
-      if (post || !targetUrl.includes('#')) return post;
-      return await lookup(encodeURIComponent(targetUrl));
+      return await lookupPost(targetUrl, user, token);
     } catch (err) {
       if (isUrlTooLongError(err)) {
         return rejectWithValue(`${ERROR_MESSAGES.URL_TOO_LONG} (HTTP 414).`);
@@ -311,6 +359,34 @@ export const fetchBookmarkDetails = createAsyncThunk<
           : 'Failed to load existing bookmark details.';
       return rejectWithValue(message);
     }
+  }
+);
+
+// Was the URL bookmarked before with the tracking parameters we stripped?
+// Best-effort: any failure counts as "no".
+export const checkTrackedBookmark = createAsyncThunk<
+  PinboardPost | null,
+  void,
+  { state: BookmarkThunkState }
+>(
+  'bookmark/checkTrackedBookmark',
+  async (_, { getState }) => {
+    const {
+      auth: { user, token },
+      bookmark: { trackingStrip },
+    } = getState();
+    if (!user || !token || !trackingStrip) return null;
+    try {
+      return await lookupPost(trackingStrip.original, user, token);
+    } catch {
+      return null;
+    }
+  },
+  {
+    condition: (_, { getState }) => {
+      const strip = getState().bookmark.trackingStrip;
+      return !!strip && !strip.checkedOriginal && !strip.checkingOriginal;
+    },
   }
 );
 
@@ -344,6 +420,7 @@ const initialState: BookmarkState = {
   savingUrl: '',
   savingTags: [],
   savingLookupId: null,
+  trackingStrip: null,
 };
 
 const bookmarkSlice = createSlice({
@@ -355,12 +432,98 @@ const bookmarkSlice = createSlice({
       if (Object.prototype.hasOwnProperty.call(updates, 'tags')) {
         updates.tags = toTagArray(updates.tags);
       }
+      if (
+        typeof updates.url === 'string' &&
+        updates.url !== state.formData.url
+      ) {
+        state.trackingStrip = null;
+      }
       state.formData = { ...state.formData, ...updates };
       Object.keys(updates).forEach((fieldName) => {
         if (isBookmarkErrorKey(fieldName)) {
           state.errors[fieldName] = null;
         }
       });
+    },
+    // Put the URL with its tracking parameters stripped into the form,
+    // remembering the original so it can be restored.
+    applyTrackingStrip(
+      state,
+      action: PayloadAction<{
+        original: string;
+        stripped: string;
+        removed: string[];
+      }>
+    ) {
+      const { original, stripped, removed } = action.payload;
+      if (removed.length === 0 || state.formData.url !== original) return;
+      const { title, description, tags, toread } = state.formData;
+      state.formData.url = stripped;
+      state.errors.url = null;
+      state.trackingStrip = {
+        draftFields: {
+          title,
+          description,
+          tags: [...tags],
+          private: state.formData.private,
+          toread,
+        },
+        savedAfterStrip: false,
+        original,
+        stripped,
+        removed,
+        restored: false,
+        checkedOriginal: false,
+        checkingOriginal: false,
+        savedWithTracking: false,
+      };
+    },
+    // The "#" button. Drops the fragment from both versions of a stripped
+    // URL too, so the tracking note and its toggle survive.
+    removeUrlFragment(state) {
+      const dropFragment = (value: string) => value.replace(/#.*$/, '');
+      state.formData.url = dropFragment(state.formData.url);
+      state.errors.url = null;
+      const strip = state.trackingStrip;
+      if (strip) {
+        strip.original = dropFragment(strip.original);
+        strip.stripped = dropFragment(strip.stripped);
+      }
+    },
+    toggleTrackingStrip(state) {
+      const strip = state.trackingStrip;
+      if (!strip) return;
+      strip.restored = !strip.restored;
+      if (!state.hasExistingBookmark) {
+        // No saved bookmark loaded, so the form is the user's own draft.
+        const { title, description, tags, toread } = state.formData;
+        strip.draftFields = {
+          title,
+          description,
+          tags: [...tags],
+          private: state.formData.private,
+          toread,
+        };
+      } else {
+        // The form shows the bookmark saved under the URL we're leaving.
+        // Start the other URL from the user's draft instead.
+        state.formData = {
+          ...state.formData,
+          ...strip.draftFields,
+          tags: [...strip.draftFields.tags],
+        };
+        state.hasExistingBookmark = false;
+        state.existingBookmarkTime = null;
+        state.displayOriginalTimestamp = false;
+        // Unknown until the other URL's lookup answers. The form no longer
+        // holds anything a lookup loaded, and none of its tags were typed
+        // during one.
+        state.existingBookmarkTags = null;
+        state.existingBookmarkUrl = null;
+        state.loadedTagsAtLookupStart = [];
+      }
+      state.formData.url = strip.restored ? strip.original : strip.stripped;
+      state.errors.url = null;
     },
     resetStatus(state) {
       state.status = 'idle';
@@ -431,10 +594,24 @@ const bookmarkSlice = createSlice({
         // Reset errors on success
         state.errors = { ...initialState.errors };
         const post = action.payload;
+        const strip = state.trackingStrip;
+        if (strip && normalizedUrl === strip.original.trim()) {
+          // The user put the tracked URL back, so this answers the check.
+          strip.checkedOriginal = true;
+          strip.savedWithTracking = !!post;
+        }
         if (post) {
           // Populate formData from existing bookmark
           state.formData.title = post.description || state.formData.title;
           state.formData.url = post.href || state.formData.url;
+          if (strip) {
+            // Keep the toggle in step with the URL Pinboard has on file.
+            if (strip.restored) {
+              strip.original = state.formData.url;
+            } else {
+              strip.stripped = state.formData.url;
+            }
+          }
           state.formData.description =
             post.extended || state.formData.description;
           const savedTags = toTagArray(post.tags);
@@ -469,6 +646,24 @@ const bookmarkSlice = createSlice({
           );
         }
       })
+      .addCase(checkTrackedBookmark.pending, (state) => {
+        if (state.trackingStrip) state.trackingStrip.checkingOriginal = true;
+      })
+      .addCase(checkTrackedBookmark.fulfilled, (state, action) => {
+        const strip = state.trackingStrip;
+        if (!strip) return;
+        strip.checkingOriginal = false;
+        if (strip.checkedOriginal) return; // A lookup of it answered first.
+        strip.checkedOriginal = true;
+        if (strip.savedAfterStrip) return;
+        strip.savedWithTracking = action.payload !== null;
+        if (action.payload) strip.trackedPost = action.payload;
+      })
+      .addCase(checkTrackedBookmark.rejected, (state) => {
+        if (!state.trackingStrip) return;
+        state.trackingStrip.checkingOriginal = false;
+        state.trackingStrip.checkedOriginal = true;
+      })
       .addCase(fetchBookmarkDetails.rejected, (state, action) => {
         if (
           state.lastFetchRequestId &&
@@ -494,6 +689,16 @@ const bookmarkSlice = createSlice({
           return;
         }
 
+        const strip = state.trackingStrip;
+        if (
+          strip &&
+          normalizedUrl === strip.stripped.trim() &&
+          action.payload?.startsWith(ERROR_MESSAGES.URL_TOO_LONG)
+        ) {
+          // The tracked URL is longer still: checking it would only 414 too.
+          strip.checkedOriginal = true;
+        }
+
         // Set generic error, ensure full errors object exists
         state.errors = {
           ...initialState.errors,
@@ -513,6 +718,13 @@ const bookmarkSlice = createSlice({
       .addCase(submitBookmark.fulfilled, (state, action) => {
         const alreadyHadBookmark = state.displayOriginalTimestamp;
         state.status = 'success';
+        const strip = state.trackingStrip;
+        if (strip) {
+          // Saved: the tracked URL's bookmark is no longer worth offering.
+          strip.savedAfterStrip = true;
+          delete strip.trackedPost;
+          if (!strip.restored) strip.savedWithTracking = false;
+        }
         state.data = action.payload;
         state.hasExistingBookmark = true;
         if (!state.existingBookmarkTime) {
@@ -563,5 +775,12 @@ const bookmarkSlice = createSlice({
   },
 });
 
-export const { setFormData, resetStatus, clearStatus } = bookmarkSlice.actions;
+export const {
+  setFormData,
+  applyTrackingStrip,
+  removeUrlFragment,
+  toggleTrackingStrip,
+  resetStatus,
+  clearStatus,
+} = bookmarkSlice.actions;
 export default bookmarkSlice.reducer;

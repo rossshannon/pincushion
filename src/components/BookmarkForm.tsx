@@ -5,6 +5,8 @@ import { getTimestampFormats } from '../utils/date';
 import { isLikelyTouchDevice } from '../utils/popupAffordances';
 import {
   setFormData,
+  removeUrlFragment,
+  toggleTrackingStrip,
   submitBookmark,
   resetStatus,
   clearStatus,
@@ -46,6 +48,7 @@ function BookmarkForm() {
     existingBookmarkTime,
     hasExistingBookmark,
     displayOriginalTimestamp,
+    trackingStrip,
   } = useSelector((state: RootState) => state.bookmark);
   const userTags = useSelector((state: RootState) => state.tags.tagCounts);
   const suggestions = useSelector((state: RootState) =>
@@ -293,6 +296,9 @@ function BookmarkForm() {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    // Hold off while we check for a bookmark under the tracked URL: saving
+    // now could make a duplicate of it.
+    if (trackingStrip?.checkingOriginal) return;
     dispatch(submitBookmark());
   };
 
@@ -329,7 +335,11 @@ function BookmarkForm() {
           data-spinner-size="30"
           data-color="blue"
           type="submit"
-          disabled={initialLoading || status === 'saving'}
+          disabled={
+            initialLoading ||
+            status === 'saving' ||
+            !!trackingStrip?.checkingOriginal
+          }
           tabIndex={7}
         >
           <span className="ladda-label text">{buttonText()}</span>
@@ -388,8 +398,9 @@ function BookmarkForm() {
               // pops up.
               if (shouldAutoFocusTags) urlRef.current?.focus({ preventScroll: true });
               else event.currentTarget.blur();
-              const cleanUrl = formData.url.replace(/#.*$/, '');
-              dispatch(setFormData({ url: cleanUrl }));
+              // The reducer drops the fragment from both sides of the
+              // tracking toggle too, so its Undo survives.
+              dispatch(removeUrlFragment());
             }}
             onAnimationEnd={(event) => {
               // bounce-in can also end mid-exit; only the exit unmounts.
@@ -404,6 +415,41 @@ function BookmarkForm() {
           </button>
         )}
         {errors?.url && <span className="helptext">{errors.url}</span>}
+        <p className="tracking-note">
+          {/* Always mounted so screen readers announce what gets put in it. */}
+          <span role="status" id="tracking-note-status">
+            {trackingStrip?.restored ? (
+              <>Kept tracking parameters</>
+            ) : trackingStrip?.savedWithTracking ? (
+              <>You bookmarked this before with tracking parameters</>
+            ) : trackingStrip ? (
+              <>
+                Removed tracking:{' '}
+                <span className="tracking-note__params">
+                  {trackingStrip.removed.join(', ')}
+                </span>
+              </>
+            ) : null}
+          </span>
+          {trackingStrip && (
+            <>
+              {' '}
+              <button
+                type="button"
+                className="tracking-note__toggle"
+                aria-describedby="tracking-note-status"
+                tabIndex={2}
+                onClick={() => dispatch(toggleTrackingStrip())}
+              >
+                {trackingStrip.restored
+                  ? 'Remove'
+                  : trackingStrip.savedWithTracking
+                    ? 'Use that bookmark'
+                    : 'Undo'}
+              </button>
+            </>
+          )}
+        </p>
       </div>
 
       <label htmlFor="description" className={errors?.description ? 'error' : ''}>

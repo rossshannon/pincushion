@@ -2,9 +2,13 @@ import { vi } from 'vitest';
 import axios from 'axios';
 import bookmarkReducer, {
   setFormData,
+  applyTrackingStrip,
+  removeUrlFragment,
+  toggleTrackingStrip,
   resetStatus,
   submitBookmark,
   fetchBookmarkDetails,
+  checkTrackedBookmark,
 } from '../../redux/bookmarkSlice';
 import { configureStore } from '@reduxjs/toolkit'; // Needed for thunk testing
 import authReducer, { setAuth } from '../../redux/authSlice';
@@ -45,6 +49,7 @@ const initialState = {
   savingUrl: '',
   savingTags: [],
   savingLookupId: null,
+  trackingStrip: null,
 };
 
 // Helper to create a mock store
@@ -838,5 +843,404 @@ describe('bookmark slice', () => {
         expect(state.errors.generic).toEqual(errorMessage);
       });
     });
+  });
+});
+
+describe('tracking parameter stripping', () => {
+  const tracked = 'https://example.com/post?id=7&utm_source=news#top';
+  const clean = 'https://example.com/post?id=7#top';
+  const strip = { original: tracked, stripped: clean, removed: ['utm_source'] };
+
+  const loaded = () =>
+    bookmarkReducer(
+      bookmarkReducer(initialState, setFormData({ url: tracked })),
+      applyTrackingStrip(strip)
+    );
+
+  it('strips the URL and remembers what it removed', () => {
+    const state = loaded();
+    expect(state.formData.url).toBe(clean);
+    expect(state.trackingStrip).toEqual({
+      ...strip,
+      restored: false,
+      checkedOriginal: false,
+      checkingOriginal: false,
+      savedWithTracking: false,
+      draftFields: {
+        title: '',
+        description: '',
+        tags: [],
+        private: false,
+        toread: false,
+      },
+      savedAfterStrip: false,
+    });
+  });
+
+  it('does nothing when nothing was removed', () => {
+    const url = 'https://example.com/?id=7';
+    const before = bookmarkReducer(initialState, setFormData({ url }));
+    const after = bookmarkReducer(
+      before,
+      applyTrackingStrip({ original: url, stripped: url, removed: [] })
+    );
+    expect(after.formData.url).toBe(url);
+    expect(after.trackingStrip).toBeNull();
+  });
+
+  it('toggles between the original and stripped URL', () => {
+    const restored = bookmarkReducer(loaded(), toggleTrackingStrip());
+    expect(restored.formData.url).toBe(tracked);
+    expect(restored.trackingStrip?.restored).toBe(true);
+
+    const reStripped = bookmarkReducer(restored, toggleTrackingStrip());
+    expect(reStripped.formData.url).toBe(clean);
+    expect(reStripped.trackingStrip?.restored).toBe(false);
+  });
+
+  it('forgets the strip once the user edits the URL', () => {
+    const edited = bookmarkReducer(
+      loaded(),
+      setFormData({ url: 'https://example.com/other' })
+    );
+    expect(edited.trackingStrip).toBeNull();
+  });
+
+  it('keeps the strip when other fields change', () => {
+    const edited = bookmarkReducer(loaded(), setFormData({ title: 'New' }));
+    expect(edited.trackingStrip?.removed).toEqual(['utm_source']);
+  });
+
+  it('drops the fragment from both URLs when # is pressed, keeping undo', () => {
+    const state = bookmarkReducer(loaded(), removeUrlFragment());
+    expect(state.formData.url).toBe('https://example.com/post?id=7');
+    const restored = bookmarkReducer(state, toggleTrackingStrip());
+    expect(restored.formData.url).toBe(
+      'https://example.com/post?id=7&utm_source=news'
+    );
+  });
+
+  it('drops the fragment when nothing was stripped', () => {
+    const state = bookmarkReducer(
+      bookmarkReducer(initialState, setFormData({ url: 'https://a.com/#x' })),
+      removeUrlFragment()
+    );
+    expect(state.formData.url).toBe('https://a.com/');
+    expect(state.trackingStrip).toBeNull();
+  });
+
+  describe('checking for a bookmark under the tracked URL', () => {
+    beforeEach(() => {
+      mockedAxios.get.mockReset();
+    });
+
+    const storeWithStrip = (pageFields = {}) => {
+      const store = createMockStore();
+      store.dispatch(setFormData({ url: tracked, ...pageFields }));
+      store.dispatch(applyTrackingStrip(strip));
+      return store;
+    };
+
+    it('flags the strip when the tracked URL was bookmarked', async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: { posts: [{ href: tracked, description: 'Old' }] },
+      });
+      const store = storeWithStrip();
+      await store.dispatch(checkTrackedBookmark());
+
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+      expect(mockedAxios.get.mock.calls[0][0]).toContain('utm_source');
+      const state = store.getState().bookmark;
+      // The form doesn't change on its own: the user picks.
+      expect(state.formData.url).toBe(clean);
+      expect(state.trackingStrip).toMatchObject({
+        checkedOriginal: true,
+        checkingOriginal: false,
+        savedWithTracking: true,
+        restored: false,
+      });
+
+      // "Use that bookmark" puts the tracked URL back.
+      store.dispatch(toggleTrackingStrip());
+      expect(store.getState().bookmark.formData.url).toBe(tracked);
+    });
+
+    it('serves "Use that bookmark" from what the check found', async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: { posts: [{ href: tracked, description: 'Old' }] },
+      });
+      const store = storeWithStrip();
+      await store.dispatch(checkTrackedBookmark());
+      store.dispatch(toggleTrackingStrip());
+      await store.dispatch(fetchBookmarkDetails(tracked));
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+      expect(store.getState().bookmark.formData.title).toBe('Old');
+      expect(store.getState().bookmark.hasExistingBookmark).toBe(true);
+    });
+
+    it('leaves the flag off when it was not', async () => {
+      mockedAxios.get.mockResolvedValueOnce({ data: { posts: [] } });
+      const store = storeWithStrip();
+      await store.dispatch(checkTrackedBookmark());
+      expect(store.getState().bookmark.trackingStrip).toMatchObject({
+        checkedOriginal: true,
+        savedWithTracking: false,
+      });
+    });
+
+    it('treats a failed check as "not bookmarked", with no error shown', async () => {
+      mockedAxios.get.mockRejectedValueOnce(
+        Object.assign(new Error('Too long'), { response: { status: 414 } })
+      );
+      const store = storeWithStrip();
+      await store.dispatch(checkTrackedBookmark());
+      const state = store.getState().bookmark;
+      expect(state.errors).toEqual(initialState.errors);
+      expect(state.trackingStrip?.savedWithTracking).toBe(false);
+    });
+
+    it('drops the result if the user edited the URL meanwhile', async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: { posts: [{ href: tracked }] },
+      });
+      const store = storeWithStrip();
+      const check = store.dispatch(checkTrackedBookmark());
+      store.dispatch(setFormData({ url: 'https://typed.com/' }));
+      await check;
+      expect(store.getState().bookmark.trackingStrip).toBeNull();
+    });
+
+    it('runs at most once per strip', async () => {
+      mockedAxios.get.mockResolvedValue({ data: { posts: [] } });
+      const store = storeWithStrip();
+      await store.dispatch(checkTrackedBookmark());
+      // One check (two requests: the tracked URL has a #fragment).
+      const callsForOneCheck = mockedAxios.get.mock.calls.length;
+      await Promise.all([
+        store.dispatch(checkTrackedBookmark()),
+        store.dispatch(checkTrackedBookmark()),
+      ]);
+      expect(mockedAxios.get).toHaveBeenCalledTimes(callsForOneCheck);
+    });
+
+    it('does not offer the old bookmark once the user has saved', async () => {
+      let resolveCheck;
+      mockedAxios.get.mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveCheck = resolve;
+        })
+      );
+      const store = storeWithStrip();
+      const check = store.dispatch(checkTrackedBookmark());
+      store.dispatch(setFormData({ title: 'A title' }));
+      mockedAxios.get.mockResolvedValueOnce({ data: { result_code: 'done' } });
+      await store.dispatch(submitBookmark());
+      resolveCheck({ data: { posts: [{ href: tracked }] } });
+      await check;
+      expect(store.getState().bookmark.status).toBe('success');
+      expect(store.getState().bookmark.trackingStrip?.savedWithTracking).toBe(
+        false
+      );
+    });
+
+    it('counts a lookup of the restored URL as the check', async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: { posts: [{ href: tracked, description: 'Old' }] },
+      });
+      const store = storeWithStrip();
+      store.dispatch(toggleTrackingStrip());
+      await store.dispatch(fetchBookmarkDetails(tracked));
+      expect(store.getState().bookmark.trackingStrip).toMatchObject({
+        checkedOriginal: true,
+        savedWithTracking: true,
+      });
+      await store.dispatch(checkTrackedBookmark());
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+    });
+
+    it("drops the old bookmark's fields when Remove follows Use that bookmark", async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          posts: [
+            {
+              href: tracked,
+              description: 'Old title',
+              extended: 'Old notes',
+              tags: 'old',
+              shared: 'no',
+              time: '2020-01-01T00:00:00Z',
+            },
+          ],
+        },
+      });
+      const store = storeWithStrip({ title: 'Page title', tags: ['mine'] });
+      store.dispatch(toggleTrackingStrip()); // Use that bookmark
+      await store.dispatch(fetchBookmarkDetails(tracked));
+      expect(store.getState().bookmark.formData.title).toBe('Old title');
+
+      store.dispatch(toggleTrackingStrip()); // Remove
+      const state = store.getState().bookmark;
+      expect(state.formData).toEqual({
+        url: clean,
+        title: 'Page title',
+        description: '',
+        tags: ['mine'],
+        private: false,
+        toread: false,
+      });
+      expect(state.hasExistingBookmark).toBe(false);
+      // Unknown until the clean URL's lookup answers.
+      expect(state.existingBookmarkTags).toBeNull();
+      expect(state.existingBookmarkTime).toBeNull();
+    });
+
+    it("drops the clean bookmark's fields when Undo finds nothing under the tracked URL", async () => {
+      mockedAxios.get
+        .mockResolvedValueOnce({
+          data: {
+            posts: [
+              { href: clean, description: 'Clean title', tags: 'saved' },
+            ],
+          },
+        })
+        .mockResolvedValueOnce({ data: { posts: [] } });
+      const store = storeWithStrip({ title: 'Page title' });
+      await store.dispatch(fetchBookmarkDetails(clean));
+      expect(store.getState().bookmark.formData.title).toBe('Clean title');
+
+      store.dispatch(toggleTrackingStrip()); // Undo
+      await store.dispatch(fetchBookmarkDetails(tracked));
+      const state = store.getState().bookmark;
+      expect(state.formData.url).toBe(tracked);
+      expect(state.formData.title).toBe('Page title');
+      expect(state.formData.tags).toEqual([]);
+      expect(state.hasExistingBookmark).toBe(false);
+    });
+
+    it('stops offering the tracked bookmark once the user saves', async () => {
+      let resolveCheck;
+      mockedAxios.get.mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveCheck = resolve;
+        })
+      );
+      const store = storeWithStrip({ title: 'A title' });
+      const check = store.dispatch(checkTrackedBookmark());
+      mockedAxios.get.mockResolvedValueOnce({ data: { result_code: 'done' } });
+      await store.dispatch(submitBookmark());
+      store.dispatch(resetStatus());
+      // The check answers late, after the save and resetStatus.
+      resolveCheck({ data: { posts: [{ href: tracked }] } });
+      await check;
+      const strip = store.getState().bookmark.trackingStrip;
+      expect(strip?.savedWithTracking).toBe(false);
+      expect(strip?.trackedPost).toBeUndefined();
+    });
+
+    it('forgets the cached tracked bookmark once the user saves', async () => {
+      mockedAxios.get
+        .mockResolvedValueOnce({ data: { posts: [{ href: tracked }] } })
+        .mockResolvedValueOnce({ data: { result_code: 'done' } });
+      const store = storeWithStrip({ title: 'A title' });
+      await store.dispatch(checkTrackedBookmark());
+      expect(store.getState().bookmark.trackingStrip?.trackedPost).toBeDefined();
+      await store.dispatch(submitBookmark());
+      const strip = store.getState().bookmark.trackingStrip;
+      expect(strip?.trackedPost).toBeUndefined();
+      expect(strip?.savedWithTracking).toBe(false);
+      expect(strip?.savedAfterStrip).toBe(true);
+    });
+
+    it('still runs the check after a failed save', async () => {
+      mockedAxios.get.mockRejectedValueOnce(new Error('Network Error'));
+      const store = storeWithStrip({ title: 'A title' });
+      await store.dispatch(submitBookmark());
+      expect(store.getState().bookmark.status).toBe('error');
+      expect(store.getState().bookmark.trackingStrip).toMatchObject({
+        checkedOriginal: false,
+        savedAfterStrip: false,
+      });
+      mockedAxios.get.mockResolvedValueOnce({
+        data: { posts: [{ href: tracked }] },
+      });
+      await store.dispatch(checkTrackedBookmark());
+      expect(store.getState().bookmark.trackingStrip?.savedWithTracking).toBe(
+        true
+      );
+    });
+
+    it('skips the check after a 414 on the clean URL, but not after a timeout', async () => {
+      const tooLong = Object.assign(new Error('Request failed'), {
+        response: { status: 414 },
+      });
+      mockedAxios.get.mockRejectedValueOnce(tooLong);
+      const store = storeWithStrip();
+      await store.dispatch(fetchBookmarkDetails(clean));
+      expect(store.getState().bookmark.trackingStrip?.checkedOriginal).toBe(
+        true
+      );
+
+      const timeout = Object.assign(new Error('timeout of 20000ms exceeded'), {
+        code: 'ECONNABORTED',
+      });
+      mockedAxios.get.mockRejectedValueOnce(timeout);
+      const other = storeWithStrip();
+      await other.dispatch(fetchBookmarkDetails(clean));
+      expect(other.getState().bookmark.errors.generic).toBeTruthy();
+      expect(other.getState().bookmark.trackingStrip?.checkedOriginal).toBe(
+        false
+      );
+    });
+
+    it("keeps the user's edits to the clean form across Use that bookmark and Remove", async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          posts: [{ href: tracked, description: 'Old title', tags: 'old' }],
+        },
+      });
+      const store = storeWithStrip({ title: 'Page title' });
+      // The user edits the clean form before deciding.
+      store.dispatch(setFormData({ title: 'My title', tags: ['mine'] }));
+      store.dispatch(toggleTrackingStrip()); // Use that bookmark
+      await store.dispatch(fetchBookmarkDetails(tracked));
+      expect(store.getState().bookmark.formData.title).toBe('Old title');
+      store.dispatch(toggleTrackingStrip()); // Remove
+      expect(store.getState().bookmark.formData).toMatchObject({
+        url: clean,
+        title: 'My title',
+        tags: ['mine'],
+      });
+    });
+
+    it('keeps edits when Remove follows an Undo that found no bookmark', async () => {
+      mockedAxios.get.mockResolvedValueOnce({ data: { posts: [] } });
+      const store = storeWithStrip();
+      store.dispatch(toggleTrackingStrip()); // Undo
+      await store.dispatch(fetchBookmarkDetails(tracked));
+      store.dispatch(setFormData({ title: 'Typed after undo' }));
+      store.dispatch(toggleTrackingStrip()); // Remove
+      expect(store.getState().bookmark.formData.title).toBe('Typed after undo');
+    });
+
+    it("keeps the toggle in step with Pinboard's stored href", async () => {
+      const storedHref = 'https://example.com/post?id=7';
+      mockedAxios.get.mockResolvedValueOnce({
+        data: { posts: [{ href: storedHref, description: 'Clean' }] },
+      });
+      const store = storeWithStrip();
+      await store.dispatch(fetchBookmarkDetails(clean));
+      store.dispatch(toggleTrackingStrip());
+      store.dispatch(toggleTrackingStrip());
+      expect(store.getState().bookmark.formData.url).toBe(storedHref);
+    });
+  });
+
+  it('ignores a strip computed for a URL the form no longer has', () => {
+    const state = bookmarkReducer(
+      bookmarkReducer(initialState, setFormData({ url: 'https://typed.com/' })),
+      applyTrackingStrip(strip)
+    );
+    expect(state.formData.url).toBe('https://typed.com/');
+    expect(state.trackingStrip).toBeNull();
   });
 });
