@@ -6,9 +6,10 @@ import { vi } from 'vitest';
 vi.mock('./redux/tagSlice', async () => {
   const actual = await vi.importActual('./redux/tagSlice');
   const defaultSuggestedThunk = () => (dispatch) => {
-    dispatch({ type: 'tags/fetchSuggested/pending' });
+    dispatch({ type: 'tags/fetchSuggested/pending', meta: { requestId: 'test' } });
     dispatch({
       type: 'tags/fetchSuggested/fulfilled',
+      meta: { requestId: 'test' },
       payload: {
         suggestions: [],
         preview: null,
@@ -42,6 +43,16 @@ vi.mock('./redux/bookmarkSlice', async () => {
   };
 });
 
+vi.mock('./redux/twitterCardSlice', async () => {
+  const actual = await vi.importActual('./redux/twitterCardSlice');
+  return {
+    __esModule: true,
+    ...actual,
+    default: actual.default,
+    fetchPagePreview: vi.fn(() => () => undefined),
+  };
+});
+
 import React from 'react';
 import { render, waitFor, act, fireEvent } from '@testing-library/react';
 import { Provider } from 'react-redux';
@@ -53,6 +64,7 @@ import tagReducer from './redux/tagSlice';
 import twitterCardReducer from './redux/twitterCardSlice';
 import { fetchGptSuggestions, fetchSuggestedTags } from './redux/tagSlice';
 import { setAuth } from './redux/authSlice';
+import { fetchPagePreview } from './redux/twitterCardSlice';
 import { persistStoredCredentials } from './utils/credentialStorage';
 
 const fetchGptSuggestionsMock = fetchGptSuggestions as vi.MockedFunction<
@@ -60,6 +72,9 @@ const fetchGptSuggestionsMock = fetchGptSuggestions as vi.MockedFunction<
 >;
 const fetchSuggestedTagsMock = fetchSuggestedTags as vi.MockedFunction<
   typeof fetchSuggestedTags
+>;
+const fetchPagePreviewMock = fetchPagePreview as vi.MockedFunction<
+  typeof fetchPagePreview
 >;
 const fetchBookmarkDetailsMock = fetchBookmarkDetails as vi.MockedFunction<
   typeof fetchBookmarkDetails
@@ -111,8 +126,10 @@ const waitForStableCalls = async () => {
 
 const resolvePinboardSuggestions = (store, payload = []) => {
   act(() => {
+    store.dispatch({ type: 'tags/fetchSuggested/pending', meta: { requestId: 'test' } });
     store.dispatch({
       type: 'tags/fetchSuggested/fulfilled',
+      meta: { requestId: 'test' },
       payload: {
         suggestions: payload,
         preview: null,
@@ -128,13 +145,15 @@ describe('App GPT integration', () => {
     fetchGptSuggestionsMock.mockClear();
     fetchBookmarkDetailsMock.mockClear();
     fetchSuggestedTagsMock.mockClear();
+    fetchPagePreviewMock.mockClear();
     if (window.localStorage) {
       window.localStorage.clear();
     }
     fetchSuggestedTagsMock.mockImplementation(() => (dispatch) => {
-      dispatch({ type: 'tags/fetchSuggested/pending' });
+      dispatch({ type: 'tags/fetchSuggested/pending', meta: { requestId: 'test' } });
       dispatch({
         type: 'tags/fetchSuggested/fulfilled',
+      meta: { requestId: 'test' },
         payload: [],
       });
     });
@@ -178,9 +197,10 @@ describe('App GPT integration', () => {
 
   it('still dispatches GPT when Pinboard suggestions are plentiful', async () => {
     fetchSuggestedTagsMock.mockImplementationOnce(() => (dispatch) => {
-      dispatch({ type: 'tags/fetchSuggested/pending' });
+      dispatch({ type: 'tags/fetchSuggested/pending', meta: { requestId: 'test' } });
       dispatch({
         type: 'tags/fetchSuggested/fulfilled',
+      meta: { requestId: 'test' },
         payload: ['one', 'two', 'three', 'four'],
       });
     });
@@ -238,6 +258,13 @@ describe('App GPT integration', () => {
       expect(fetchBookmarkDetailsMock).toHaveBeenCalledWith(
         'https://example.com/immediate'
       );
+      expect(fetchPagePreviewMock).toHaveBeenCalledWith({
+        url: 'https://example.com/immediate',
+        pageCard: null,
+        fallbackTitle: null,
+      });
+      // Suggestions follow as soon as the lookup settles, still with no timers.
+      await act(async () => {});
       expect(fetchSuggestedTagsMock).toHaveBeenCalledTimes(1);
     } finally {
       vi.useRealTimers();
@@ -275,7 +302,7 @@ describe('App GPT integration', () => {
   it('dispatches GPT once the bookmark lookup settles, without waiting for Pinboard suggestions', async () => {
     // Pinboard suggestions never resolve in this test.
     fetchSuggestedTagsMock.mockImplementation(() => (dispatch) => {
-      dispatch({ type: 'tags/fetchSuggested/pending' });
+      dispatch({ type: 'tags/fetchSuggested/pending', meta: { requestId: 'test' } });
     });
     // The lookup starts but does not finish until we say so.
     fetchBookmarkDetailsMock.mockImplementationOnce(() => (dispatch) => {

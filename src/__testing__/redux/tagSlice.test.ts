@@ -77,6 +77,7 @@ describe('tag slice', () => {
     suggested: [],
     suggestedLoading: false,
     suggestedStatus: 'idle',
+    suggestedRequestId: null,
     gptSuggestions: [],
     gptStatus: 'idle',
     gptError: null,
@@ -333,7 +334,7 @@ describe('tag slice', () => {
     describe('fetchSuggestedTags', () => {
       const bookmarkUrl = 'http://suggest.me';
       const store = createMockStore(initialState, { url: bookmarkUrl });
-      const expectedApiUrl = `https://pinboard-api.herokuapp.com/posts/suggest-with-preview?format=json&url=${bookmarkUrl}`;
+      const expectedApiUrl = `https://pinboard-api.herokuapp.com/v1/posts/suggest?format=json&url=${bookmarkUrl}`;
 
       it('should handle pending state', () => {
         mockedAxios.get.mockResolvedValueOnce({ data: { suggestions: {} } }); // Mock response needed
@@ -352,18 +353,10 @@ describe('tag slice', () => {
         // return thunkPromise;
       });
 
-      it('should handle fulfilled state with recommended and popular tags plus preview', async () => {
-        const mockResponse = {
-          suggestions: {
-            popular: ['Pop1', 'Common'],
-            recommended: ['Rec1', 'COMMON'],
-          },
-          preview: {
-            url: 'http://suggest.me',
-            title: 'Preview title',
-          },
-        };
-        mockedAxios.get.mockResolvedValueOnce({ data: mockResponse });
+      it('reads Pinboard\'s array-of-objects response, recommended before popular', async () => {
+        mockedAxios.get.mockResolvedValueOnce({
+          data: [{ popular: ['Pop1', 'Common'] }, { recommended: ['Rec1', 'COMMON'] }],
+        });
 
         await store.dispatch(fetchSuggestedTags());
         const state = store.getState().tags;
@@ -381,25 +374,20 @@ describe('tag slice', () => {
         expect(cleanUrl).toHaveBeenCalledWith(bookmarkUrl);
       });
 
-      it('should handle fulfilled state with only one type of tag', async () => {
-        const mockResponse = {
-          suggestions: {
-            popular: ['PopOnly'],
-          },
-        };
-        mockedAxios.get.mockResolvedValueOnce({ data: mockResponse });
+      it('also accepts a plain {popular, recommended} object', async () => {
+        mockedAxios.get.mockResolvedValueOnce({
+          data: { popular: ['PopOnly'], recommended: ['RecOnly'] },
+        });
 
         await store.dispatch(fetchSuggestedTags());
         const state = store.getState().tags;
 
-        expect(state.suggestedLoading).toBe(false);
         expect(state.suggestedStatus).toBe('succeeded');
-        expect(state.suggested).toEqual(['PopOnly']);
+        expect(state.suggested).toEqual(['RecOnly', 'PopOnly']);
       });
 
       it('should handle fulfilled state with empty/no tags', async () => {
-        const mockResponse = { suggestions: {} }; // Empty object
-        mockedAxios.get.mockResolvedValueOnce({ data: mockResponse });
+        mockedAxios.get.mockResolvedValueOnce({ data: [] });
 
         await store.dispatch(fetchSuggestedTags());
         const state = store.getState().tags;
@@ -420,6 +408,31 @@ describe('tag slice', () => {
         expect(state.suggested).toEqual([]); // Should reset or keep previous suggestions?\ Slice resets.
         expect(state.error).toEqual(errorMessage);
         expect(state.suggestedStatus).toBe('failed');
+      });
+
+      it('fetches suggestions for the URL it is given, not the live form field', async () => {
+        mockedAxios.get.mockResolvedValueOnce({ data: [] });
+        await store.dispatch(fetchSuggestedTags('http://looked.up'));
+        expect(mockedAxios.get).toHaveBeenCalledWith(
+          'https://pinboard-api.herokuapp.com/v1/posts/suggest?format=json&url=http://looked.up',
+          expect.anything()
+        );
+      });
+
+      it('drops a response from an older request', async () => {
+        const freshStore = createMockStore(initialState, { url: bookmarkUrl });
+        let resolveOld: (value: unknown) => void = () => undefined;
+        mockedAxios.get
+          .mockReturnValueOnce(new Promise((resolve) => { resolveOld = resolve; }))
+          .mockResolvedValueOnce({ data: [{ recommended: ['new_tag'] }] });
+
+        const oldRequest = freshStore.dispatch(fetchSuggestedTags('http://old.url'));
+        await freshStore.dispatch(fetchSuggestedTags('http://new.url'));
+        resolveOld({ data: [{ recommended: ['old_tag'] }] });
+        await oldRequest;
+
+        expect(freshStore.getState().tags.suggested).toEqual(['new_tag']);
+        expect(freshStore.getState().tags.suggestedStatus).toBe('succeeded');
       });
 
       it('preserves previous suggestions when request fails', async () => {

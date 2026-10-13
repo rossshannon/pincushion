@@ -14,6 +14,8 @@ import {
   fetchTags,
   fetchSuggestedTags,
   fetchGptSuggestions,
+  markSuggestionsPending,
+  cancelSuggestionsPending,
   setTagCounts,
   resetGptSuggestions,
   setRecentTags,
@@ -23,7 +25,9 @@ import { getRecentTags } from './utils/recentTagStorage';
 import { readTagCache } from './utils/tagCache';
 import { stripTrackingParams } from './utils/trackingParams';
 import Settings from './components/Settings';
-import { clearTwitterCard } from './redux/twitterCardSlice';
+import { clearTwitterCard, fetchPagePreview, showPageCard } from './redux/twitterCardSlice';
+import { isShowablePageCard, readPageMetadata } from './utils/pageMetadata';
+import type { TwitterCardData } from './types/twitterCard';
 import {
   readStoredCredentials,
   persistStoredCredentials,
@@ -73,6 +77,20 @@ const readInitialParams = (): InitialParams => {
   };
 };
 
+const readInitialPageCard = (pageUrl: string): TwitterCardData | null =>
+  readPageMetadata(
+    new URLSearchParams(typeof window !== 'undefined' ? window.location.search : ''),
+    pageUrl.trim()
+  );
+
+// fetchBookmarkDetails marks its rejection when Pinboard answers 414.
+const isUrlTooLongRejection = (result: unknown): boolean => {
+  const action = result as
+    | { meta?: { requestStatus?: string; urlTooLong?: boolean } }
+    | undefined;
+  return action?.meta?.requestStatus === 'rejected' && action.meta.urlTooLong === true;
+};
+
 const isLikelyCompleteUrl = (value: string): boolean => {
   try {
     const parsed = new URL(value);
@@ -113,6 +131,17 @@ function App() {
   const [view, setView] = useState<ViewMode>(VIEW_FORM);
   const [credentialsMissing, setCredentialsMissing] = useState(false);
   const [debouncedUrl, setDebouncedUrl] = useState('');
+  // Mirrors debouncedUrl for callbacks that outlive the render that made them.
+  // Bumped for every lookup (and when the URL is cleared), so a lookup that
+  // settles after a newer one started knows it has been superseded.
+  const lookupGenerationRef = useRef(0);
+  // What's in the URL field right now, which runs ahead of debouncedUrl while
+  // the user is typing.
+  const latestUrlRef = useRef('');
+  latestUrlRef.current = url?.trim() ?? '';
+  // Suggestions held back because the user was mid-edit when the lookup
+  // finished; sent if the debounce settles back on the same URL.
+  const deferredSuggestRef = useRef<{ url: string; generation: number } | null>(null);
   // The URL that has had fetchBookmarkDetails dispatched for it. Kept in
   // state (not a ref) so the GPT effect re-evaluates once the lookup starts.
   const [lookupStartedFor, setLookupStartedFor] = useState<string | null>(null);
@@ -121,6 +150,13 @@ function App() {
   // The URL the bookmarklet opened us with. It is looked up straight away;
   // the debounce only applies to URLs the user types afterwards.
   const pendingInitialUrlRef = useRef<string | null>(null);
+  // Preview metadata the bookmarklet read off the page, and the document
+  // title, for its URL only. Older bookmarklets send no card, just the title.
+  const initialPageCardRef = useRef<{
+    url: string;
+    card: TwitterCardData | null;
+    fallbackTitle: string;
+  } | null>(null);
   // The Pinboard user whose tags are in memory, to spot an account switch.
   const tagsLoadedForRef = useRef<string | null>(null);
   useEffect(() => {
@@ -146,6 +182,15 @@ function App() {
     const initial = readInitialParams();
     const { url: stripped, removed } = stripTrackingParams(initial.url);
     pendingInitialUrlRef.current = stripped.trim() || null;
+    // Keyed on the URL the form shows (tracking parameters removed), which is
+    // the one that gets looked up and previewed.
+    initialPageCardRef.current = stripped.trim()
+      ? {
+          url: stripped.trim(),
+          card: readInitialPageCard(stripped),
+          fallbackTitle: initial.title,
+        }
+      : null;
     dispatch(setFormData(initial));
     dispatch(applyTrackingStrip({ original: initial.url, stripped, removed }));
 
@@ -244,6 +289,17 @@ function App() {
   ]);
 
   useEffect(() => {
+    // The URL field was emptied or broken: drop the last lookup so re-entering
+    // the same URL fetches its preview and suggestions again.
+    const forgetLookup = () => {
+      if (lastLookupUrlRef.current === null) return;
+      lastLookupUrlRef.current = null;
+      lookupGenerationRef.current += 1;
+      // Hold GPT back until the re-entered URL's lookup has actually started.
+      setLookupStartedFor(null);
+      dispatch(markSuggestionsPending());
+      dispatch(cancelSuggestionsPending());
+    };
     if (urlDebounceTimerRef.current !== null) {
       window.clearTimeout(urlDebounceTimerRef.current);
       urlDebounceTimerRef.current = null;
@@ -252,11 +308,13 @@ function App() {
     if (!trimmedUrl) {
       setDebouncedUrl('');
       dispatch(clearTwitterCard());
+      forgetLookup();
       return;
     }
     if (!isLikelyCompleteUrl(trimmedUrl)) {
       setDebouncedUrl('');
       dispatch(clearTwitterCard());
+      forgetLookup();
       return;
     }
     if (
@@ -281,12 +339,43 @@ function App() {
     const timer = window.setTimeout(() => {
       setDebouncedUrl(trimmedUrl);
       urlDebounceTimerRef.current = null;
+      const deferred = deferredSuggestRef.current;
+      if (
+        deferred &&
+        deferred.url === trimmedUrl &&
+        deferred.generation === lookupGenerationRef.current
+      ) {
+        // The user came back to the URL that was already looked up.
+        deferredSuggestRef.current = null;
+        dispatch(fetchSuggestedTags(trimmedUrl));
+      }
     }, URL_DEBOUNCE_MS);
     urlDebounceTimerRef.current = timer;
     return () => {
       window.clearTimeout(timer);
     };
   }, [dispatch, url, trackingStrip]);
+
+  // The bookmarklet's own card needs no credentials, so it shows before
+  // they're saved too. Once they are, the lookup below asks the bridge.
+  useEffect(() => {
+    if (user && token) return;
+    if (!debouncedUrl) return;
+    const initialPage =
+      initialPageCardRef.current?.url === debouncedUrl ? initialPageCardRef.current : null;
+    if (!initialPage?.card || !isShowablePageCard(initialPage.card)) {
+      // Another URL: the bookmarklet's card no longer applies.
+      dispatch(clearTwitterCard());
+      return;
+    }
+    dispatch(
+      showPageCard({
+        url: debouncedUrl,
+        pageCard: initialPage.card,
+        fallbackTitle: initialPage.fallbackTitle || null,
+      })
+    );
+  }, [dispatch, user, token, debouncedUrl]);
 
   useEffect(() => {
     if (!user || !token) return;
@@ -298,8 +387,40 @@ function App() {
     if (lastLookupUrlRef.current === lookupKey) return;
     lastLookupUrlRef.current = lookupKey;
     setLookupStartedFor(debouncedUrl);
-    dispatch(fetchBookmarkDetails(debouncedUrl));
-    dispatch(fetchSuggestedTags());
+    const initialPage =
+      initialPageCardRef.current?.url === debouncedUrl ? initialPageCardRef.current : null;
+    // The preview never touches Pinboard, so it goes out alongside the lookup.
+    // Suggestions wait for the lookup: Pinboard allows one call per user every
+    // three seconds and the bridge spaces them in arrival order, so this keeps
+    // the lookup (which gates Save) first in line.
+    const lookup = dispatch(fetchBookmarkDetails(debouncedUrl));
+    dispatch(
+      fetchPagePreview({
+        url: debouncedUrl,
+        pageCard: initialPage?.card ?? null,
+        fallbackTitle: initialPage?.fallbackTitle || null,
+      })
+    );
+    // Clear the previous URL's suggestions and show the spinner during the lookup.
+    dispatch(markSuggestionsPending());
+    const generation = ++lookupGenerationRef.current;
+    void Promise.resolve(lookup).then((result) => {
+      // A newer lookup (or a cleared URL) owns the suggestions now.
+      if (lookupGenerationRef.current !== generation) return;
+      if (isUrlTooLongRejection(result)) {
+        // Pinboard refused this URL as too long; suggest would fail the same
+        // way, now or if the user comes back to it.
+        dispatch(cancelSuggestionsPending());
+        return;
+      }
+      if (latestUrlRef.current !== debouncedUrl) {
+        // The user is editing the URL: don't put this URL's suggest call in
+        // Pinboard's queue ahead of the next one's lookup.
+        deferredSuggestRef.current = { url: debouncedUrl, generation };
+        return;
+      }
+      dispatch(fetchSuggestedTags(debouncedUrl));
+    });
   }, [dispatch, user, token, debouncedUrl]);
 
   useEffect(() => {
@@ -325,8 +446,8 @@ function App() {
     if (!debouncedUrl) return;
     // Wait for the existing-bookmark lookup (it supplies the tags, title and
     // notes that form the prompt), but not for Pinboard's own suggestions:
-    // those include a page scrape that can take several seconds and the GPT
-    // request doesn't depend on them.
+    // those only start once the lookup settles, can take ~15s for a URL
+    // Pinboard hasn't seen, and the GPT request doesn't depend on them.
     if (lookupStartedFor !== debouncedUrl) return;
     if (initialLoading) return;
 
