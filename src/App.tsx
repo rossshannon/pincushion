@@ -121,6 +121,8 @@ function App() {
   // The URL the bookmarklet opened us with. It is looked up straight away;
   // the debounce only applies to URLs the user types afterwards.
   const pendingInitialUrlRef = useRef<string | null>(null);
+  // The Pinboard user whose tags are in memory, to spot an account switch.
+  const tagsLoadedForRef = useRef<string | null>(null);
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
@@ -163,8 +165,14 @@ function App() {
   useEffect(() => {
     if (!user || !token) return;
     const cached = readTagCache(user);
+    const switchedAccount =
+      tagsLoadedForRef.current !== null && tagsLoadedForRef.current !== user;
+    tagsLoadedForRef.current = user;
     if (cached) {
       dispatch(setTagCounts(cached.counts));
+    } else if (switchedAccount) {
+      // What's in memory is the previous account's tags.
+      dispatch(setTagCounts({}));
     }
 
     try {
@@ -283,8 +291,12 @@ function App() {
   useEffect(() => {
     if (!user || !token) return;
     if (!debouncedUrl) return;
-    if (lastLookupUrlRef.current === debouncedUrl) return;
-    lastLookupUrlRef.current = debouncedUrl;
+    // Keyed by account too: after a switch in Settings the loaded bookmark
+    // (and its tags, the save's baseline) belong to the old account, so look
+    // the page up again as the new one.
+    const lookupKey = `${user}\n${debouncedUrl}`;
+    if (lastLookupUrlRef.current === lookupKey) return;
+    lastLookupUrlRef.current = lookupKey;
     setLookupStartedFor(debouncedUrl);
     dispatch(fetchBookmarkDetails(debouncedUrl));
     dispatch(fetchSuggestedTags());

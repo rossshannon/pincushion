@@ -73,6 +73,31 @@ function BookmarkForm() {
   );
   const spinnerActiveRef = useRef(false);
   const [shouldAutoFocusTags] = useState(() => !isLikelyTouchDevice());
+  const hasHash = !!formData.url?.includes('#');
+  // Keep the # button mounted after the fragment goes so it can animate out
+  // while the URL input straightens; onAnimationEnd then unmounts it.
+  const hashButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [hashButtonShown, setHashButtonShown] = useState(hasHash);
+  if (hasHash && !hashButtonShown) setHashButtonShown(true);
+  const hashButtonLeaving = hashButtonShown && !hasHash;
+
+  // Fallback for when animationend never fires (a hidden tab, or reduced
+  // motion, where the button just hides): wait out the exit, plus a margin.
+  useEffect(() => {
+    if (!hashButtonLeaving) return undefined;
+    const button = hashButtonRef.current;
+    // The button runs bounce-in and hash-leave together; take hash-leave's.
+    let exitMs = 0;
+    if (button) {
+      const style = getComputedStyle(button);
+      const names = style.animationName.split(',').map((name) => name.trim());
+      const durations = style.animationDuration.split(',');
+      const index = names.indexOf('hash-leave');
+      if (index !== -1) exitMs = parseFloat(durations[index]) * 1000 || 0;
+    }
+    const timer = setTimeout(() => setHashButtonShown(false), exitMs + 300);
+    return () => clearTimeout(timer);
+  }, [hashButtonLeaving]);
 
   useEffect(() => {
     if (btnRef.current) {
@@ -260,7 +285,9 @@ function BookmarkForm() {
     const el = descRef.current;
     if (!el || supportsFieldSizing) return;
     el.style.height = 'auto';
-    el.style.height = `${el.scrollHeight}px`;
+    // scrollHeight excludes the border, but box-sizing is border-box, so add
+    // it back or the box comes up short and overflow-y shows a scrollbar.
+    el.style.height = `${el.scrollHeight + el.offsetHeight - el.clientHeight}px`;
   };
 
   useEffect(() => {
@@ -356,18 +383,33 @@ function BookmarkForm() {
           name="url"
           value={formData.url}
           onChange={handleChange}
-          className={formData.url?.includes('#') ? 'hash-detected' : ''}
+          className={hasHash ? 'hash-detected' : ''}
           aria-invalid={!!errors?.url}
           ref={urlRef}
           tabIndex={2}
         />
-        {formData.url?.includes('#') && (
+        {hashButtonShown && (
           <button
             type="button"
-            className="remove-hash"
-            onClick={() => dispatch(removeUrlFragment())}
+            className={hashButtonLeaving ? 'remove-hash is-leaving' : 'remove-hash'}
+            onClick={(event) => {
+              // It's about to be hidden from assistive tech, so hand focus to
+              // the URL it just edited; on touch, just let go, so no keyboard
+              // pops up.
+              if (shouldAutoFocusTags) urlRef.current?.focus({ preventScroll: true });
+              else event.currentTarget.blur();
+              // The reducer drops the fragment from both sides of the
+              // tracking toggle too, so its Undo survives.
+              dispatch(removeUrlFragment());
+            }}
+            onAnimationEnd={(event) => {
+              // bounce-in can also end mid-exit; only the exit unmounts.
+              if (event.animationName === 'hash-leave') setHashButtonShown(false);
+            }}
             title="Remove hash from URL"
             tabIndex={-1}
+            aria-hidden={hashButtonLeaving || undefined}
+            ref={hashButtonRef}
           >
             &#35;
           </button>
