@@ -9,7 +9,7 @@ Pincushion is an alternative bookmarklet for [Pinboard](https://pinboard.in) tha
 - **Interactive**
   The form is enhanced with animation to guide interaction, and more clearly explain what is happening while you edit and save your bookmarks.
 - **Easily add tags**
-  Pincushion uses as intelligent autocomplete widget that shows the tags you’ve previously used, along with the number of times you’ve used them. The autocomplete even lets you search within your tags without having to type the exact letters that a tag begins with.
+  Pincushion uses an intelligent autocomplete widget that shows the tags you’ve previously used, along with the number of times you’ve used them. The autocomplete even lets you search within your tags without having to type the exact letters that a tag begins with.
 - **Search across _all_ of your tags**
   The first time you use Pincushion, it downloads a local copy of all of your tags into your browser’s “LocalStorage”, which allows you to store about 2.5MB of data and preferences for each site you use regularly. This means that from then on, the autocomplete widget can search across your entire collection.
   The autocomplete can use each tag’s score to be smarter about which tags to suggest to you as you are typing. (Tag autocomplete has been tested on a data set of over 12,500 tags, which totalled 184KB when downloaded.)
@@ -20,7 +20,7 @@ Pincushion is an alternative bookmarklet for [Pinboard](https://pinboard.in) tha
 
 ## Installing the Bookmarklet
 
-To use the bookmarklet, you will need to have an account on http://pinboard.in and an API token. Your API token is a way to grant applications or websites the ability to send bookmarks to your Pinboard account, without having to give them your password.
+To use the bookmarklet, you will need to have an account on https://pinboard.in and an API token. Your API token is a way to grant applications or websites the ability to send bookmarks to your Pinboard account, without having to give them your password.
 
 When logged in, visit your [password settings page](https://pinboard.in/settings/password) to locate your API token — it will be in the form
 
@@ -55,11 +55,25 @@ Pincushion is designed for modern browsers like Chrome, Safari, Comet, Atlas, Ed
 #### Running Locally
 
 - Clone the repository to your computer. `git clone https://github.com/rossshannon/pincushion.git`
-- Switch into the new directory and run `yarn install` or `npm install`
+- Switch into the new directory and run `npm install`
 - Run `npm start` to start the development server. A web server will be booted to run Pincushion on localhost port 5173 (http://localhost:5173).
 - To use a local [pinboard-bridge](https://github.com/rossshannon/pinboard-bridge) instead of the hosted one, create a `.env.local` file containing `VITE_PINBOARD_BRIDGE_URL=http://localhost:1337`.
 
 ## Changelog
+
+### 2.4.1 (2026-11-10)
+
+A whole-codebase audit. Fixes:
+
+- The tag autocomplete follows the arrow keys again. Past the eighth row the highlight used to move to options that weren't on screen, and the list didn't scroll. The blank rows at the end of the list (one for each tag already on the bookmark) are gone too.
+- Typing or pasting several words into the tag field makes several tags. It used to make one tag with a space in it, which Pinboard saved as separate tags while Pincushion's own tag counts recorded the combined one.
+- AI suggestions for a page you've moved away from no longer appear under the next page, and no longer set off an extra OpenAI request.
+- The popup no longer fails to start in a browser that blocks site storage.
+- Saving without credentials, or with ones Pinboard rejects, says so and points to Settings instead of showing “Request failed with status code 401”.
+- Settings checks your Pinboard credentials with a tiny request rather than downloading your whole tag list, allows a sleeping bridge 15 seconds to answer, and uses the bridge set in `VITE_PINBOARD_BRIDGE_URL` like everything else.
+- The URL is saved without any leading or trailing whitespace.
+- Dependencies updated to clear `npm audit`'s high-severity advisories (axios, Vite and others); unused packages (react-window, redux, browserslist, trim-newlines) and dead code removed.
+- CI now builds the app, CodeQL scans the source on `master` (it was pointed at the built `gh-pages` branch), and the deploy job holds only the permission it uses.
 
 ### 2.4 (2026-10-12)
 
@@ -71,6 +85,14 @@ Pincushion is designed for modern browsers like Chrome, Safari, Comet, Atlas, Ed
 - The bookmarklet's preview card shows even before credentials are saved.
 - Pinboard's suggestions are read whether they arrive as Pinboard's documented array of objects or as a plain object.
 - Pairs with pinboard-bridge 2.3.0, which adds `/preview` and spaces Pinboard calls per user.
+- Released alongside it: tracking parameters (`utm_*`, `fbclid` and the like) are stripped from the bookmarked URL, with an Undo, and the URL field slants to interlock with the “#” button.
+
+### 2.3.2 (2026-10-13)
+
+- Tag counts from Pinboard arrive as strings; count them as numbers, so saving a tag adds one rather than appending a digit.
+- If the lookup for an existing bookmark fails, the save refuses to overwrite a bookmark it never loaded.
+- Tags typed while the lookup is running are kept, and saves made during a tag refresh are counted.
+- Fixes for switching accounts in Settings, the menu font weight and the tag chips' hover state.
 
 ### 2.3.1 (2026-10-08)
 
@@ -138,9 +160,9 @@ Pincushion is designed for modern browsers like Chrome, Safari, Comet, Atlas, Ed
 
 ## License
 
-Copyright &copy; 2014–2025 [Ross Shannon](http://twitter.com/rossshannon).
+Copyright &copy; 2014–2026 [Ross Shannon](https://twitter.com/rossshannon).
 
-Pincushion is open source software, [licensed](LICENSE) under the MIT License. Suggestions and pull requests are welcome.
+Pincushion is open source software, [licensed](LICENSE.md) under the MIT License. Suggestions and pull requests are welcome.
 
 ## Acknowledgements
 
