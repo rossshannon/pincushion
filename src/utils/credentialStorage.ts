@@ -1,3 +1,5 @@
+import { getLocalStorage, readStorageItem } from './safeStorage';
+
 const STORAGE_KEY = 'pincushion.credentials';
 
 export type CredentialRecord = {
@@ -10,31 +12,6 @@ export type StoredCredentials = {
   user: string;
   token: string;
   openAiToken: string;
-};
-
-const EMPTY_VALUES = {
-  pinboardUser: '',
-  pinboardToken: '',
-  openAiToken: '',
-};
-
-// Reading window.localStorage itself throws a SecurityError when the browser
-// blocks site data, so even the lookup has to be guarded.
-const getLocalStorage = (): Storage | null => {
-  if (typeof window === 'undefined') return null;
-  try {
-    return window.localStorage || null;
-  } catch {
-    return null;
-  }
-};
-
-const readRaw = (storage: Storage): string | null => {
-  try {
-    return storage.getItem(STORAGE_KEY);
-  } catch {
-    return null;
-  }
 };
 
 const safeParse = (raw: string | null): CredentialRecord | null => {
@@ -51,9 +28,7 @@ const safeParse = (raw: string | null): CredentialRecord | null => {
 };
 
 export const readStoredCredentials = (): StoredCredentials | null => {
-  const storage = getLocalStorage();
-  if (!storage) return null;
-  const parsed = safeParse(readRaw(storage));
+  const parsed = safeParse(readStorageItem(STORAGE_KEY));
   if (!parsed) {
     return null;
   }
@@ -89,9 +64,7 @@ export const persistStoredCredentials = ({
 };
 
 export const getStoredCredentialValues = (): CredentialRecord => {
-  const storage = getLocalStorage();
-  if (!storage) return { ...EMPTY_VALUES };
-  const parsed = safeParse(readRaw(storage));
+  const parsed = safeParse(readStorageItem(STORAGE_KEY));
   return {
     pinboardUser: parsed?.pinboardUser || '',
     pinboardToken: parsed?.pinboardToken || '',

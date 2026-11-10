@@ -1,5 +1,10 @@
 import axios from 'axios';
-import { bridgeRequestConfig, bridgeUrl } from './pinboardApi';
+import {
+  bridgeRequestConfig,
+  bridgeUrl,
+  isTimeoutError,
+  REQUEST_TIMEOUTS_MS,
+} from './pinboardApi';
 
 type ErrorWithStatus = Error & { status?: number };
 
@@ -92,11 +97,6 @@ const formatOpenAiValidationError = (error: unknown): string => {
   return DEFAULT_OPENAI_ERROR;
 };
 
-/**
- * A cold-started bridge can take several seconds to answer its first request.
- */
-const PINBOARD_VERIFY_TIMEOUT_MS = 15_000;
-
 type PinboardCredentialInput = {
   username: string;
   token: string;
@@ -117,11 +117,16 @@ export async function verifyPinboardCredentials({
     // Goes through the configured bridge, like every other Pinboard call.
     await axios.get(
       bridgeUrl('/v1/posts/update?format=json'),
-      bridgeRequestConfig(trimmedUser, trimmedToken, PINBOARD_VERIFY_TIMEOUT_MS)
+      bridgeRequestConfig(trimmedUser, trimmedToken, REQUEST_TIMEOUTS_MS.verify)
     );
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 401) {
       throw new Error('Pinboard rejected those credentials.');
+    }
+    if (isTimeoutError(error)) {
+      throw new Error(
+        'Pinboard didn’t respond in time, so we couldn’t check those credentials. Please try again.'
+      );
     }
     throw new Error(
       error instanceof Error

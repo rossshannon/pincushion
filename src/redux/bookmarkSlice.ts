@@ -5,6 +5,7 @@ import {
 } from '@reduxjs/toolkit';
 import axios from 'axios';
 import { cleanUrl } from '../utils/url';
+import { splitTags } from '../utils/tagList';
 import {
   bridgeRequestConfig,
   bridgeUrl,
@@ -159,15 +160,14 @@ const isUrlTooLongError = (error: unknown): boolean => {
   );
 };
 
+// Every tag list bound for the form passes through here, so a tag holding
+// whitespace (which Pinboard would save as several tags) can't get in.
 const toTagArray = (value: unknown): string[] => {
   if (Array.isArray(value)) {
-    return value;
+    return value.flatMap((tag) => (typeof tag === 'string' ? splitTags(tag) : []));
   }
   if (typeof value === 'string') {
-    return value
-      .split(' ')
-      .map((tag) => tag.trim())
-      .filter(Boolean);
+    return splitTags(value);
   }
   return [];
 };
@@ -341,8 +341,9 @@ export const fetchBookmarkDetails = createAsyncThunk<
   {
     state: BookmarkThunkState;
     rejectValue: string;
-    // Set when Pinboard refused the URL as too long (HTTP 414).
-    rejectedMeta: { urlTooLong: boolean };
+    // urlTooLong: Pinboard refused the URL as too long (HTTP 414).
+    // unauthorized: it refused the credentials (HTTP 401).
+    rejectedMeta: { urlTooLong: boolean; unauthorized?: boolean };
   }
 >(
   'bookmark/fetchDetails',
@@ -373,7 +374,10 @@ export const fetchBookmarkDetails = createAsyncThunk<
         return rejectWithValue(ERROR_MESSAGES.LOOKUP_TIMEOUT, { urlTooLong: false });
       }
       if (hasHttpStatus(err, 401)) {
-        return rejectWithValue(ERROR_MESSAGES.BAD_CREDENTIALS, { urlTooLong: false });
+        return rejectWithValue(ERROR_MESSAGES.BAD_CREDENTIALS, {
+          urlTooLong: false,
+          unauthorized: true,
+        });
       }
       const message =
         err instanceof Error

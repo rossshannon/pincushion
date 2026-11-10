@@ -32,7 +32,7 @@ jobs:
         run: npm run test:ci
         env:
           NODE_OPTIONS: --max-old-space-size=4096
-      # The deploy workflow runs this on master; catch a broken build here,
-      # before it is merged.
+      # The deploy workflow builds on master; catch a broken build here,
+      # before it is merged. (Typecheck above already ran tsc.)
       - name: Build
-        run: npm run build
+        run: npx vite build

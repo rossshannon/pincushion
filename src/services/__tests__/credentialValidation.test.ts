@@ -42,6 +42,15 @@ describe('verifyPinboardCredentials', () => {
     ).rejects.toThrow('Pinboard rejected those credentials.');
   });
 
+  it('explains a timeout in plain words', async () => {
+    mockedAxios.get.mockRejectedValueOnce(
+      Object.assign(new Error('timeout of 20000ms exceeded'), { code: 'ECONNABORTED' })
+    );
+    await expect(
+      verifyPinboardCredentials({ username: 'ross', token: 'ok' })
+    ).rejects.toThrow(/didn’t respond in time/);
+  });
+
   it('passes other failures through', async () => {
     mockedAxios.get.mockRejectedValueOnce(new Error('Network Error'));
     await expect(

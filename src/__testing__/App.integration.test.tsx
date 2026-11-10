@@ -938,4 +938,52 @@ describe('App integration', () => {
     expect(calls).toEqual(['lookup']);
     expect(store.getState().tags.suggestedLoading).toBe(false);
   });
+
+  it('skips suggestions when Pinboard rejects the credentials, and retries the lookup once the token is corrected', async () => {
+    seedCredentials({ pinboardToken: 'expired' });
+    const calls = [];
+    mockedAxios.get.mockImplementation((url, config) => {
+      const auth = config?.headers?.Authorization;
+      if (url.includes('posts/get')) {
+        calls.push(`lookup ${auth}`);
+        if (auth === 'Bearer ross:expired') {
+          return Promise.reject(
+            Object.assign(new Error('Request failed with status code 401'), { response: { status: 401 } })
+          );
+        }
+        return Promise.resolve({
+          data: { posts: [{ href: 'https://a.example.com/', description: 'Saved', tags: 'one two' }] },
+        });
+      }
+      if (url.includes('/preview?')) return Promise.resolve({ data: { preview: null } });
+      if (url.includes('/v1/posts/suggest')) {
+        calls.push(`suggest ${auth}`);
+        return Promise.resolve({ data: [] });
+      }
+      if (url.includes('tags/get')) return Promise.resolve({ data: {} });
+      return Promise.reject(new Error(`Unhandled url ${url}`));
+    });
+    window.history.pushState({}, '', '?url=https%3A%2F%2Fa.example.com%2F&title=T');
+    const store = await renderAppWithStore();
+    await waitFor(() => expect(store.getState().bookmark.initialLoading).toBe(false));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+    expect(calls).toEqual(['lookup Bearer ross:expired']);
+    expect(store.getState().bookmark.errors.generic).toMatch(/rejected your username or API token/);
+    expect(store.getState().tags.suggestedLoading).toBe(false);
+
+    // Same username, new token, as saved from Settings.
+    await act(async () => {
+      store.dispatch(setAuth({ user: 'ross', token: 'fresh', openAiToken: '' }));
+    });
+    await waitFor(() => expect(store.getState().bookmark.hasExistingBookmark).toBe(true));
+    await waitFor(() => expect(calls).toContain('suggest Bearer ross:fresh'));
+    expect(calls.filter((c) => c.startsWith('lookup'))).toEqual([
+      'lookup Bearer ross:expired',
+      'lookup Bearer ross:fresh',
+    ]);
+    expect(store.getState().bookmark.errors.generic).toBeNull();
+    expect(store.getState().bookmark.formData.tags).toEqual(['one', 'two']);
+  });
 });

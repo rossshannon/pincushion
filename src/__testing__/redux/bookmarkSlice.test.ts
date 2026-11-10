@@ -78,6 +78,18 @@ describe('bookmark slice', () => {
 
   // --- Regular Reducers ---
   describe('reducers', () => {
+    it('splits any tag that holds whitespace, whatever put it there', () => {
+      const state = bookmarkReducer(
+        initialState,
+        setFormData({ tags: ['one', 'two words', ' padded\ttab ', ''] })
+      );
+      expect(state.formData.tags).toEqual(['one', 'two', 'words', 'padded', 'tab']);
+      expect(
+        bookmarkReducer(initialState, setFormData({ tags: 'a  b\nc' as unknown as string[] }))
+          .formData.tags
+      ).toEqual(['a', 'b', 'c']);
+    });
+
     it('should handle setFormData', () => {
       const state = bookmarkReducer(
         initialState,
@@ -239,6 +251,7 @@ describe('bookmark slice', () => {
         const state = store.getState().bookmark;
         expect(state.initialLoading).toBe(false);
         expect(state.errors.generic).toMatch(/rejected your username or API token/);
+        expect(mockedAxios.get).toHaveBeenCalledTimes(1);
         // Unknown, so a save goes out with replace=no.
         expect(state.existingBookmarkTags).toBeNull();
       });

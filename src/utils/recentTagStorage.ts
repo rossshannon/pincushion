@@ -1,28 +1,11 @@
+import { getLocalStorage, readStorageItem } from './safeStorage';
+
 const STORAGE_KEY = 'pincushion.recentTags';
 const TTL_MS = 30 * 60 * 1000; // 30 minutes
 
 export type RecentTagEntry = {
   tag: string;
   timestamp: number;
-};
-
-// Reading window.localStorage itself throws a SecurityError when the browser
-// blocks site data, so even the lookup has to be guarded.
-const getLocalStorage = (): Storage | null => {
-  if (typeof window === 'undefined') return null;
-  try {
-    return window.localStorage || null;
-  } catch {
-    return null;
-  }
-};
-
-const readRaw = (storage: Storage): string | null => {
-  try {
-    return storage.getItem(STORAGE_KEY);
-  } catch {
-    return null;
-  }
 };
 
 const safeParse = (raw: string | null): RecentTagEntry[] => {
@@ -51,10 +34,7 @@ const cleanExpiredEntries = (entries: RecentTagEntry[]): RecentTagEntry[] => {
 };
 
 export const getRecentTags = (): string[] => {
-  const storage = getLocalStorage();
-  if (!storage) return [];
-
-  const entries = safeParse(readRaw(storage));
+  const entries = safeParse(readStorageItem(STORAGE_KEY));
   const validEntries = cleanExpiredEntries(entries);
 
   // If we cleaned up expired entries, persist the cleaned list
@@ -84,7 +64,7 @@ export const addRecentTags = (tags: string[]): boolean => {
   if (!storage) return false;
 
   const now = Date.now();
-  const existingEntries = safeParse(readRaw(storage));
+  const existingEntries = safeParse(readStorageItem(STORAGE_KEY));
   const validEntries = cleanExpiredEntries(existingEntries);
 
   // Add new entries for each tag

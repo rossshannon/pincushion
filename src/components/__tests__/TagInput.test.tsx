@@ -122,13 +122,13 @@ describe('TagInput Component', () => {
     expect(mockOnChange).toHaveBeenCalledWith(['newtag']);
   });
 
-  test('splits typed text on spaces and commas, since a Pinboard tag has neither', async () => {
+  test('splits typed text on whitespace, since a Pinboard tag has none', async () => {
     render(
       <TagInput userTags={mockUserTags} value={['kept']} onChange={mockOnChange} />
     );
 
     const input = screen.getByRole('combobox');
-    await userEvent.type(input, 'two words,three  kept two{enter}');
+    await userEvent.type(input, 'two words  three kept two{enter}');
 
     expect(mockOnChange).toHaveBeenCalledWith(['kept', 'two', 'words', 'three']);
   });

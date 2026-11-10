@@ -33,6 +33,9 @@ export const REQUEST_TIMEOUTS_MS = {
   preview: 20_000,
   tags: 30_000,
   save: 30_000,
+  // Settings' credential check: often the first request of all, so it may
+  // be the one that wakes the dyno.
+  verify: 20_000,
 } as const;
 
 export const bridgeUrl = (path: string): string =>

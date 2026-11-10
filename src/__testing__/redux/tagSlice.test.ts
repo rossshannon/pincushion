@@ -172,8 +172,12 @@ describe('tag slice', () => {
         gptStatus: 'succeeded',
         gptError: 'nope',
         gptContextKey: 'ctx',
+        gptRequestId: 'in-flight',
+        filteredRecentTags: ['relevant-to-the-last-page'],
       };
       const state = tagReducer(loadedState, resetGptSuggestions());
+      expect(state.gptRequestId).toBeNull();
+      expect(state.filteredRecentTags).toEqual([]);
       expect(state.gptSuggestions).toEqual([]);
       expect(state.gptStatus).toBe('idle');
       expect(state.gptError).toBeNull();

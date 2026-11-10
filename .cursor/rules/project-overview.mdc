@@ -20,7 +20,7 @@ Pincushion is a popup for saving bookmarks to Pinboard, built with React, TypeSc
 ## Testing Strategy:
 
 *   Vitest with React Testing Library; `npm test` runs everything.
-*   Tests live in [src/__testing__](mdc:src/__testing__) (app, redux) and in `__tests__` folders beside components, services and utils.
+*   Most tests live in [src/__testing__](mdc:src/__testing__) (app, redux) and in `__tests__` folders beside components, services and utils; a few sit beside their source as `*.test.ts(x)`. Vitest picks up all three.
 *   Also run `npm run lint`, `npm run lint:css` and `npm run build` (which type-checks) before pushing; CI runs all of them.
 
 ## Session notes:

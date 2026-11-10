@@ -6,14 +6,19 @@ import {
   type MultiValueRemoveProps,
   type StylesConfig,
 } from 'react-select';
+import { splitTags } from '../utils/tagList';
 import './TagInput.css';
 
 type TagOption = {
   label: string;
   value: string;
   count?: number;
+};
+
+/** One of the user's own tags, as offered by the autocomplete. */
+type KnownTagOption = TagOption & {
   /** The label as the matcher sees it: lower case, punctuation dropped. */
-  normalized?: string;
+  normalized: string;
 };
 
 const MAX_OPTIONS_TO_SHOW = 50;
@@ -22,13 +27,6 @@ const NORMALIZE_REGEX = /[&_\[\]#,+()$~%.'"*:<>?{}-]/g;
 
 const normalizeString = (str: string): string =>
   str.toLowerCase().replace(NORMALIZE_REGEX, '');
-
-/**
- * Pinboard separates tags with spaces (and accepts commas), so neither can be
- * part of one: "foo bar" typed or pasted here is two tags, not one.
- */
-export const splitTypedTags = (input: string): string[] =>
-  input.split(/[\s,]+/).filter(Boolean);
 
 const tagweight = (count?: number): string => {
   if (!count) return '';
@@ -83,7 +81,7 @@ const TagInput: React.FC<TagInputProps> = ({
     }));
   }, [value]);
 
-  const availableOptions = useMemo<TagOption[]>(() => {
+  const availableOptions = useMemo<KnownTagOption[]>(() => {
     return Object.entries(userTags).map(([label, count]) => ({
       label,
       value: label,
@@ -127,7 +125,8 @@ const TagInput: React.FC<TagInputProps> = ({
   );
 
   const handleCreate = (inputValue: string) => {
-    const newTags = splitTypedTags(inputValue).filter(
+    // "foo bar" typed or pasted is two tags, not one with a space in it.
+    const newTags = splitTags(inputValue).filter(
       (tag, index, all) => !value.includes(tag) && all.indexOf(tag) === index
     );
     if (newTags.length > 0) {
@@ -146,10 +145,8 @@ const TagInput: React.FC<TagInputProps> = ({
       return;
     }
 
-    const normalizedLabelOf = (option: TagOption): string =>
-      option.normalized ?? normalizeString(option.label);
     const filteredOptions = availableOptions.filter((option) =>
-      normalizedLabelOf(option).includes(normalizedInputValue)
+      option.normalized.includes(normalizedInputValue)
     );
 
     const exactMatch: TagOption[] = [];
@@ -157,7 +154,7 @@ const TagInput: React.FC<TagInputProps> = ({
     const substringMatches: TagOption[] = [];
 
     filteredOptions.forEach((option) => {
-      const normalizedLabel = normalizedLabelOf(option);
+      const normalizedLabel = option.normalized;
       if (normalizedLabel === normalizedInputValue) {
         exactMatch.push(option);
       } else if (normalizedLabel.startsWith(normalizedInputValue)) {

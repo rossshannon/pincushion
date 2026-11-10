@@ -83,12 +83,17 @@ const readInitialPageCard = (pageUrl: string): TwitterCardData | null =>
     pageUrl.trim()
   );
 
-// fetchBookmarkDetails marks its rejection when Pinboard answers 414.
-const isUrlTooLongRejection = (result: unknown): boolean => {
+// fetchBookmarkDetails marks its rejection when Pinboard answers 414 (URL
+// too long) or 401 (credentials refused). Either way the suggest call that
+// would follow can only fail the same way.
+const isHopelessRejection = (result: unknown): boolean => {
   const action = result as
-    | { meta?: { requestStatus?: string; urlTooLong?: boolean } }
+    | { meta?: { requestStatus?: string; urlTooLong?: boolean; unauthorized?: boolean } }
     | undefined;
-  return action?.meta?.requestStatus === 'rejected' && action.meta.urlTooLong === true;
+  return (
+    action?.meta?.requestStatus === 'rejected' &&
+    (action.meta.urlTooLong === true || action.meta.unauthorized === true)
+  );
 };
 
 const isLikelyCompleteUrl = (value: string): boolean => {
@@ -382,8 +387,9 @@ function App() {
     if (!debouncedUrl) return;
     // Keyed by account too: after a switch in Settings the loaded bookmark
     // (and its tags, the save's baseline) belong to the old account, so look
-    // the page up again as the new one.
-    const lookupKey = `${user}\n${debouncedUrl}`;
+    // the page up again as the new one. The token is part of the key so that
+    // correcting a rejected one retries the lookup it failed.
+    const lookupKey = `${user}\n${token}\n${debouncedUrl}`;
     if (lastLookupUrlRef.current === lookupKey) return;
     lastLookupUrlRef.current = lookupKey;
     setLookupStartedFor(debouncedUrl);
@@ -407,9 +413,9 @@ function App() {
     void Promise.resolve(lookup).then((result) => {
       // A newer lookup (or a cleared URL) owns the suggestions now.
       if (lookupGenerationRef.current !== generation) return;
-      if (isUrlTooLongRejection(result)) {
-        // Pinboard refused this URL as too long; suggest would fail the same
-        // way, now or if the user comes back to it.
+      if (isHopelessRejection(result)) {
+        // Pinboard refused this URL as too long, or refused the credentials;
+        // suggest would fail the same way, now or if the user comes back to it.
         dispatch(cancelSuggestionsPending());
         return;
       }

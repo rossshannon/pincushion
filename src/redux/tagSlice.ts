@@ -366,6 +366,8 @@ const tagSlice = createSlice({
       state.gptContextKey = null;
       // Whatever is still in flight was asked about the previous page.
       state.gptRequestId = null;
+      // Nor do the recent tags GPT judged relevant to it apply to the next.
+      state.filteredRecentTags = [];
     },
     /**
      * Initialize tagCounts from cached storage
