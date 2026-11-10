@@ -6,13 +6,14 @@ import {
   type MultiValueRemoveProps,
   type StylesConfig,
 } from 'react-select';
-import VirtualizedMenuList from './VirtualizedMenuList';
 import './TagInput.css';
 
 type TagOption = {
   label: string;
   value: string;
   count?: number;
+  /** The label as the matcher sees it: lower case, punctuation dropped. */
+  normalized?: string;
 };
 
 const MAX_OPTIONS_TO_SHOW = 50;
@@ -21,6 +22,13 @@ const NORMALIZE_REGEX = /[&_\[\]#,+()$~%.'"*:<>?{}-]/g;
 
 const normalizeString = (str: string): string =>
   str.toLowerCase().replace(NORMALIZE_REGEX, '');
+
+/**
+ * Pinboard separates tags with spaces (and accepts commas), so neither can be
+ * part of one: "foo bar" typed or pasted here is two tags, not one.
+ */
+export const splitTypedTags = (input: string): string[] =>
+  input.split(/[\s,]+/).filter(Boolean);
 
 const tagweight = (count?: number): string => {
   if (!count) return '';
@@ -80,6 +88,8 @@ const TagInput: React.FC<TagInputProps> = ({
       label,
       value: label,
       count,
+      // Worked out once here rather than for every tag on every keystroke.
+      normalized: normalizeString(label),
     }));
   }, [userTags]);
 
@@ -117,10 +127,11 @@ const TagInput: React.FC<TagInputProps> = ({
   );
 
   const handleCreate = (inputValue: string) => {
-    const newTagValue = inputValue.trim();
-    if (!newTagValue) return;
-    if (!value.includes(newTagValue)) {
-      onChange([...value, newTagValue]);
+    const newTags = splitTypedTags(inputValue).filter(
+      (tag, index, all) => !value.includes(tag) && all.indexOf(tag) === index
+    );
+    if (newTags.length > 0) {
+      onChange([...value, ...newTags]);
     }
   };
 
@@ -135,8 +146,10 @@ const TagInput: React.FC<TagInputProps> = ({
       return;
     }
 
+    const normalizedLabelOf = (option: TagOption): string =>
+      option.normalized ?? normalizeString(option.label);
     const filteredOptions = availableOptions.filter((option) =>
-      normalizeString(option.label).includes(normalizedInputValue)
+      normalizedLabelOf(option).includes(normalizedInputValue)
     );
 
     const exactMatch: TagOption[] = [];
@@ -144,7 +157,7 @@ const TagInput: React.FC<TagInputProps> = ({
     const substringMatches: TagOption[] = [];
 
     filteredOptions.forEach((option) => {
-      const normalizedLabel = normalizeString(option.label);
+      const normalizedLabel = normalizedLabelOf(option);
       if (normalizedLabel === normalizedInputValue) {
         exactMatch.push(option);
       } else if (normalizedLabel.startsWith(normalizedInputValue)) {
@@ -218,10 +231,10 @@ const TagInput: React.FC<TagInputProps> = ({
       hideSelectedOptions
       captureMenuScroll={false}
       inputId={inputId}
-      components={{
-        MenuList: VirtualizedMenuList,
-        MultiValueRemove,
-      }}
+      // The menu never holds more than MAX_OPTIONS_TO_SHOW rows, so it uses
+      // react-select's own list: that one scrolls the highlighted option into
+      // view as the arrow keys move through it.
+      components={{ MultiValueRemove }}
       styles={selectStyles}
       // react-select has no --is-focused modifier for chips; add one so the
       // CSS can reveal the remove button on a chip picked with the arrow keys.

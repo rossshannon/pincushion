@@ -122,6 +122,33 @@ describe('TagInput Component', () => {
     expect(mockOnChange).toHaveBeenCalledWith(['newtag']);
   });
 
+  test('splits typed text on spaces and commas, since a Pinboard tag has neither', async () => {
+    render(
+      <TagInput userTags={mockUserTags} value={['kept']} onChange={mockOnChange} />
+    );
+
+    const input = screen.getByRole('combobox');
+    await userEvent.type(input, 'two words,three  kept two{enter}');
+
+    expect(mockOnChange).toHaveBeenCalledWith(['kept', 'two', 'words', 'three']);
+  });
+
+  test('lists only the options that are not already selected', async () => {
+    render(
+      <TagInput
+        userTags={mockUserTags}
+        value={['react', 'the_onion']}
+        onChange={mockOnChange}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('combobox'));
+    const options = await screen.findAllByRole('option');
+    expect(options).toHaveLength(Object.keys(mockUserTags).length - 2);
+    // Every row of the menu holds an option: no rows left over for hidden ones.
+    expect(screen.getByRole('listbox').children).toHaveLength(options.length);
+  });
+
   test('allows selecting an existing tag from dropdown', async () => {
     render(
       <TagInput userTags={mockUserTags} value={[]} onChange={mockOnChange} />
