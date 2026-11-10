@@ -38,6 +38,7 @@ const initialState = {
   },
   lastFetchRequestId: null,
   lastFetchTargetUrl: null,
+  lookupFailure: null,
   initialLoading: false,
   existingBookmarkTime: null,
   hasExistingBookmark: false,
@@ -84,6 +85,12 @@ describe('bookmark slice', () => {
         setFormData({ tags: ['one', 'two words', ' padded\ttab ', ''] })
       );
       expect(state.formData.tags).toEqual(['one', 'two', 'words', 'padded', 'tab']);
+      // Only ASCII whitespace separates tags: a tag Pinboard already holds
+      // with a no-break or ideographic space in it must come through whole.
+      expect(
+        bookmarkReducer(initialState, setFormData({ tags: ['foo\u00a0bar', '日本\u3000語'] }))
+          .formData.tags
+      ).toEqual(['foo\u00a0bar', '日本\u3000語']);
       expect(
         bookmarkReducer(initialState, setFormData({ tags: 'a  b\nc' as unknown as string[] }))
           .formData.tags
@@ -254,6 +261,54 @@ describe('bookmark slice', () => {
         expect(mockedAxios.get).toHaveBeenCalledTimes(1);
         // Unknown, so a save goes out with replace=no.
         expect(state.existingBookmarkTags).toBeNull();
+        expect(state.lookupFailure).toBe('unauthorized');
+      });
+
+      it('records why a lookup failed, and forgets it when the next one starts', async () => {
+        mockedAxios.get.mockRejectedValueOnce(new Error('Network Error'));
+        await store.dispatch(fetchBookmarkDetails());
+        expect(store.getState().bookmark.lookupFailure).toBe('other');
+
+        mockedAxios.get.mockRejectedValueOnce(
+          Object.assign(new Error('Request failed with status code 414'), { response: { status: 414 } })
+        );
+        await store.dispatch(fetchBookmarkDetails());
+        expect(store.getState().bookmark.lookupFailure).toBe('url-too-long');
+
+        mockedAxios.get.mockResolvedValueOnce({ data: { posts: [] } });
+        const retry = store.dispatch(fetchBookmarkDetails());
+        expect(store.getState().bookmark.lookupFailure).toBeNull();
+        await retry;
+        expect(store.getState().bookmark.lookupFailure).toBeNull();
+      });
+
+      it('keeps tags typed after a failed lookup when the retry finds a saved bookmark', async () => {
+        mockedAxios.get.mockRejectedValueOnce({
+          isAxiosError: true,
+          message: 'Request failed with status code 401',
+          response: { status: 401 },
+        });
+        await store.dispatch(fetchBookmarkDetails());
+        // Typed while the credentials were wrong.
+        store.dispatch(setFormData({ tags: ['typed', 'saved-b'] }));
+
+        mockedAxios.get.mockResolvedValueOnce({
+          data: { posts: [{ href: urlToFetch, description: 'Saved', tags: 'saved-a saved-b' }] },
+        });
+        await store.dispatch(fetchBookmarkDetails());
+        const state = store.getState().bookmark;
+        expect(state.formData.tags).toEqual(['saved-a', 'saved-b', 'typed']);
+        expect(state.existingBookmarkTags).toEqual(['saved-a', 'saved-b']);
+      });
+
+      it('keeps tags typed after a failed lookup when the retry finds nothing', async () => {
+        mockedAxios.get.mockRejectedValueOnce(new Error('Network Error'));
+        await store.dispatch(fetchBookmarkDetails());
+        store.dispatch(setFormData({ tags: ['typed'] }));
+
+        mockedAxios.get.mockResolvedValueOnce({ data: { posts: [] } });
+        await store.dispatch(fetchBookmarkDetails());
+        expect(store.getState().bookmark.formData.tags).toEqual(['typed']);
       });
 
       it('sends the lookup with a timeout and tells the user new bookmarks still save on timeout', async () => {

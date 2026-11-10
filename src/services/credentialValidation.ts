@@ -2,6 +2,7 @@ import axios from 'axios';
 import {
   bridgeRequestConfig,
   bridgeUrl,
+  hasHttpStatus,
   isTimeoutError,
   REQUEST_TIMEOUTS_MS,
 } from './pinboardApi';
@@ -120,7 +121,7 @@ export async function verifyPinboardCredentials({
       bridgeRequestConfig(trimmedUser, trimmedToken, REQUEST_TIMEOUTS_MS.verify)
     );
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.status === 401) {
+    if (hasHttpStatus(error, 401)) {
       throw new Error('Pinboard rejected those credentials.');
     }
     if (isTimeoutError(error)) {

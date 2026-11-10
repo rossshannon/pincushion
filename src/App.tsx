@@ -9,6 +9,7 @@ import {
   fetchBookmarkDetails,
   applyTrackingStrip,
   checkTrackedBookmark,
+  type LookupFailure,
 } from './redux/bookmarkSlice';
 import {
   fetchTags,
@@ -83,16 +84,15 @@ const readInitialPageCard = (pageUrl: string): TwitterCardData | null =>
     pageUrl.trim()
   );
 
-// fetchBookmarkDetails marks its rejection when Pinboard answers 414 (URL
-// too long) or 401 (credentials refused). Either way the suggest call that
-// would follow can only fail the same way.
+// fetchBookmarkDetails says why it was rejected. When Pinboard refused the
+// URL as too long or refused the credentials, the suggest call that would
+// follow can only fail the same way.
 const isHopelessRejection = (result: unknown): boolean => {
-  const action = result as
-    | { meta?: { requestStatus?: string; urlTooLong?: boolean; unauthorized?: boolean } }
-    | undefined;
+  const meta = (result as { meta?: { requestStatus?: string; reason?: LookupFailure } } | undefined)
+    ?.meta;
   return (
-    action?.meta?.requestStatus === 'rejected' &&
-    (action.meta.urlTooLong === true || action.meta.unauthorized === true)
+    meta?.requestStatus === 'rejected' &&
+    (meta.reason === 'url-too-long' || meta.reason === 'unauthorized')
   );
 };
 
@@ -122,6 +122,7 @@ function App() {
     initialLoading,
     hasExistingBookmark,
     trackingStrip,
+    lookupFailure,
     status: bookmarkStatus,
   } = useSelector((state: RootState) => state.bookmark);
   const { user, token, openAiToken } = useSelector(
@@ -133,6 +134,11 @@ function App() {
   const { url, title, description, tags } = formData;
   const normalizedTagString = tags.join(' ');
   const lastLookupUrlRef = useRef<string | null>(null);
+  // The token the last lookup went out with, and how that lookup fared: a
+  // lookup Pinboard refused is retried when the token is corrected.
+  const lastLookupTokenRef = useRef<string | null>(null);
+  const lookupFailureRef = useRef<LookupFailure | null>(null);
+  lookupFailureRef.current = lookupFailure;
   const [view, setView] = useState<ViewMode>(VIEW_FORM);
   const [credentialsMissing, setCredentialsMissing] = useState(false);
   const [debouncedUrl, setDebouncedUrl] = useState('');
@@ -258,6 +264,9 @@ function App() {
     lookupStartedFor === trackingStrip.stripped.trim() &&
     !initialLoading &&
     !hasExistingBookmark &&
+    // Refused credentials would only be refused again, and the failure
+    // would count as "not bookmarked". Wait for a lookup that gets through.
+    lookupFailure !== 'unauthorized' &&
     // Never alongside a save, nor once the user has saved.
     bookmarkStatus !== 'saving' &&
     !trackingStrip.savedAfterStrip;
@@ -387,11 +396,17 @@ function App() {
     if (!debouncedUrl) return;
     // Keyed by account too: after a switch in Settings the loaded bookmark
     // (and its tags, the save's baseline) belong to the old account, so look
-    // the page up again as the new one. The token is part of the key so that
-    // correcting a rejected one retries the lookup it failed.
-    const lookupKey = `${user}\n${token}\n${debouncedUrl}`;
-    if (lastLookupUrlRef.current === lookupKey) return;
+    // the page up again as the new one.
+    const lookupKey = `${user}\n${debouncedUrl}`;
+    // Same account and page, but Pinboard refused the last lookup and the
+    // token has changed since: the user has corrected it in Settings.
+    const retryWithNewToken =
+      lastLookupUrlRef.current === lookupKey &&
+      lookupFailureRef.current === 'unauthorized' &&
+      lastLookupTokenRef.current !== token;
+    if (lastLookupUrlRef.current === lookupKey && !retryWithNewToken) return;
     lastLookupUrlRef.current = lookupKey;
+    lastLookupTokenRef.current = token;
     setLookupStartedFor(debouncedUrl);
     const initialPage =
       initialPageCardRef.current?.url === debouncedUrl ? initialPageCardRef.current : null;
@@ -400,13 +415,17 @@ function App() {
     // three seconds and the bridge spaces them in arrival order, so this keeps
     // the lookup (which gates Save) first in line.
     const lookup = dispatch(fetchBookmarkDetails(debouncedUrl));
-    dispatch(
-      fetchPagePreview({
-        url: debouncedUrl,
-        pageCard: initialPage?.card ?? null,
-        fallbackTitle: initialPage?.fallbackTitle || null,
-      })
-    );
+    // The preview doesn't depend on the Pinboard token, so a retry keeps
+    // the one already showing.
+    if (!retryWithNewToken) {
+      dispatch(
+        fetchPagePreview({
+          url: debouncedUrl,
+          pageCard: initialPage?.card ?? null,
+          fallbackTitle: initialPage?.fallbackTitle || null,
+        })
+      );
+    }
     // Clear the previous URL's suggestions and show the spinner during the lookup.
     dispatch(markSuggestionsPending());
     const generation = ++lookupGenerationRef.current;

@@ -133,6 +133,23 @@ describe('TagInput Component', () => {
     expect(mockOnChange).toHaveBeenCalledWith(['kept', 'two', 'words', 'three']);
   });
 
+  test('gives each typed word the spelling of a tag the user already has', async () => {
+    render(
+      <TagInput
+        userTags={{ React: 20, react: 3, Hooks: 1 }}
+        value={['TypeScript']}
+        onChange={mockOnChange}
+      />
+    );
+
+    const input = screen.getByRole('combobox');
+    await userEvent.type(input, 'REACT hooks typescript brandnew{enter}');
+
+    // The most used spelling of "react", the only spelling of "hooks", no
+    // second copy of the tag already on the bookmark, and the new one as typed.
+    expect(mockOnChange).toHaveBeenCalledWith(['TypeScript', 'React', 'Hooks', 'brandnew']);
+  });
+
   test('lists only the options that are not already selected', async () => {
     render(
       <TagInput

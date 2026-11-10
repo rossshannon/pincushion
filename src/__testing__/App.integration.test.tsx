@@ -944,8 +944,78 @@ describe('App integration', () => {
     const calls = [];
     mockedAxios.get.mockImplementation((url, config) => {
       const auth = config?.headers?.Authorization;
+      const target = decodeURIComponent(url.split('url=')[1] ?? '');
       if (url.includes('posts/get')) {
-        calls.push(`lookup ${auth}`);
+        calls.push(`lookup ${target} ${auth}`);
+        if (auth === 'Bearer ross:expired') {
+          return Promise.reject(
+            Object.assign(new Error('Request failed with status code 401'), { response: { status: 401 } })
+          );
+        }
+        // Bookmarked before, under the address with its tracking parameter.
+        return Promise.resolve({
+          data: {
+            posts: target.includes('utm_source')
+              ? [{ href: target, description: 'Saved', tags: 'one two' }]
+              : [],
+          },
+        });
+      }
+      if (url.includes('/preview?')) {
+        calls.push('preview');
+        return Promise.resolve({ data: { preview: null } });
+      }
+      if (url.includes('/v1/posts/suggest')) {
+        calls.push(`suggest ${auth}`);
+        return Promise.resolve({ data: [] });
+      }
+      if (url.includes('tags/get')) return Promise.resolve({ data: {} });
+      return Promise.reject(new Error(`Unhandled url ${url}`));
+    });
+    window.history.pushState(
+      {},
+      '',
+      '?url=https%3A%2F%2Fa.example.com%2F%3Futm_source%3Dnews&title=T'
+    );
+    const store = await renderAppWithStore();
+    await waitFor(() => expect(store.getState().bookmark.initialLoading).toBe(false));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+    // No suggest call, and no check of the tracked address: both would only
+    // be refused, and the check would be recorded as "not bookmarked".
+    expect(calls).toEqual(['lookup https://a.example.com/ Bearer ross:expired', 'preview']);
+    expect(store.getState().bookmark.errors.generic).toMatch(/rejected your username or API token/);
+    expect(store.getState().tags.suggestedLoading).toBe(false);
+    expect(store.getState().bookmark.trackingStrip.checkedOriginal).toBe(false);
+
+    // The user types a tag, then corrects the token in Settings.
+    await act(async () => {
+      store.dispatch(setFormData({ tags: ['typed'] }));
+    });
+    await act(async () => {
+      store.dispatch(setAuth({ user: 'ross', token: 'fresh', openAiToken: '' }));
+    });
+    await waitFor(() => expect(calls).toContain('suggest Bearer ross:fresh'));
+    await waitFor(() =>
+      expect(store.getState().bookmark.trackingStrip.savedWithTracking).toBe(true)
+    );
+    expect(calls.filter((c) => c.startsWith('lookup'))).toEqual([
+      'lookup https://a.example.com/ Bearer ross:expired',
+      'lookup https://a.example.com/ Bearer ross:fresh',
+      'lookup https://a.example.com/?utm_source=news Bearer ross:fresh',
+    ]);
+    // The preview never depended on the token: it isn't fetched again.
+    expect(calls.filter((c) => c === 'preview')).toHaveLength(1);
+    expect(store.getState().bookmark.errors.generic).toBeNull();
+    expect(store.getState().bookmark.formData.tags).toEqual(['typed']);
+  });
+
+  it('keeps tags typed while the credentials were wrong when the retry loads a saved bookmark', async () => {
+    seedCredentials({ pinboardToken: 'expired' });
+    mockedAxios.get.mockImplementation((url, config) => {
+      const auth = config?.headers?.Authorization;
+      if (url.includes('posts/get')) {
         if (auth === 'Bearer ross:expired') {
           return Promise.reject(
             Object.assign(new Error('Request failed with status code 401'), { response: { status: 401 } })
@@ -956,34 +1026,46 @@ describe('App integration', () => {
         });
       }
       if (url.includes('/preview?')) return Promise.resolve({ data: { preview: null } });
-      if (url.includes('/v1/posts/suggest')) {
-        calls.push(`suggest ${auth}`);
-        return Promise.resolve({ data: [] });
-      }
+      if (url.includes('/v1/posts/suggest')) return Promise.resolve({ data: [] });
       if (url.includes('tags/get')) return Promise.resolve({ data: {} });
       return Promise.reject(new Error(`Unhandled url ${url}`));
     });
     window.history.pushState({}, '', '?url=https%3A%2F%2Fa.example.com%2F&title=T');
     const store = await renderAppWithStore();
-    await waitFor(() => expect(store.getState().bookmark.initialLoading).toBe(false));
+    await waitFor(() => expect(store.getState().bookmark.lookupFailure).toBe('unauthorized'));
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 20));
+      store.dispatch(setFormData({ tags: ['typed', 'two'] }));
     });
-    expect(calls).toEqual(['lookup Bearer ross:expired']);
-    expect(store.getState().bookmark.errors.generic).toMatch(/rejected your username or API token/);
-    expect(store.getState().tags.suggestedLoading).toBe(false);
-
-    // Same username, new token, as saved from Settings.
     await act(async () => {
       store.dispatch(setAuth({ user: 'ross', token: 'fresh', openAiToken: '' }));
     });
     await waitFor(() => expect(store.getState().bookmark.hasExistingBookmark).toBe(true));
-    await waitFor(() => expect(calls).toContain('suggest Bearer ross:fresh'));
-    expect(calls.filter((c) => c.startsWith('lookup'))).toEqual([
-      'lookup Bearer ross:expired',
-      'lookup Bearer ross:fresh',
-    ]);
-    expect(store.getState().bookmark.errors.generic).toBeNull();
-    expect(store.getState().bookmark.formData.tags).toEqual(['one', 'two']);
+    expect(store.getState().bookmark.formData.tags).toEqual(['one', 'two', 'typed']);
+    expect(store.getState().bookmark.existingBookmarkTags).toEqual(['one', 'two']);
+  });
+
+  it('does not look the page up again when the token changes after a lookup that worked', async () => {
+    seedCredentials();
+    const calls = [];
+    mockedAxios.get.mockImplementation((url) => {
+      if (url.includes('posts/get')) {
+        calls.push('lookup');
+        return Promise.resolve({ data: { posts: [] } });
+      }
+      if (url.includes('/preview?')) return Promise.resolve({ data: { preview: null } });
+      if (url.includes('/v1/posts/suggest')) return Promise.resolve({ data: [] });
+      if (url.includes('tags/get')) return Promise.resolve({ data: {} });
+      return Promise.reject(new Error(`Unhandled url ${url}`));
+    });
+    window.history.pushState({}, '', '?url=https%3A%2F%2Fa.example.com%2F&title=T');
+    const store = await renderAppWithStore();
+    await waitFor(() => expect(store.getState().bookmark.existingBookmarkTags).toEqual([]));
+    await act(async () => {
+      store.dispatch(setAuth({ user: 'ross', token: 'regenerated', openAiToken: '' }));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+    expect(calls).toEqual(['lookup']);
   });
 });

@@ -9,6 +9,7 @@ import { splitTags } from '../utils/tagList';
 import {
   bridgeRequestConfig,
   bridgeUrl,
+  hasHttpStatus,
   isTimeoutError,
   REQUEST_TIMEOUTS_MS,
 } from '../services/pinboardApi';
@@ -39,6 +40,12 @@ export type BookmarkState = {
   errors: BookmarkErrors;
   lastFetchRequestId: string | null;
   lastFetchTargetUrl: string | null;
+  /**
+   * Why the latest lookup failed, or null if it answered (or none has run).
+   * While it is set, existingBookmarkTags is null and the tags on the form
+   * are the user's own.
+   */
+  lookupFailure: LookupFailure | null;
   initialLoading: boolean;
   existingBookmarkTime: string | null;
   hasExistingBookmark: boolean;
@@ -94,6 +101,13 @@ export type TrackingStrip = {
   savedAfterStrip: boolean;
 };
 
+/**
+ * 'unauthorized': Pinboard refused the credentials (HTTP 401).
+ * 'url-too-long': it refused the URL (HTTP 414).
+ * 'other': a timeout, a network error, anything else.
+ */
+export type LookupFailure = 'unauthorized' | 'url-too-long' | 'other';
+
 type BookmarkThunkState = {
   auth: AuthState;
   bookmark: BookmarkState;
@@ -127,23 +141,6 @@ const BOOKMARK_ERROR_KEYS = ['url', 'title', 'description', 'generic'] as const;
 type BookmarkErrorKey = (typeof BOOKMARK_ERROR_KEYS)[number];
 const isBookmarkErrorKey = (value: string): value is BookmarkErrorKey =>
   (BOOKMARK_ERROR_KEYS as readonly string[]).includes(value);
-
-type ErrorWithStatus = {
-  response?: {
-    status?: number;
-  };
-};
-
-const hasHttpStatus = (error: unknown, statusCode: number): boolean => {
-  if (axios.isAxiosError(error)) {
-    return error.response?.status === statusCode;
-  }
-  if (typeof error === 'object' && error && 'response' in error) {
-    const resp = (error as ErrorWithStatus).response;
-    return resp?.status === statusCode;
-  }
-  return false;
-};
 
 const isUrlTooLongError = (error: unknown): boolean => {
   if (hasHttpStatus(error, 414)) return true;
@@ -341,9 +338,7 @@ export const fetchBookmarkDetails = createAsyncThunk<
   {
     state: BookmarkThunkState;
     rejectValue: string;
-    // urlTooLong: Pinboard refused the URL as too long (HTTP 414).
-    // unauthorized: it refused the credentials (HTTP 401).
-    rejectedMeta: { urlTooLong: boolean; unauthorized?: boolean };
+    rejectedMeta: { reason: LookupFailure };
   }
 >(
   'bookmark/fetchDetails',
@@ -368,22 +363,23 @@ export const fetchBookmarkDetails = createAsyncThunk<
       return await lookupPost(targetUrl, user, token);
     } catch (err) {
       if (isUrlTooLongError(err)) {
-        return rejectWithValue(`${ERROR_MESSAGES.URL_TOO_LONG} (HTTP 414).`, { urlTooLong: true });
+        return rejectWithValue(`${ERROR_MESSAGES.URL_TOO_LONG} (HTTP 414).`, {
+          reason: 'url-too-long',
+        });
       }
       if (isTimeoutError(err)) {
-        return rejectWithValue(ERROR_MESSAGES.LOOKUP_TIMEOUT, { urlTooLong: false });
+        return rejectWithValue(ERROR_MESSAGES.LOOKUP_TIMEOUT, { reason: 'other' });
       }
       if (hasHttpStatus(err, 401)) {
         return rejectWithValue(ERROR_MESSAGES.BAD_CREDENTIALS, {
-          urlTooLong: false,
-          unauthorized: true,
+          reason: 'unauthorized',
         });
       }
       const message =
         err instanceof Error
           ? err.message
           : 'Failed to load existing bookmark details.';
-      return rejectWithValue(message, { urlTooLong: false });
+      return rejectWithValue(message, { reason: 'other' });
     }
   }
 );
@@ -435,6 +431,7 @@ const initialState: BookmarkState = {
   },
   lastFetchRequestId: null,
   lastFetchTargetUrl: null,
+  lookupFailure: null,
   initialLoading: false,
   existingBookmarkTime: null,
   hasExistingBookmark: false,
@@ -574,11 +571,17 @@ const bookmarkSlice = createSlice({
         // against the loaded tags keeps what was typed during the first.
         // A lookup still in flight already took both readings; taking them
         // again would see its cleared baseline and forget what it loaded.
+        // After a failed lookup there is no baseline, and whatever is on
+        // the form beyond what an earlier lookup loaded was typed by the
+        // user (while the credentials were wrong, say): a retry keeps it.
         if (!lookupInFlight) {
           state.tagsAtLookupStart = state.existingBookmarkTags
             ? [...state.existingBookmarkTags]
-            : [...state.formData.tags];
+            : state.lookupFailure
+              ? [...state.loadedTagsAtLookupStart]
+              : [...state.formData.tags];
         }
+        state.lookupFailure = null;
         // Only a finished lookup knows which tags it loaded; after a failed
         // one, keep the last known set so a later miss can still drop them.
         if (state.existingBookmarkTags !== null) {
@@ -710,6 +713,7 @@ const bookmarkSlice = createSlice({
         state.displayOriginalTimestamp = false;
         state.lastFetchTargetUrl = null;
         state.existingBookmarkTags = null;
+        state.lookupFailure = action.meta.reason ?? 'other';
 
         if (normalizedUrl && normalizedUrl !== currentUrl) {
           return;
@@ -719,7 +723,7 @@ const bookmarkSlice = createSlice({
         if (
           strip &&
           normalizedUrl === strip.stripped.trim() &&
-          action.payload?.startsWith(ERROR_MESSAGES.URL_TOO_LONG)
+          action.meta.reason === 'url-too-long'
         ) {
           // The tracked URL is longer still: checking it would only 414 too.
           strip.checkedOriginal = true;

@@ -55,6 +55,13 @@ export const bridgeRequestConfig = (
 type ErrorLike = {
   code?: string;
   message?: string;
+  response?: { status?: number };
+};
+
+/** True when the bridge (or Pinboard through it) answered with this status. */
+export const hasHttpStatus = (error: unknown, statusCode: number): boolean => {
+  if (typeof error !== 'object' || error === null) return false;
+  return (error as ErrorLike).response?.status === statusCode;
 };
 
 /**

@@ -14,7 +14,7 @@ The one finding that needed a browser to see was the tag autocomplete: it was vi
 
 - [x] Read the whole project
 - [x] Fix what is certain, with tests
-- [x] Keep the suite green and check for regressions (344 tests; production build driven end to end in Chromium)
+- [x] Keep the suite green and check for regressions (351 tests; production build driven end to end in Chromium)
 - [x] Code review per the project policy, and fix its findings
 - [x] List the uncertain items for Ross (below)
 
@@ -24,17 +24,23 @@ The one finding that needed a browser to see was the tag autocomplete: it was vi
 
 `TagInput` caps the menu at 50 options (`MAX_OPTIONS_TO_SHOW`), so virtualising it bought nothing and cost two bugs: react-select scrolls the focused option into view through the `innerRef` it hands its MenuList, which `VirtualizedMenuList` ignored; and the list was sized from `props.options`, which still includes selected options that `hideSelectedOptions` leaves out of `children`. react-select's own MenuList has neither problem. Zebra striping moved to `:nth-child(even)` on the option. If the cap is ever raised into the thousands, virtualise again, but forward `innerRef` and size from `children`.
 
-### Tags are split on whitespace only, at the reducer
+### Tags are split on ASCII whitespace only, at the reducer
 
-Pinboard separates tags with spaces, so a tag holding whitespace is saved as several tags while the local counts record one that does not exist. `splitTags` (`utils/tagList.ts`) is applied in `toTagArray`, the single point every tag list passes through on its way into the form, and in `TagInput.handleCreate`. Commas are left alone on purpose: Pinboard's API docs say tags may not contain them, but existing bookmarks made on the website might, and splitting a loaded tag would rewrite the user's data on the next save.
+Pinboard separates tags with spaces, so a tag holding one is saved as several tags while the local counts record one that does not exist. `splitTags` (`utils/tagList.ts`) is applied in `toTagArray`, the single point every tag list passes through on its way into the form, and in `TagInput.handleCreate`. Two things are left alone on purpose, because `toTagArray` also sees tags loaded from Pinboard and splitting one of those would rewrite the user's data on the next save: commas (the API docs say tags may not contain them, but bookmarks made on the website might), and non-ASCII whitespace such as a no-break or ideographic space, which JavaScript's `\s` would match.
+
+When several words are typed at once, react-select's own "does this tag already exist" check has only seen the whole string, so `handleCreate` repeats it per word: a word that matches one of the user's tags ignoring case takes that tag's most used spelling, and one already on the bookmark is skipped.
 
 ### GPT requests are tracked by request id, not aborted
 
 `gptRequestId` mirrors `suggestedRequestId`. A superseded request still runs to completion at OpenAI (two small calls); only its answer is dropped. Aborting would need the thunk's signal threaded through `gptSuggestions.ts` and the promise held in `App`; left as a possible follow-up.
 
-### The lookup key includes the token
+### A lookup Pinboard refused is retried when the token changes
 
-`App` keyed lookups on `user + url`. With the new "Pinboard rejected your username or API token" message sending people to Settings, correcting only the token would not have retried the lookup. The key is now `user + token + url`. A lookup rejected with 401 also skips the suggest call, as a 414 already did.
+`App` keys lookups on `user + url`, so with the new "Pinboard rejected your username or API token" message sending people to Settings, correcting only the token would not have retried the lookup. The first attempt put the token in the key; the second review pointed out that this refetched the preview (which does not depend on the token) on any token change. Now the slice records why the latest lookup failed (`lookupFailure`: `'unauthorized' | 'url-too-long' | 'other' | null`, also carried as `meta.reason` on the rejected action), and `App` retries only when the failure was `'unauthorized'` and the token differs from the one the lookup went out with. The retry does not refetch the preview.
+
+While `lookupFailure` is `'unauthorized'`, the suggest call and the tracked-URL check are both skipped: they would only be refused, and the check records a failure as "not bookmarked under the tracked URL", which the retry would never revisit.
+
+A retry after any failed lookup keeps the tags on the form. `fetchBookmarkDetails.pending` used to read "tags present when the lookup started" from the form when there was no baseline, which made tags typed after a failure look like ones a lookup had loaded, so finding a saved bookmark dropped them. With `lookupFailure` set it measures against `loadedTagsAtLookupStart` instead.
 
 ### Credential check uses posts/update
 
@@ -54,7 +60,7 @@ Settings verified credentials with `tags/get` (the whole tag list, hundreds of K
 | Tags with spaces | `utils/tagList.ts`, `redux/bookmarkSlice.ts`, `TagInput.tsx` | Split on whitespace at the reducer and on create |
 | Stale GPT answers | `redux/tagSlice.ts` | `gptRequestId`; reset also clears `filteredRecentTags` |
 | Blocked localStorage crashed start-up | `utils/safeStorage.ts`, `credentialStorage.ts`, `recentTagStorage.ts`, `tagCache.ts` | One guarded accessor shared by all three |
-| No or rejected credentials | `redux/bookmarkSlice.ts`, `App.tsx` | Plain messages; no request without credentials; token change retries the lookup; 401 skips suggest |
+| No or rejected credentials | `redux/bookmarkSlice.ts`, `App.tsx`, `services/pinboardApi.ts` | Plain messages; no request without credentials; `lookupFailure`; a corrected token retries the lookup and keeps typed tags; 401 skips suggest and the tracked-URL check |
 | Padded URL | `redux/bookmarkSlice.ts` | Trim before validating, sending and comparing |
 | Credential verification | `services/credentialValidation.ts`, `pinboardApi.ts` | Configured bridge, `posts/update`, 20s, plain timeout message |
 | `npm run preview` 404s | `vite.config.ts` | Serve the preview from `/pincushion/` too |
@@ -77,7 +83,10 @@ Settings verified credentials with `tags/get` (the whole tag list, hundreds of K
 
 ## Review
 
-The multi-LLM review skill lives on Ross's Mac and was not reachable from this session, so the fallback in the project policy was used: `/code-review` at high effort, twice. See the PR description for what each pass found and what was done about it.
+The multi-LLM review skill lives on Ross's Mac and was not reachable from this session, so the fallback in the project policy was used: `/code-review` at high effort, twice, then once more over the fixes the second pass prompted. See the PR description for what each pass found and what was done about it.
+
+- **Pass 1** (10 findings, 9 fixed): stale `filteredRecentTags`; token-only change not retrying the lookup; suggest sent after a 401; verify timeout; tag splitting only in the component; three copies of the storage guard; dead fallback; Cursor rule; CI type-checking twice. Left: aborting superseded GPT requests.
+- **Pass 2** (8 findings, 7 fixed), nearly all about pass 1's credential-retry fix: the retry dropped tags typed after the 401; the tracked-URL check ran against refused credentials and was never redone; `\s` splitting non-ASCII whitespace in loaded tags; multi-word create bypassing the case-insensitive duplicate check; duplicated 401 detection; the retry refetching the preview; three encodings of "why the lookup failed". Left: one shared "credentials rejected" gate for every bridge call (`fetchTags` and `fetchSuggestedTags` still store a raw 401 message, which nothing displays).
 
 ## For Ross to decide
 

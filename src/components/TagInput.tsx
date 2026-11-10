@@ -91,6 +91,18 @@ const TagInput: React.FC<TagInputProps> = ({
     }));
   }, [userTags]);
 
+  /** The user's tags by lower-cased name: the most used spelling of each. */
+  const knownSpelling = useMemo(() => {
+    const spellings = new Map<string, { label: string; count: number }>();
+    availableOptions.forEach(({ label, count }) => {
+      const key = label.toLowerCase();
+      const uses = count ?? 0;
+      const current = spellings.get(key);
+      if (!current || uses > current.count) spellings.set(key, { label, count: uses });
+    });
+    return new Map([...spellings].map(([key, { label }]) => [key, label]));
+  }, [availableOptions]);
+
   const defaultOptionsList = useMemo<TagOption[]>(() => {
     const sortedOptions = [...availableOptions].sort(
       (a, b) => (b.count || 0) - (a.count || 0)
@@ -126,9 +138,18 @@ const TagInput: React.FC<TagInputProps> = ({
 
   const handleCreate = (inputValue: string) => {
     // "foo bar" typed or pasted is two tags, not one with a space in it.
-    const newTags = splitTags(inputValue).filter(
-      (tag, index, all) => !value.includes(tag) && all.indexOf(tag) === index
-    );
+    // react-select only offers Create when the whole input matches no tag
+    // (ignoring case), so each word still needs that check: one the user
+    // already has takes its existing spelling rather than a case variant,
+    // and one already on the bookmark is skipped.
+    const taken = new Set(value.map((tag) => tag.toLowerCase()));
+    const newTags: string[] = [];
+    splitTags(inputValue).forEach((word) => {
+      const lower = word.toLowerCase();
+      if (taken.has(lower)) return;
+      taken.add(lower);
+      newTags.push(knownSpelling.get(lower) ?? word);
+    });
     if (newTags.length > 0) {
       onChange([...value, ...newTags]);
     }

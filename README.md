@@ -66,10 +66,10 @@ Pincushion is designed for modern browsers like Chrome, Safari, Comet, Atlas, Ed
 A whole-codebase audit. Fixes:
 
 - The tag autocomplete follows the arrow keys again. Past the eighth row the highlight used to move to options that weren't on screen, and the list didn't scroll. The blank rows at the end of the list (one for each tag already on the bookmark) are gone too.
-- Typing or pasting several words into the tag field makes several tags. It used to make one tag with a space in it, which Pinboard saved as separate tags while Pincushion's own tag counts recorded the combined one.
+- Typing or pasting several words into the tag field makes several tags, each spelled the way you already spell it if it's a tag you have. It used to make one tag with a space in it, which Pinboard saved as separate tags while Pincushion's own tag counts recorded the combined one.
 - AI suggestions (and the recent tags the AI picked out) for a page you've moved away from no longer appear under the next page, and no longer set off a repeat OpenAI request.
 - The popup no longer fails to start in a browser that blocks site storage.
-- Saving without credentials, or with ones Pinboard rejects, says so and points to Settings instead of showing “Request failed with status code 401”. Correcting just the token in Settings now re-checks the page.
+- Saving without credentials, or with ones Pinboard rejects, says so and points to Settings instead of showing “Request failed with status code 401”. Correcting the token in Settings re-checks the page and keeps any tags you'd typed in the meantime.
 - Settings checks your Pinboard credentials with a tiny request rather than downloading your whole tag list, allows a sleeping bridge 20 seconds to answer, and uses the bridge set in `VITE_PINBOARD_BRIDGE_URL` like everything else.
 - The URL is saved without any leading or trailing whitespace.
 - Dependencies updated to clear `npm audit`'s high-severity advisories (axios, Vite and others); unused packages (react-window, redux, browserslist, trim-newlines) and dead code removed.
