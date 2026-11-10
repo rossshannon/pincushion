@@ -133,6 +133,19 @@ describe('TagInput Component', () => {
     expect(mockOnChange).toHaveBeenCalledWith(['kept', 'two', 'words', 'three']);
   });
 
+  test('splits pasted text on a no-break space and matches each word to a known tag', async () => {
+    render(
+      <TagInput userTags={{ Machine: 4, learning: 2 }} value={[]} onChange={mockOnChange} />
+    );
+
+    const input = screen.getByRole('combobox');
+    await userEvent.click(input);
+    await userEvent.paste('machine\u00a0learning');
+    await userEvent.keyboard('{enter}');
+
+    expect(mockOnChange).toHaveBeenCalledWith(['Machine', 'learning']);
+  });
+
   test('gives each typed word the spelling of a tag the user already has', async () => {
     render(
       <TagInput

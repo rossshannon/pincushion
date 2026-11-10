@@ -1044,6 +1044,50 @@ describe('App integration', () => {
     expect(store.getState().bookmark.existingBookmarkTags).toEqual(['one', 'two']);
   });
 
+  it('retries when the token was corrected while the refused lookup was still in flight', async () => {
+    seedCredentials({ pinboardToken: 'expired' });
+    const calls = [];
+    let refuse;
+    mockedAxios.get.mockImplementation((url, config) => {
+      const auth = config?.headers?.Authorization;
+      if (url.includes('posts/get')) {
+        calls.push(`lookup ${auth}`);
+        if (auth === 'Bearer ross:expired') {
+          return new Promise((_, reject) => {
+            refuse = () =>
+              reject(
+                Object.assign(new Error('Request failed with status code 401'), {
+                  response: { status: 401 },
+                })
+              );
+          });
+        }
+        return Promise.resolve({ data: { posts: [] } });
+      }
+      if (url.includes('/preview?')) return Promise.resolve({ data: { preview: null } });
+      if (url.includes('/v1/posts/suggest')) return Promise.resolve({ data: [] });
+      if (url.includes('tags/get')) return Promise.resolve({ data: {} });
+      return Promise.reject(new Error(`Unhandled url ${url}`));
+    });
+    window.history.pushState({}, '', '?url=https%3A%2F%2Fa.example.com%2F&title=T');
+    const store = await renderAppWithStore();
+    await waitFor(() => expect(calls).toEqual(['lookup Bearer ross:expired']));
+    // Settings is saved before the 401 for the old token has come back.
+    await act(async () => {
+      store.dispatch(setAuth({ user: 'ross', token: 'fresh', openAiToken: '' }));
+    });
+    expect(calls).toEqual(['lookup Bearer ross:expired']);
+    await act(async () => {
+      refuse();
+    });
+    await waitFor(() =>
+      expect(calls).toEqual(['lookup Bearer ross:expired', 'lookup Bearer ross:fresh'])
+    );
+    await waitFor(() => expect(store.getState().bookmark.existingBookmarkTags).toEqual([]));
+    expect(store.getState().bookmark.lookupFailure).toBeNull();
+    expect(store.getState().bookmark.errors.generic).toBeNull();
+  });
+
   it('does not look the page up again when the token changes after a lookup that worked', async () => {
     seedCredentials();
     const calls = [];

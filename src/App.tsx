@@ -9,7 +9,6 @@ import {
   fetchBookmarkDetails,
   applyTrackingStrip,
   checkTrackedBookmark,
-  type LookupFailure,
 } from './redux/bookmarkSlice';
 import {
   fetchTags,
@@ -88,11 +87,12 @@ const readInitialPageCard = (pageUrl: string): TwitterCardData | null =>
 // URL as too long or refused the credentials, the suggest call that would
 // follow can only fail the same way.
 const isHopelessRejection = (result: unknown): boolean => {
-  const meta = (result as { meta?: { requestStatus?: string; reason?: LookupFailure } } | undefined)
-    ?.meta;
+  // A mocked or cancelled dispatch can resolve with nothing at all.
+  if (typeof result !== 'object' || result === null || !('type' in result)) return false;
+  const action = result as { type: string };
   return (
-    meta?.requestStatus === 'rejected' &&
-    (meta.reason === 'url-too-long' || meta.reason === 'unauthorized')
+    fetchBookmarkDetails.rejected.match(action) &&
+    (action.meta.reason === 'url-too-long' || action.meta.reason === 'unauthorized')
   );
 };
 
@@ -136,9 +136,8 @@ function App() {
   const lastLookupUrlRef = useRef<string | null>(null);
   // The token the last lookup went out with, and how that lookup fared: a
   // lookup Pinboard refused is retried when the token is corrected.
+  const initialTagSignatureRef = useRef<string | null>(null);
   const lastLookupTokenRef = useRef<string | null>(null);
-  const lookupFailureRef = useRef<LookupFailure | null>(null);
-  lookupFailureRef.current = lookupFailure;
   const [view, setView] = useState<ViewMode>(VIEW_FORM);
   const [credentialsMissing, setCredentialsMissing] = useState(false);
   const [debouncedUrl, setDebouncedUrl] = useState('');
@@ -399,14 +398,18 @@ function App() {
     // the page up again as the new one.
     const lookupKey = `${user}\n${debouncedUrl}`;
     // Same account and page, but Pinboard refused the last lookup and the
-    // token has changed since: the user has corrected it in Settings.
+    // token has changed since: the user has corrected it in Settings. The
+    // failure is a dependency, so a token corrected while the refused lookup
+    // was still in flight is retried when its 401 lands.
     const retryWithNewToken =
       lastLookupUrlRef.current === lookupKey &&
-      lookupFailureRef.current === 'unauthorized' &&
+      lookupFailure === 'unauthorized' &&
       lastLookupTokenRef.current !== token;
     if (lastLookupUrlRef.current === lookupKey && !retryWithNewToken) return;
     lastLookupUrlRef.current = lookupKey;
     lastLookupTokenRef.current = token;
+    // The GPT prompt takes the tags this lookup loads, not an earlier one's.
+    initialTagSignatureRef.current = null;
     setLookupStartedFor(debouncedUrl);
     const initialPage =
       initialPageCardRef.current?.url === debouncedUrl ? initialPageCardRef.current : null;
@@ -446,13 +449,12 @@ function App() {
       }
       dispatch(fetchSuggestedTags(debouncedUrl));
     });
-  }, [dispatch, user, token, debouncedUrl]);
+  }, [dispatch, user, token, debouncedUrl, lookupFailure]);
 
   useEffect(() => {
     if (shouldCheckTrackedUrl) dispatch(checkTrackedBookmark());
   }, [dispatch, shouldCheckTrackedUrl]);
 
-  const initialTagSignatureRef = useRef<string | null>(null);
   const previousUrlRef = useRef<string | null>(null);
 
   useEffect(() => {

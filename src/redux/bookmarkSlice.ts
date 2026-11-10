@@ -771,6 +771,9 @@ const bookmarkSlice = createSlice({
         ) {
           state.existingBookmarkTags = [...state.savingTags];
           state.existingBookmarkUrl = state.savingUrl;
+          // The save got through and set the baseline, so the lookup's
+          // failure no longer describes this bookmark.
+          state.lookupFailure = null;
         }
         // Reset errors to the full initial structure
         state.errors = { ...initialState.errors };

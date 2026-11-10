@@ -496,6 +496,19 @@ describe('bookmark slice', () => {
         });
       });
 
+      it('forgets a failed lookup once a save has set the baseline', async () => {
+        mockedAxios.get.mockRejectedValueOnce(new Error('Network Error'));
+        await store.dispatch(fetchBookmarkDetails());
+        expect(store.getState().bookmark.lookupFailure).toBe('other');
+
+        mockedAxios.get.mockResolvedValueOnce({ data: { result_code: 'done' } });
+        await store.dispatch(submitBookmark());
+        const state = store.getState().bookmark;
+        expect(state.status).toEqual('success');
+        expect(state.existingBookmarkTags).not.toBeNull();
+        expect(state.lookupFailure).toBeNull();
+      });
+
       it('should handle fulfilled state', async () => {
         const successData = { result_code: 'done' };
         mockedAxios.get.mockResolvedValueOnce({ data: successData });

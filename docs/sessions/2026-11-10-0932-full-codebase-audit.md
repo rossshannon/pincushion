@@ -14,7 +14,7 @@ The one finding that needed a browser to see was the tag autocomplete: it was vi
 
 - [x] Read the whole project
 - [x] Fix what is certain, with tests
-- [x] Keep the suite green and check for regressions (351 tests; production build driven end to end in Chromium)
+- [x] Keep the suite green and check for regressions (355 tests; production build driven end to end in Chromium)
 - [x] Code review per the project policy, and fix its findings
 - [x] List the uncertain items for Ross (below)
 
@@ -26,7 +26,7 @@ The one finding that needed a browser to see was the tag autocomplete: it was vi
 
 ### Tags are split on ASCII whitespace only, at the reducer
 
-Pinboard separates tags with spaces, so a tag holding one is saved as several tags while the local counts record one that does not exist. `splitTags` (`utils/tagList.ts`) is applied in `toTagArray`, the single point every tag list passes through on its way into the form, and in `TagInput.handleCreate`. Two things are left alone on purpose, because `toTagArray` also sees tags loaded from Pinboard and splitting one of those would rewrite the user's data on the next save: commas (the API docs say tags may not contain them, but bookmarks made on the website might), and non-ASCII whitespace such as a no-break or ideographic space, which JavaScript's `\s` would match.
+Pinboard separates tags with spaces, so a tag holding one is saved as several tags while the local counts record one that does not exist. `splitTags` (`utils/tagList.ts`) is applied in `toTagArray`, the single point every tag list passes through on its way into the form, which is where the narrow rule applies. Two things are left alone there on purpose, because `toTagArray` also sees tags loaded from Pinboard and splitting one of those would rewrite the user's data on the next save: commas (the API docs say tags may not contain them, but bookmarks made on the website might), and non-ASCII whitespace such as a no-break or ideographic space, which JavaScript's `\s` would match. Text the user has just typed or pasted is not yet a tag anywhere, so `TagInput.handleCreate` uses `splitTypedTags`, which splits on every kind of whitespace: a no-break space copied from a web page would otherwise sit invisibly inside a new tag (third review).
 
 When several words are typed at once, react-select's own "does this tag already exist" check has only seen the whole string, so `handleCreate` repeats it per word: a word that matches one of the user's tags ignoring case takes that tag's most used spelling, and one already on the bookmark is skipped.
 
@@ -36,7 +36,7 @@ When several words are typed at once, react-select's own "does this tag already 
 
 ### A lookup Pinboard refused is retried when the token changes
 
-`App` keys lookups on `user + url`, so with the new "Pinboard rejected your username or API token" message sending people to Settings, correcting only the token would not have retried the lookup. The first attempt put the token in the key; the second review pointed out that this refetched the preview (which does not depend on the token) on any token change. Now the slice records why the latest lookup failed (`lookupFailure`: `'unauthorized' | 'url-too-long' | 'other' | null`, also carried as `meta.reason` on the rejected action), and `App` retries only when the failure was `'unauthorized'` and the token differs from the one the lookup went out with. The retry does not refetch the preview.
+`App` keys lookups on `user + url`, so with the new "Pinboard rejected your username or API token" message sending people to Settings, correcting only the token would not have retried the lookup. The first attempt put the token in the key; the second review pointed out that this refetched the preview (which does not depend on the token) on any token change. Now the slice records why the latest lookup failed (`lookupFailure`: `'unauthorized' | 'url-too-long' | 'other' | null`, also carried as `meta.reason` on the rejected action), and `App` retries only when the failure was `'unauthorized'` and the token differs from the one the lookup went out with. The retry does not refetch the preview. `lookupFailure` is a dependency of that effect, so a token corrected while the refused lookup is still in flight is retried when its 401 lands (third review; the first version read it through a ref and missed that case).
 
 While `lookupFailure` is `'unauthorized'`, the suggest call and the tracked-URL check are both skipped: they would only be refused, and the check records a failure as "not bookmarked under the tracked URL", which the retry would never revisit.
 
@@ -87,6 +87,7 @@ The multi-LLM review skill lives on Ross's Mac and was not reachable from this s
 
 - **Pass 1** (10 findings, 9 fixed): stale `filteredRecentTags`; token-only change not retrying the lookup; suggest sent after a 401; verify timeout; tag splitting only in the component; three copies of the storage guard; dead fallback; Cursor rule; CI type-checking twice. Left: aborting superseded GPT requests.
 - **Pass 2** (8 findings, 7 fixed), nearly all about pass 1's credential-retry fix: the retry dropped tags typed after the 401; the tracked-URL check ran against refused credentials and was never redone; `\s` splitting non-ASCII whitespace in loaded tags; multi-word create bypassing the case-insensitive duplicate check; duplicated 401 detection; the retry refetching the preview; three encodings of "why the lookup failed". Left: one shared "credentials rejected" gate for every bridge call (`fetchTags` and `fetchSuggestedTags` still store a raw 401 message, which nothing displays).
+- **Pass 3** (over pass 2's fixes only; 9 findings, 6 fixed): a token corrected while the refused lookup was in flight was never retried; typed and pasted text no longer split on a no-break space after the ASCII-only change; the GPT prompt reused the tag snapshot taken after the failed lookup once the retry had loaded the bookmark; `lookupFailure` outlived a successful save; `knownSpelling` built two Maps on every tag-count change; a hand-cast of the rejected action's meta where `fetchBookmarkDetails.rejected.match` is typed. Left, all now in the list below: the retry (like any lookup that finds a bookmark) replaces title, notes, private and to-read edits; a failed tracked-URL check counts as "not bookmarked"; three copies of the case-insensitive de-duplication loop.
 
 ## For Ross to decide
 
@@ -124,6 +125,9 @@ Not changed, because each is a judgement call or changes behaviour.
 22. Positive `tabIndex` values and `role="form"` on the bookmark form.
 23. `.envrc` adds `bin` and `bin/local`, which do not exist.
 24. Dependabot PRs #66 to #75 and #78 are overtaken by this PR's updates.
+25. A lookup that finds a saved bookmark replaces the title, notes, private and to-read values on the form, whatever was typed while it was in flight or, now, while the credentials were wrong. Only tags are merged. Keeping other edits needs per-field "touched" tracking.
+26. `checkTrackedBookmark` treats a timeout or network error as "not bookmarked under the tracked URL" and never asks again, so a duplicate can be saved after a blip. Not marking it checked would retry in a loop; it needs a retry limit or a visible "couldn't check".
+27. The lower-case, seen-set de-duplication loop exists in `buildUniqueList`, `postProcessPinboardSuggestions` and `TagInput.handleCreate`, with slightly different normalisation. One helper in `utils/tagList.ts` would do.
 
 ## Lessons Learned
 

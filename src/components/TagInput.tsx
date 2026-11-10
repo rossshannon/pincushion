@@ -6,7 +6,7 @@ import {
   type MultiValueRemoveProps,
   type StylesConfig,
 } from 'react-select';
-import { splitTags } from '../utils/tagList';
+import { splitTypedTags } from '../utils/tagList';
 import './TagInput.css';
 
 type TagOption = {
@@ -93,15 +93,14 @@ const TagInput: React.FC<TagInputProps> = ({
 
   /** The user's tags by lower-cased name: the most used spelling of each. */
   const knownSpelling = useMemo(() => {
-    const spellings = new Map<string, { label: string; count: number }>();
-    availableOptions.forEach(({ label, count }) => {
+    const spellings = new Map<string, string>();
+    Object.entries(userTags).forEach(([label, count]) => {
       const key = label.toLowerCase();
-      const uses = count ?? 0;
       const current = spellings.get(key);
-      if (!current || uses > current.count) spellings.set(key, { label, count: uses });
+      if (current === undefined || count > (userTags[current] ?? 0)) spellings.set(key, label);
     });
-    return new Map([...spellings].map(([key, { label }]) => [key, label]));
-  }, [availableOptions]);
+    return spellings;
+  }, [userTags]);
 
   const defaultOptionsList = useMemo<TagOption[]>(() => {
     const sortedOptions = [...availableOptions].sort(
@@ -144,7 +143,7 @@ const TagInput: React.FC<TagInputProps> = ({
     // and one already on the bookmark is skipped.
     const taken = new Set(value.map((tag) => tag.toLowerCase()));
     const newTags: string[] = [];
-    splitTags(inputValue).forEach((word) => {
+    splitTypedTags(inputValue).forEach((word) => {
       const lower = word.toLowerCase();
       if (taken.has(lower)) return;
       taken.add(lower);
