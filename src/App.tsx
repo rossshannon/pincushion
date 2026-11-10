@@ -105,7 +105,7 @@ const isLikelyCompleteUrl = (value: string): boolean => {
     const tld = segments.pop() || '';
     if (tld.length < 2) return false;
     return true;
-  } catch (_err) {
+  } catch {
     return false;
   }
 };
@@ -163,7 +163,7 @@ function App() {
     if (typeof window === 'undefined') return;
     try {
       enforceMinimumPopupSize(window);
-    } catch (_err) {
+    } catch {
       // Ignore resize errors in restricted environments.
     }
   }, []);

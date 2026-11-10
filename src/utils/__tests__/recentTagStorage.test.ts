@@ -202,6 +202,28 @@ describe('recentTagStorage', () => {
     });
   });
 
+  describe('when the browser blocks site data', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    test('survives window.localStorage itself throwing', () => {
+      vi.spyOn(window, 'localStorage', 'get').mockImplementation(() => {
+        throw new DOMException('The operation is insecure.', 'SecurityError');
+      });
+      expect(getRecentTags()).toEqual([]);
+      expect(addRecentTags(['a'])).toBe(false);
+      expect(clearRecentTags()).toBe(false);
+    });
+
+    test('survives getItem throwing', () => {
+      vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+        throw new DOMException('denied', 'SecurityError');
+      });
+      expect(getRecentTags()).toEqual([]);
+    });
+  });
+
   describe('clearRecentTags', () => {
     test('removes all recent tags from storage', () => {
       localStorage.setItem(

@@ -6,11 +6,23 @@ export type RecentTagEntry = {
   timestamp: number;
 };
 
+// Reading window.localStorage itself throws a SecurityError when the browser
+// blocks site data, so even the lookup has to be guarded.
 const getLocalStorage = (): Storage | null => {
-  if (typeof window === 'undefined' || !window.localStorage) {
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.localStorage || null;
+  } catch {
     return null;
   }
-  return window.localStorage;
+};
+
+const readRaw = (storage: Storage): string | null => {
+  try {
+    return storage.getItem(STORAGE_KEY);
+  } catch {
+    return null;
+  }
 };
 
 const safeParse = (raw: string | null): RecentTagEntry[] => {
@@ -28,7 +40,7 @@ const safeParse = (raw: string | null): RecentTagEntry[] => {
         typeof entry.tag === 'string' &&
         typeof entry.timestamp === 'number'
     );
-  } catch (_err) {
+  } catch {
     return [];
   }
 };
@@ -42,7 +54,7 @@ export const getRecentTags = (): string[] => {
   const storage = getLocalStorage();
   if (!storage) return [];
 
-  const entries = safeParse(storage.getItem(STORAGE_KEY));
+  const entries = safeParse(readRaw(storage));
   const validEntries = cleanExpiredEntries(entries);
 
   // If we cleaned up expired entries, persist the cleaned list
@@ -72,7 +84,7 @@ export const addRecentTags = (tags: string[]): boolean => {
   if (!storage) return false;
 
   const now = Date.now();
-  const existingEntries = safeParse(storage.getItem(STORAGE_KEY));
+  const existingEntries = safeParse(readRaw(storage));
   const validEntries = cleanExpiredEntries(existingEntries);
 
   // Add new entries for each tag
@@ -94,7 +106,7 @@ const persistRecentTags = (entries: RecentTagEntry[]): boolean => {
   try {
     storage.setItem(STORAGE_KEY, JSON.stringify(entries));
     return true;
-  } catch (_err) {
+  } catch {
     return false;
   }
 };
@@ -106,7 +118,7 @@ export const clearRecentTags = (): boolean => {
   try {
     storage.removeItem(STORAGE_KEY);
     return true;
-  } catch (_err) {
+  } catch {
     return false;
   }
 };

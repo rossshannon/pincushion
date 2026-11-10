@@ -181,6 +181,10 @@ const ERROR_MESSAGES: Record<string, string> = {
   LOOKUP_TIMEOUT:
     'Pinboard didn’t respond in time, so we couldn’t check for an existing bookmark. New bookmarks still save; to edit an existing one, reopen the popup.',
   SAVE_TIMEOUT: 'Pinboard didn’t respond in time. Please try saving again.',
+  NO_CREDENTIALS:
+    'Add your Pinboard username and API token in Settings before saving.',
+  BAD_CREDENTIALS:
+    'Pinboard rejected your username or API token. Check them in Settings.',
   // Only reachable when the lookup failed and the save went out with
   // replace=no, which stops it overwriting a bookmark we never loaded.
   'item already exists':
@@ -212,7 +216,8 @@ export const submitBookmark = createAsyncThunk<
       generic: null,
     };
     let hasError = false;
-    if (!formData.url) {
+    const url = formData.url.trim();
+    if (!url) {
       errors.url = ERROR_MESSAGES.MISSING_URL;
       hasError = true;
     }
@@ -234,9 +239,15 @@ export const submitBookmark = createAsyncThunk<
     }
     // --- End client-side validation ---
 
+    if (!user || !token) {
+      // Nothing to authenticate with: say so rather than send a request
+      // that can only come back as a bare "status code 401".
+      return rejectWithValue({ genericError: ERROR_MESSAGES.NO_CREDENTIALS });
+    }
+
     const params = new URLSearchParams();
     params.append('format', 'json');
-    params.append('url', formData.url);
+    params.append('url', url);
     params.append('description', formData.title);
     params.append('extended', formData.description);
     if (formData.private) params.append('shared', 'no');
@@ -246,7 +257,7 @@ export const submitBookmark = createAsyncThunk<
     // we don't know whether one exists, so refuse to overwrite it.
     const baselineKnown =
       existingBookmarkTags !== null &&
-      existingBookmarkUrl === formData.url.trim();
+      existingBookmarkUrl === url;
     if (!baselineKnown) params.append('replace', 'no');
 
     try {
@@ -284,6 +295,9 @@ export const submitBookmark = createAsyncThunk<
       }
       if (isTimeoutError(err)) {
         return rejectWithValue({ genericError: ERROR_MESSAGES.SAVE_TIMEOUT });
+      }
+      if (hasHttpStatus(err, 401)) {
+        return rejectWithValue({ genericError: ERROR_MESSAGES.BAD_CREDENTIALS });
       }
       if (axios.isAxiosError(err)) {
         return rejectWithValue({
@@ -357,6 +371,9 @@ export const fetchBookmarkDetails = createAsyncThunk<
       }
       if (isTimeoutError(err)) {
         return rejectWithValue(ERROR_MESSAGES.LOOKUP_TIMEOUT, { urlTooLong: false });
+      }
+      if (hasHttpStatus(err, 401)) {
+        return rejectWithValue(ERROR_MESSAGES.BAD_CREDENTIALS, { urlTooLong: false });
       }
       const message =
         err instanceof Error

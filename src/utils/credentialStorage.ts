@@ -18,11 +18,23 @@ const EMPTY_VALUES = {
   openAiToken: '',
 };
 
+// Reading window.localStorage itself throws a SecurityError when the browser
+// blocks site data, so even the lookup has to be guarded.
 const getLocalStorage = (): Storage | null => {
-  if (typeof window === 'undefined' || !window.localStorage) {
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.localStorage || null;
+  } catch {
     return null;
   }
-  return window.localStorage;
+};
+
+const readRaw = (storage: Storage): string | null => {
+  try {
+    return storage.getItem(STORAGE_KEY);
+  } catch {
+    return null;
+  }
 };
 
 const safeParse = (raw: string | null): CredentialRecord | null => {
@@ -33,7 +45,7 @@ const safeParse = (raw: string | null): CredentialRecord | null => {
       return null;
     }
     return parsed as CredentialRecord;
-  } catch (_err) {
+  } catch {
     return null;
   }
 };
@@ -41,7 +53,7 @@ const safeParse = (raw: string | null): CredentialRecord | null => {
 export const readStoredCredentials = (): StoredCredentials | null => {
   const storage = getLocalStorage();
   if (!storage) return null;
-  const parsed = safeParse(storage.getItem(STORAGE_KEY));
+  const parsed = safeParse(readRaw(storage));
   if (!parsed) {
     return null;
   }
@@ -71,7 +83,7 @@ export const persistStoredCredentials = ({
     };
     storage.setItem(STORAGE_KEY, JSON.stringify(payload));
     return true;
-  } catch (_err) {
+  } catch {
     return false;
   }
 };
@@ -79,7 +91,7 @@ export const persistStoredCredentials = ({
 export const getStoredCredentialValues = (): CredentialRecord => {
   const storage = getLocalStorage();
   if (!storage) return { ...EMPTY_VALUES };
-  const parsed = safeParse(storage.getItem(STORAGE_KEY));
+  const parsed = safeParse(readRaw(storage));
   return {
     pinboardUser: parsed?.pinboardUser || '',
     pinboardToken: parsed?.pinboardToken || '',
