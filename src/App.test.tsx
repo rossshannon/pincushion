@@ -25,8 +25,11 @@ vi.mock('./redux/tagSlice', async () => {
     fetchTags: vi.fn(() => () => undefined),
     fetchSuggestedTags: vi.fn(defaultSuggestedThunk),
     fetchGptSuggestions: vi.fn((payload) => (dispatch) => {
+      const meta = { requestId: 'gpt-test', arg: payload };
+      dispatch({ type: 'tags/fetchGptSuggestions/pending', meta });
       dispatch({
         type: 'tags/fetchGptSuggestions/fulfilled',
+        meta,
         payload: { suggestions: [], contextKey: payload.contextKey },
       });
     }),

@@ -1,11 +1,13 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-export default defineConfig(({ command }) => ({
+export default defineConfig(({ command, isPreview }) => ({
   plugins: [react()],
-  // Production builds are served from GitHub Pages at /pincushion/.
-  // Dev server uses root so `npm start` opens at http://localhost:5173/.
-  base: command === 'build' ? '/pincushion/' : '/',
+  // Production builds are served from GitHub Pages at /pincushion/, and
+  // `npm run preview` has to serve the build from the same path or its
+  // asset links 404. The dev server uses root, so `npm start` opens at
+  // http://localhost:5173/.
+  base: command === 'build' || isPreview ? '/pincushion/' : '/',
   build: {
     outDir: 'build',
     sourcemap: true,

@@ -1,4 +1,11 @@
 import axios from 'axios';
+import {
+  bridgeRequestConfig,
+  bridgeUrl,
+  hasHttpStatus,
+  isTimeoutError,
+  REQUEST_TIMEOUTS_MS,
+} from './pinboardApi';
 
 type ErrorWithStatus = Error & { status?: number };
 
@@ -91,8 +98,6 @@ const formatOpenAiValidationError = (error: unknown): string => {
   return DEFAULT_OPENAI_ERROR;
 };
 
-const PINBOARD_BASE_URL = 'https://pinboard-api.herokuapp.com';
-
 type PinboardCredentialInput = {
   username: string;
   token: string;
@@ -107,18 +112,22 @@ export async function verifyPinboardCredentials({
   if (!trimmedUser || !trimmedToken) {
     throw new Error('Pinboard username and token are required.');
   }
-  const url = `${PINBOARD_BASE_URL}/v1/tags/get?format=json`;
-  const authHeader = `Bearer ${trimmedUser}:${trimmedToken}`;
   try {
-    await axios.get(url, {
-      timeout: 8000,
-      headers: {
-        Authorization: authHeader,
-      },
-    });
+    // posts/update is the smallest authenticated call Pinboard has (one
+    // timestamp), where tags/get downloads the account's whole tag list.
+    // Goes through the configured bridge, like every other Pinboard call.
+    await axios.get(
+      bridgeUrl('/v1/posts/update?format=json'),
+      bridgeRequestConfig(trimmedUser, trimmedToken, REQUEST_TIMEOUTS_MS.verify)
+    );
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.status === 401) {
+    if (hasHttpStatus(error, 401)) {
       throw new Error('Pinboard rejected those credentials.');
+    }
+    if (isTimeoutError(error)) {
+      throw new Error(
+        'Pinboard didn’t respond in time, so we couldn’t check those credentials. Please try again.'
+      );
     }
     throw new Error(
       error instanceof Error

@@ -2,9 +2,12 @@ name: CI
 
 on:
   push:
-    branches: [ master, main, vibe-react-refactor ]
+    branches: [ master ]
   pull_request:
-    branches: [ master, main, vibe-react-refactor ]
+    branches: [ master ]
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -29,3 +32,7 @@ jobs:
         run: npm run test:ci
         env:
           NODE_OPTIONS: --max-old-space-size=4096
+      # The deploy workflow builds on master; catch a broken build here,
+      # before it is merged. (Typecheck above already ran tsc.)
+      - name: Build
+        run: npx vite build

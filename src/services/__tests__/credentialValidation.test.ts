@@ -1,5 +1,63 @@
 import { vi } from 'vitest';
-import { verifyOpenAiToken } from '../credentialValidation';
+import axios from 'axios';
+import {
+  verifyOpenAiToken,
+  verifyPinboardCredentials,
+} from '../credentialValidation';
+import { PINBOARD_BRIDGE_URL } from '../pinboardApi';
+
+const mockedAxios = axios as unknown as { get: vi.Mock };
+
+describe('verifyPinboardCredentials', () => {
+  beforeEach(() => {
+    mockedAxios.get.mockReset();
+  });
+
+  it('asks the configured bridge for the smallest authenticated call', async () => {
+    mockedAxios.get.mockResolvedValueOnce({ data: { update_time: 'now' } });
+    await expect(
+      verifyPinboardCredentials({ username: ' ross ', token: ' ABC ' })
+    ).resolves.toBeUndefined();
+    const [url, config] = mockedAxios.get.mock.calls[0];
+    expect(url).toBe(`${PINBOARD_BRIDGE_URL}/v1/posts/update?format=json`);
+    expect(config.headers.Authorization).toBe('Bearer ross:ABC');
+    expect(config.timeout).toBeGreaterThan(0);
+  });
+
+  it('rejects blank credentials without a request', async () => {
+    await expect(
+      verifyPinboardCredentials({ username: ' ', token: 'x' })
+    ).rejects.toThrow('Pinboard username and token are required.');
+    expect(mockedAxios.get).not.toHaveBeenCalled();
+  });
+
+  it('maps a 401 to a rejected-credentials message', async () => {
+    mockedAxios.get.mockRejectedValueOnce({
+      isAxiosError: true,
+      message: 'Request failed with status code 401',
+      response: { status: 401 },
+    });
+    await expect(
+      verifyPinboardCredentials({ username: 'ross', token: 'bad' })
+    ).rejects.toThrow('Pinboard rejected those credentials.');
+  });
+
+  it('explains a timeout in plain words', async () => {
+    mockedAxios.get.mockRejectedValueOnce(
+      Object.assign(new Error('timeout of 20000ms exceeded'), { code: 'ECONNABORTED' })
+    );
+    await expect(
+      verifyPinboardCredentials({ username: 'ross', token: 'ok' })
+    ).rejects.toThrow(/didn’t respond in time/);
+  });
+
+  it('passes other failures through', async () => {
+    mockedAxios.get.mockRejectedValueOnce(new Error('Network Error'));
+    await expect(
+      verifyPinboardCredentials({ username: 'ross', token: 'ok' })
+    ).rejects.toThrow('Network Error');
+  });
+});
 
 describe('verifyOpenAiToken', () => {
   const originalFetch = globalThis.fetch;

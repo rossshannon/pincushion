@@ -1,3 +1,5 @@
+import { getLocalStorage, readStorageItem } from './safeStorage';
+
 const STORAGE_KEY = 'pincushion.credentials';
 
 export type CredentialRecord = {
@@ -12,19 +14,6 @@ export type StoredCredentials = {
   openAiToken: string;
 };
 
-const EMPTY_VALUES = {
-  pinboardUser: '',
-  pinboardToken: '',
-  openAiToken: '',
-};
-
-const getLocalStorage = (): Storage | null => {
-  if (typeof window === 'undefined' || !window.localStorage) {
-    return null;
-  }
-  return window.localStorage;
-};
-
 const safeParse = (raw: string | null): CredentialRecord | null => {
   if (!raw) return null;
   try {
@@ -33,15 +22,13 @@ const safeParse = (raw: string | null): CredentialRecord | null => {
       return null;
     }
     return parsed as CredentialRecord;
-  } catch (_err) {
+  } catch {
     return null;
   }
 };
 
 export const readStoredCredentials = (): StoredCredentials | null => {
-  const storage = getLocalStorage();
-  if (!storage) return null;
-  const parsed = safeParse(storage.getItem(STORAGE_KEY));
+  const parsed = safeParse(readStorageItem(STORAGE_KEY));
   if (!parsed) {
     return null;
   }
@@ -71,15 +58,13 @@ export const persistStoredCredentials = ({
     };
     storage.setItem(STORAGE_KEY, JSON.stringify(payload));
     return true;
-  } catch (_err) {
+  } catch {
     return false;
   }
 };
 
 export const getStoredCredentialValues = (): CredentialRecord => {
-  const storage = getLocalStorage();
-  if (!storage) return { ...EMPTY_VALUES };
-  const parsed = safeParse(storage.getItem(STORAGE_KEY));
+  const parsed = safeParse(readStorageItem(STORAGE_KEY));
   return {
     pinboardUser: parsed?.pinboardUser || '',
     pinboardToken: parsed?.pinboardToken || '',

@@ -1,4 +1,4 @@
-app/assets
-public
-vendor
+build
+coverage
 node_modules
+public

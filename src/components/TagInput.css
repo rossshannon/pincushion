@@ -70,25 +70,26 @@
 }
 
 .pincushion-tag-select__option {
+  display: flex !important;
+  align-items: center;
+  min-block-size: 40px;
   color: var(--pincushion-text-primary) !important;
   background: transparent !important;
   padding-block: 0.45rem !important;
   padding-inline: 1rem !important;
 }
 
-/* Every option sits alone in its own virtualised row, so the stripe is keyed
-   off the row (see VirtualizedMenuList) rather than :nth-child. */
-.pincushion-tag-select__row--even .pincushion-tag-select__option {
+.pincushion-tag-select__option:nth-child(even) {
   background-color: color-mix(in oklch, var(--pincushion-card-bg) 85%, white) !important;
 }
 
 .pincushion-tag-select__option--is-focused,
-.pincushion-tag-select__row--even .pincushion-tag-select__option--is-focused {
+.pincushion-tag-select__option--is-focused:nth-child(even) {
   background-color: color-mix(in oklch, var(--pincushion-option-highlight) 25%, transparent) !important;
 }
 
 .pincushion-tag-select__option--is-selected,
-.pincushion-tag-select__row--even .pincushion-tag-select__option--is-selected {
+.pincushion-tag-select__option--is-selected:nth-child(even) {
   background-color: color-mix(in oklch, var(--pincushion-option-highlight) 40%, transparent) !important;
   color: var(--pincushion-text-primary) !important;
 }
@@ -100,6 +101,8 @@
 /* Tag name on the left, count pushed to the far end. */
 .pincushion-tag-select__option .item {
   display: flex;
+  flex: 1;
+  min-inline-size: 0;
   align-items: baseline;
   gap: 1rem;
 }

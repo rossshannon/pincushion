@@ -6,13 +6,19 @@ import {
   type MultiValueRemoveProps,
   type StylesConfig,
 } from 'react-select';
-import VirtualizedMenuList from './VirtualizedMenuList';
+import { splitTypedTags } from '../utils/tagList';
 import './TagInput.css';
 
 type TagOption = {
   label: string;
   value: string;
   count?: number;
+};
+
+/** One of the user's own tags, as offered by the autocomplete. */
+type KnownTagOption = TagOption & {
+  /** The label as the matcher sees it: lower case, punctuation dropped. */
+  normalized: string;
 };
 
 const MAX_OPTIONS_TO_SHOW = 50;
@@ -75,12 +81,25 @@ const TagInput: React.FC<TagInputProps> = ({
     }));
   }, [value]);
 
-  const availableOptions = useMemo<TagOption[]>(() => {
+  const availableOptions = useMemo<KnownTagOption[]>(() => {
     return Object.entries(userTags).map(([label, count]) => ({
       label,
       value: label,
       count,
+      // Worked out once here rather than for every tag on every keystroke.
+      normalized: normalizeString(label),
     }));
+  }, [userTags]);
+
+  /** The user's tags by lower-cased name: the most used spelling of each. */
+  const knownSpelling = useMemo(() => {
+    const spellings = new Map<string, string>();
+    Object.entries(userTags).forEach(([label, count]) => {
+      const key = label.toLowerCase();
+      const current = spellings.get(key);
+      if (current === undefined || count > (userTags[current] ?? 0)) spellings.set(key, label);
+    });
+    return spellings;
   }, [userTags]);
 
   const defaultOptionsList = useMemo<TagOption[]>(() => {
@@ -117,10 +136,21 @@ const TagInput: React.FC<TagInputProps> = ({
   );
 
   const handleCreate = (inputValue: string) => {
-    const newTagValue = inputValue.trim();
-    if (!newTagValue) return;
-    if (!value.includes(newTagValue)) {
-      onChange([...value, newTagValue]);
+    // "foo bar" typed or pasted is two tags, not one with a space in it.
+    // react-select only offers Create when the whole input matches no tag
+    // (ignoring case), so each word still needs that check: one the user
+    // already has takes its existing spelling rather than a case variant,
+    // and one already on the bookmark is skipped.
+    const taken = new Set(value.map((tag) => tag.toLowerCase()));
+    const newTags: string[] = [];
+    splitTypedTags(inputValue).forEach((word) => {
+      const lower = word.toLowerCase();
+      if (taken.has(lower)) return;
+      taken.add(lower);
+      newTags.push(knownSpelling.get(lower) ?? word);
+    });
+    if (newTags.length > 0) {
+      onChange([...value, ...newTags]);
     }
   };
 
@@ -136,7 +166,7 @@ const TagInput: React.FC<TagInputProps> = ({
     }
 
     const filteredOptions = availableOptions.filter((option) =>
-      normalizeString(option.label).includes(normalizedInputValue)
+      option.normalized.includes(normalizedInputValue)
     );
 
     const exactMatch: TagOption[] = [];
@@ -144,7 +174,7 @@ const TagInput: React.FC<TagInputProps> = ({
     const substringMatches: TagOption[] = [];
 
     filteredOptions.forEach((option) => {
-      const normalizedLabel = normalizeString(option.label);
+      const normalizedLabel = option.normalized;
       if (normalizedLabel === normalizedInputValue) {
         exactMatch.push(option);
       } else if (normalizedLabel.startsWith(normalizedInputValue)) {
@@ -218,10 +248,10 @@ const TagInput: React.FC<TagInputProps> = ({
       hideSelectedOptions
       captureMenuScroll={false}
       inputId={inputId}
-      components={{
-        MenuList: VirtualizedMenuList,
-        MultiValueRemove,
-      }}
+      // The menu never holds more than MAX_OPTIONS_TO_SHOW rows, so it uses
+      // react-select's own list: that one scrolls the highlighted option into
+      // view as the arrow keys move through it.
+      components={{ MultiValueRemove }}
       styles={selectStyles}
       // react-select has no --is-focused modifier for chips; add one so the
       // CSS can reveal the remove button on a chip picked with the arrow keys.

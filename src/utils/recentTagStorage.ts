@@ -1,16 +1,11 @@
+import { getLocalStorage, readStorageItem } from './safeStorage';
+
 const STORAGE_KEY = 'pincushion.recentTags';
 const TTL_MS = 30 * 60 * 1000; // 30 minutes
 
 export type RecentTagEntry = {
   tag: string;
   timestamp: number;
-};
-
-const getLocalStorage = (): Storage | null => {
-  if (typeof window === 'undefined' || !window.localStorage) {
-    return null;
-  }
-  return window.localStorage;
 };
 
 const safeParse = (raw: string | null): RecentTagEntry[] => {
@@ -28,7 +23,7 @@ const safeParse = (raw: string | null): RecentTagEntry[] => {
         typeof entry.tag === 'string' &&
         typeof entry.timestamp === 'number'
     );
-  } catch (_err) {
+  } catch {
     return [];
   }
 };
@@ -39,10 +34,7 @@ const cleanExpiredEntries = (entries: RecentTagEntry[]): RecentTagEntry[] => {
 };
 
 export const getRecentTags = (): string[] => {
-  const storage = getLocalStorage();
-  if (!storage) return [];
-
-  const entries = safeParse(storage.getItem(STORAGE_KEY));
+  const entries = safeParse(readStorageItem(STORAGE_KEY));
   const validEntries = cleanExpiredEntries(entries);
 
   // If we cleaned up expired entries, persist the cleaned list
@@ -72,7 +64,7 @@ export const addRecentTags = (tags: string[]): boolean => {
   if (!storage) return false;
 
   const now = Date.now();
-  const existingEntries = safeParse(storage.getItem(STORAGE_KEY));
+  const existingEntries = safeParse(readStorageItem(STORAGE_KEY));
   const validEntries = cleanExpiredEntries(existingEntries);
 
   // Add new entries for each tag
@@ -94,7 +86,7 @@ const persistRecentTags = (entries: RecentTagEntry[]): boolean => {
   try {
     storage.setItem(STORAGE_KEY, JSON.stringify(entries));
     return true;
-  } catch (_err) {
+  } catch {
     return false;
   }
 };
@@ -106,7 +98,7 @@ export const clearRecentTags = (): boolean => {
   try {
     storage.removeItem(STORAGE_KEY);
     return true;
-  } catch (_err) {
+  } catch {
     return false;
   }
 };

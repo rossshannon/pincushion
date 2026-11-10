@@ -83,12 +83,17 @@ const readInitialPageCard = (pageUrl: string): TwitterCardData | null =>
     pageUrl.trim()
   );
 
-// fetchBookmarkDetails marks its rejection when Pinboard answers 414.
-const isUrlTooLongRejection = (result: unknown): boolean => {
-  const action = result as
-    | { meta?: { requestStatus?: string; urlTooLong?: boolean } }
-    | undefined;
-  return action?.meta?.requestStatus === 'rejected' && action.meta.urlTooLong === true;
+// fetchBookmarkDetails says why it was rejected. When Pinboard refused the
+// URL as too long or refused the credentials, the suggest call that would
+// follow can only fail the same way.
+const isHopelessRejection = (result: unknown): boolean => {
+  // A mocked or cancelled dispatch can resolve with nothing at all.
+  if (typeof result !== 'object' || result === null || !('type' in result)) return false;
+  const action = result as { type: string };
+  return (
+    fetchBookmarkDetails.rejected.match(action) &&
+    (action.meta.reason === 'url-too-long' || action.meta.reason === 'unauthorized')
+  );
 };
 
 const isLikelyCompleteUrl = (value: string): boolean => {
@@ -105,7 +110,7 @@ const isLikelyCompleteUrl = (value: string): boolean => {
     const tld = segments.pop() || '';
     if (tld.length < 2) return false;
     return true;
-  } catch (_err) {
+  } catch {
     return false;
   }
 };
@@ -117,6 +122,7 @@ function App() {
     initialLoading,
     hasExistingBookmark,
     trackingStrip,
+    lookupFailure,
     status: bookmarkStatus,
   } = useSelector((state: RootState) => state.bookmark);
   const { user, token, openAiToken } = useSelector(
@@ -128,6 +134,10 @@ function App() {
   const { url, title, description, tags } = formData;
   const normalizedTagString = tags.join(' ');
   const lastLookupUrlRef = useRef<string | null>(null);
+  // The token the last lookup went out with, and how that lookup fared: a
+  // lookup Pinboard refused is retried when the token is corrected.
+  const initialTagSignatureRef = useRef<string | null>(null);
+  const lastLookupTokenRef = useRef<string | null>(null);
   const [view, setView] = useState<ViewMode>(VIEW_FORM);
   const [credentialsMissing, setCredentialsMissing] = useState(false);
   const [debouncedUrl, setDebouncedUrl] = useState('');
@@ -163,7 +173,7 @@ function App() {
     if (typeof window === 'undefined') return;
     try {
       enforceMinimumPopupSize(window);
-    } catch (_err) {
+    } catch {
       // Ignore resize errors in restricted environments.
     }
   }, []);
@@ -253,6 +263,9 @@ function App() {
     lookupStartedFor === trackingStrip.stripped.trim() &&
     !initialLoading &&
     !hasExistingBookmark &&
+    // Refused credentials would only be refused again, and the failure
+    // would count as "not bookmarked". Wait for a lookup that gets through.
+    lookupFailure !== 'unauthorized' &&
     // Never alongside a save, nor once the user has saved.
     bookmarkStatus !== 'saving' &&
     !trackingStrip.savedAfterStrip;
@@ -384,8 +397,19 @@ function App() {
     // (and its tags, the save's baseline) belong to the old account, so look
     // the page up again as the new one.
     const lookupKey = `${user}\n${debouncedUrl}`;
-    if (lastLookupUrlRef.current === lookupKey) return;
+    // Same account and page, but Pinboard refused the last lookup and the
+    // token has changed since: the user has corrected it in Settings. The
+    // failure is a dependency, so a token corrected while the refused lookup
+    // was still in flight is retried when its 401 lands.
+    const retryWithNewToken =
+      lastLookupUrlRef.current === lookupKey &&
+      lookupFailure === 'unauthorized' &&
+      lastLookupTokenRef.current !== token;
+    if (lastLookupUrlRef.current === lookupKey && !retryWithNewToken) return;
     lastLookupUrlRef.current = lookupKey;
+    lastLookupTokenRef.current = token;
+    // The GPT prompt takes the tags this lookup loads, not an earlier one's.
+    initialTagSignatureRef.current = null;
     setLookupStartedFor(debouncedUrl);
     const initialPage =
       initialPageCardRef.current?.url === debouncedUrl ? initialPageCardRef.current : null;
@@ -394,22 +418,26 @@ function App() {
     // three seconds and the bridge spaces them in arrival order, so this keeps
     // the lookup (which gates Save) first in line.
     const lookup = dispatch(fetchBookmarkDetails(debouncedUrl));
-    dispatch(
-      fetchPagePreview({
-        url: debouncedUrl,
-        pageCard: initialPage?.card ?? null,
-        fallbackTitle: initialPage?.fallbackTitle || null,
-      })
-    );
+    // The preview doesn't depend on the Pinboard token, so a retry keeps
+    // the one already showing.
+    if (!retryWithNewToken) {
+      dispatch(
+        fetchPagePreview({
+          url: debouncedUrl,
+          pageCard: initialPage?.card ?? null,
+          fallbackTitle: initialPage?.fallbackTitle || null,
+        })
+      );
+    }
     // Clear the previous URL's suggestions and show the spinner during the lookup.
     dispatch(markSuggestionsPending());
     const generation = ++lookupGenerationRef.current;
     void Promise.resolve(lookup).then((result) => {
       // A newer lookup (or a cleared URL) owns the suggestions now.
       if (lookupGenerationRef.current !== generation) return;
-      if (isUrlTooLongRejection(result)) {
-        // Pinboard refused this URL as too long; suggest would fail the same
-        // way, now or if the user comes back to it.
+      if (isHopelessRejection(result)) {
+        // Pinboard refused this URL as too long, or refused the credentials;
+        // suggest would fail the same way, now or if the user comes back to it.
         dispatch(cancelSuggestionsPending());
         return;
       }
@@ -421,13 +449,12 @@ function App() {
       }
       dispatch(fetchSuggestedTags(debouncedUrl));
     });
-  }, [dispatch, user, token, debouncedUrl]);
+  }, [dispatch, user, token, debouncedUrl, lookupFailure]);
 
   useEffect(() => {
     if (shouldCheckTrackedUrl) dispatch(checkTrackedBookmark());
   }, [dispatch, shouldCheckTrackedUrl]);
 
-  const initialTagSignatureRef = useRef<string | null>(null);
   const previousUrlRef = useRef<string | null>(null);
 
   useEffect(() => {

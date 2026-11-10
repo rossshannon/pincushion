@@ -122,6 +122,63 @@ describe('TagInput Component', () => {
     expect(mockOnChange).toHaveBeenCalledWith(['newtag']);
   });
 
+  test('splits typed text on whitespace, since a Pinboard tag has none', async () => {
+    render(
+      <TagInput userTags={mockUserTags} value={['kept']} onChange={mockOnChange} />
+    );
+
+    const input = screen.getByRole('combobox');
+    await userEvent.type(input, 'two words  three kept two{enter}');
+
+    expect(mockOnChange).toHaveBeenCalledWith(['kept', 'two', 'words', 'three']);
+  });
+
+  test('splits pasted text on a no-break space and matches each word to a known tag', async () => {
+    render(
+      <TagInput userTags={{ Machine: 4, learning: 2 }} value={[]} onChange={mockOnChange} />
+    );
+
+    const input = screen.getByRole('combobox');
+    await userEvent.click(input);
+    await userEvent.paste('machine\u00a0learning');
+    await userEvent.keyboard('{enter}');
+
+    expect(mockOnChange).toHaveBeenCalledWith(['Machine', 'learning']);
+  });
+
+  test('gives each typed word the spelling of a tag the user already has', async () => {
+    render(
+      <TagInput
+        userTags={{ React: 20, react: 3, Hooks: 1 }}
+        value={['TypeScript']}
+        onChange={mockOnChange}
+      />
+    );
+
+    const input = screen.getByRole('combobox');
+    await userEvent.type(input, 'REACT hooks typescript brandnew{enter}');
+
+    // The most used spelling of "react", the only spelling of "hooks", no
+    // second copy of the tag already on the bookmark, and the new one as typed.
+    expect(mockOnChange).toHaveBeenCalledWith(['TypeScript', 'React', 'Hooks', 'brandnew']);
+  });
+
+  test('lists only the options that are not already selected', async () => {
+    render(
+      <TagInput
+        userTags={mockUserTags}
+        value={['react', 'the_onion']}
+        onChange={mockOnChange}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('combobox'));
+    const options = await screen.findAllByRole('option');
+    expect(options).toHaveLength(Object.keys(mockUserTags).length - 2);
+    // Every row of the menu holds an option: no rows left over for hidden ones.
+    expect(screen.getByRole('listbox').children).toHaveLength(options.length);
+  });
+
   test('allows selecting an existing tag from dropdown', async () => {
     render(
       <TagInput userTags={mockUserTags} value={[]} onChange={mockOnChange} />

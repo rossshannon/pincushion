@@ -38,6 +38,7 @@ const initialState = {
   },
   lastFetchRequestId: null,
   lastFetchTargetUrl: null,
+  lookupFailure: null,
   initialLoading: false,
   existingBookmarkTime: null,
   hasExistingBookmark: false,
@@ -53,15 +54,18 @@ const initialState = {
 };
 
 // Helper to create a mock store
-const createMockStore = (bookmarkState = initialState) => {
+const createMockStore = (
+  bookmarkState = initialState,
+  auth = { user: 'testUser', token: 'testToken' }
+) => {
   return configureStore({
     reducer: {
-      auth: (state = { user: 'testUser', token: 'testToken' }) => state,
+      auth: (state = auth) => state,
       bookmark: bookmarkReducer,
     },
     preloadedState: {
       bookmark: { ...initialState, ...bookmarkState },
-      auth: { user: 'testUser', token: 'testToken' },
+      auth,
     },
   });
 };
@@ -75,6 +79,24 @@ describe('bookmark slice', () => {
 
   // --- Regular Reducers ---
   describe('reducers', () => {
+    it('splits any tag that holds whitespace, whatever put it there', () => {
+      const state = bookmarkReducer(
+        initialState,
+        setFormData({ tags: ['one', 'two words', ' padded\ttab ', ''] })
+      );
+      expect(state.formData.tags).toEqual(['one', 'two', 'words', 'padded', 'tab']);
+      // Only ASCII whitespace separates tags: a tag Pinboard already holds
+      // with a no-break or ideographic space in it must come through whole.
+      expect(
+        bookmarkReducer(initialState, setFormData({ tags: ['foo\u00a0bar', '日本\u3000語'] }))
+          .formData.tags
+      ).toEqual(['foo\u00a0bar', '日本\u3000語']);
+      expect(
+        bookmarkReducer(initialState, setFormData({ tags: 'a  b\nc' as unknown as string[] }))
+          .formData.tags
+      ).toEqual(['a', 'b', 'c']);
+    });
+
     it('should handle setFormData', () => {
       const state = bookmarkReducer(
         initialState,
@@ -224,6 +246,69 @@ describe('bookmark slice', () => {
         expect(state.initialLoading).toBe(false);
         expect(state.hasExistingBookmark).toBe(false);
         expect(state.errors.generic).toEqual(errorMessage);
+      });
+
+      it('explains a 401 as rejected credentials', async () => {
+        mockedAxios.get.mockRejectedValueOnce({
+          isAxiosError: true,
+          message: 'Request failed with status code 401',
+          response: { status: 401 },
+        });
+        await store.dispatch(fetchBookmarkDetails());
+        const state = store.getState().bookmark;
+        expect(state.initialLoading).toBe(false);
+        expect(state.errors.generic).toMatch(/rejected your username or API token/);
+        expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+        // Unknown, so a save goes out with replace=no.
+        expect(state.existingBookmarkTags).toBeNull();
+        expect(state.lookupFailure).toBe('unauthorized');
+      });
+
+      it('records why a lookup failed, and forgets it when the next one starts', async () => {
+        mockedAxios.get.mockRejectedValueOnce(new Error('Network Error'));
+        await store.dispatch(fetchBookmarkDetails());
+        expect(store.getState().bookmark.lookupFailure).toBe('other');
+
+        mockedAxios.get.mockRejectedValueOnce(
+          Object.assign(new Error('Request failed with status code 414'), { response: { status: 414 } })
+        );
+        await store.dispatch(fetchBookmarkDetails());
+        expect(store.getState().bookmark.lookupFailure).toBe('url-too-long');
+
+        mockedAxios.get.mockResolvedValueOnce({ data: { posts: [] } });
+        const retry = store.dispatch(fetchBookmarkDetails());
+        expect(store.getState().bookmark.lookupFailure).toBeNull();
+        await retry;
+        expect(store.getState().bookmark.lookupFailure).toBeNull();
+      });
+
+      it('keeps tags typed after a failed lookup when the retry finds a saved bookmark', async () => {
+        mockedAxios.get.mockRejectedValueOnce({
+          isAxiosError: true,
+          message: 'Request failed with status code 401',
+          response: { status: 401 },
+        });
+        await store.dispatch(fetchBookmarkDetails());
+        // Typed while the credentials were wrong.
+        store.dispatch(setFormData({ tags: ['typed', 'saved-b'] }));
+
+        mockedAxios.get.mockResolvedValueOnce({
+          data: { posts: [{ href: urlToFetch, description: 'Saved', tags: 'saved-a saved-b' }] },
+        });
+        await store.dispatch(fetchBookmarkDetails());
+        const state = store.getState().bookmark;
+        expect(state.formData.tags).toEqual(['saved-a', 'saved-b', 'typed']);
+        expect(state.existingBookmarkTags).toEqual(['saved-a', 'saved-b']);
+      });
+
+      it('keeps tags typed after a failed lookup when the retry finds nothing', async () => {
+        mockedAxios.get.mockRejectedValueOnce(new Error('Network Error'));
+        await store.dispatch(fetchBookmarkDetails());
+        store.dispatch(setFormData({ tags: ['typed'] }));
+
+        mockedAxios.get.mockResolvedValueOnce({ data: { posts: [] } });
+        await store.dispatch(fetchBookmarkDetails());
+        expect(store.getState().bookmark.formData.tags).toEqual(['typed']);
       });
 
       it('sends the lookup with a timeout and tells the user new bookmarks still save on timeout', async () => {
@@ -411,6 +496,19 @@ describe('bookmark slice', () => {
         });
       });
 
+      it('forgets a failed lookup once a save has set the baseline', async () => {
+        mockedAxios.get.mockRejectedValueOnce(new Error('Network Error'));
+        await store.dispatch(fetchBookmarkDetails());
+        expect(store.getState().bookmark.lookupFailure).toBe('other');
+
+        mockedAxios.get.mockResolvedValueOnce({ data: { result_code: 'done' } });
+        await store.dispatch(submitBookmark());
+        const state = store.getState().bookmark;
+        expect(state.status).toEqual('success');
+        expect(state.existingBookmarkTags).not.toBeNull();
+        expect(state.lookupFailure).toBeNull();
+      });
+
       it('should handle fulfilled state', async () => {
         const successData = { result_code: 'done' };
         mockedAxios.get.mockResolvedValueOnce({ data: successData });
@@ -431,6 +529,51 @@ describe('bookmark slice', () => {
             headers: { Authorization: 'Bearer testUser:testToken' },
           })
         );
+      });
+
+      it('refuses to save without credentials, and says where to add them', async () => {
+        const testStore = createMockStore(
+          { ...initialState, formData: validFormData },
+          { user: '', token: '' }
+        );
+        await testStore.dispatch(submitBookmark());
+        const state = testStore.getState().bookmark;
+        expect(state.status).toEqual('error');
+        expect(state.errors.generic).toMatch(/in Settings before saving/);
+        expect(mockedAxios.get).not.toHaveBeenCalled();
+      });
+
+      it('explains a 401 as rejected credentials rather than a status code', async () => {
+        mockedAxios.get.mockRejectedValueOnce({
+          isAxiosError: true,
+          message: 'Request failed with status code 401',
+          response: { status: 401 },
+        });
+        await store.dispatch(submitBookmark());
+        const state = store.getState().bookmark;
+        expect(state.status).toEqual('error');
+        expect(state.errors.generic).toMatch(/rejected your username or API token/);
+      });
+
+      it('sends the URL without surrounding whitespace', async () => {
+        const testStore = createMockStore({
+          ...initialState,
+          formData: { ...validFormData, url: '  https://example.com/padded \n' },
+        });
+        mockedAxios.get.mockResolvedValueOnce({ data: { result_code: 'done' } });
+        await testStore.dispatch(submitBookmark());
+        const requested = new URL(mockedAxios.get.mock.calls[0][0]);
+        expect(requested.searchParams.get('url')).toBe('https://example.com/padded');
+      });
+
+      it('treats a URL of only whitespace as missing', async () => {
+        const testStore = createMockStore({
+          ...initialState,
+          formData: { ...validFormData, url: '   ' },
+        });
+        await testStore.dispatch(submitBookmark());
+        expect(testStore.getState().bookmark.errors.url).toEqual('URL is required.');
+        expect(mockedAxios.get).not.toHaveBeenCalled();
       });
 
       it('should handle rejected state (client validation error - missing URL)', async () => {

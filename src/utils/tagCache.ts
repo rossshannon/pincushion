@@ -6,6 +6,8 @@
  * username so switching accounts in Settings never shows another account's
  * tags.
  */
+import { getLocalStorage } from './safeStorage';
+
 const TAGS_KEY = 'tags';
 const TIMESTAMP_KEY = 'tagTimestamp';
 const USER_KEY = 'tagCacheUser';
@@ -15,15 +17,6 @@ export type TagCounts = Record<string, number>;
 export type TagCacheEntry = {
   counts: TagCounts;
   ageMs: number;
-};
-
-const getStorage = (): Storage | null => {
-  if (typeof window === 'undefined') return null;
-  try {
-    return window.localStorage || null;
-  } catch {
-    return null;
-  }
 };
 
 const isTagCounts = (value: unknown): value is TagCounts =>
@@ -48,7 +41,7 @@ export const normalizeTagCounts = (value: unknown): TagCounts => {
 };
 
 export const readTagCache = (user: string): TagCacheEntry | null => {
-  const storage = getStorage();
+  const storage = getLocalStorage();
   if (!storage) return null;
   try {
     const raw = storage.getItem(TAGS_KEY);
@@ -82,7 +75,7 @@ export const writeTagCache = (
   counts: TagCounts,
   { stale = false }: { stale?: boolean } = {}
 ): boolean => {
-  const storage = getStorage();
+  const storage = getLocalStorage();
   if (!storage) return false;
   try {
     storage.setItem(TAGS_KEY, JSON.stringify(counts));
@@ -132,7 +125,7 @@ export const isEmptyDelta = (delta: TagDelta): boolean =>
  * Leaves the timestamp alone: this is a local patch, not a refresh.
  */
 export const bumpTagCache = (user: string, delta: TagDelta): boolean => {
-  const storage = getStorage();
+  const storage = getLocalStorage();
   if (!storage || isEmptyDelta(delta)) return false;
   const entry = readTagCache(user);
   if (!entry) return false;
