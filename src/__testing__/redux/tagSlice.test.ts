@@ -82,6 +82,7 @@ describe('tag slice', () => {
     gptStatus: 'idle',
     gptError: null,
     gptContextKey: null,
+    gptRequestId: null,
     error: null,
     recentTags: [],
     filteredRecentTags: [],
@@ -451,6 +452,88 @@ describe('tag slice', () => {
     });
 
     describe('fetchGptSuggestions', () => {
+      const pageContext = (url: string) => ({
+        contextKey: url,
+        context: { url, title: 'T', description: '', existingTags: '' },
+      });
+      const deferred = <T,>() => {
+        let resolve!: (value: T) => void;
+        let reject!: (reason: unknown) => void;
+        const promise = new Promise<T>((res, rej) => {
+          resolve = res;
+          reject = rej;
+        });
+        return { promise, resolve, reject };
+      };
+
+      it('drops an answer for a page the user has since left', async () => {
+        const first = deferred<string[]>();
+        const second = deferred<string[]>();
+        fetchGptTagSuggestions
+          .mockReturnValueOnce(first.promise)
+          .mockReturnValueOnce(second.promise);
+        const store = createMockStore(initialState, { url: 'https://a.example', tags: [] });
+
+        const oldRequest = store.dispatch(fetchGptSuggestions(pageContext('https://a.example')));
+        // The URL changed: App resets the GPT state and asks about the new page.
+        store.dispatch(resetGptSuggestions());
+        const newRequest = store.dispatch(fetchGptSuggestions(pageContext('https://b.example')));
+
+        first.resolve(['stale']);
+        await oldRequest;
+        let state = store.getState().tags;
+        expect(state.gptSuggestions).toEqual([]);
+        expect(state.gptStatus).toBe('loading');
+        expect(state.gptContextKey).toBe('https://b.example');
+
+        second.resolve(['fresh']);
+        await newRequest;
+        state = store.getState().tags;
+        expect(state.gptSuggestions).toEqual(['fresh']);
+        expect(state.gptStatus).toBe('succeeded');
+        expect(state.gptContextKey).toBe('https://b.example');
+      });
+
+      it('keeps the newer answer when an older request finishes last', async () => {
+        const first = deferred<string[]>();
+        const second = deferred<string[]>();
+        fetchGptTagSuggestions
+          .mockReturnValueOnce(first.promise)
+          .mockReturnValueOnce(second.promise);
+        const store = createMockStore(initialState, { url: 'https://a.example', tags: [] });
+
+        const oldRequest = store.dispatch(fetchGptSuggestions(pageContext('https://a.example')));
+        store.dispatch(resetGptSuggestions());
+        const newRequest = store.dispatch(fetchGptSuggestions(pageContext('https://b.example')));
+
+        second.resolve(['fresh']);
+        await newRequest;
+        first.reject(new Error('late failure'));
+        await oldRequest;
+
+        const state = store.getState().tags;
+        expect(state.gptSuggestions).toEqual(['fresh']);
+        expect(state.gptStatus).toBe('succeeded');
+        expect(state.gptError).toBeNull();
+        expect(state.gptContextKey).toBe('https://b.example');
+      });
+
+      it('ignores an answer that arrives after the URL was cleared', async () => {
+        const only = deferred<string[]>();
+        fetchGptTagSuggestions.mockReturnValueOnce(only.promise);
+        const store = createMockStore(initialState, { url: 'https://a.example', tags: [] });
+
+        const request = store.dispatch(fetchGptSuggestions(pageContext('https://a.example')));
+        store.dispatch(resetGptSuggestions());
+        only.resolve(['stale']);
+        await request;
+
+        const state = store.getState().tags;
+        expect(state.gptSuggestions).toEqual([]);
+        expect(state.gptStatus).toBe('idle');
+        expect(state.gptContextKey).toBeNull();
+      });
+
       it('stores GPT tags and context key while skipping duplicates', async () => {
         fetchGptTagSuggestions.mockResolvedValueOnce([
           'foo',

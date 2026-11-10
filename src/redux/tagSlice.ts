@@ -35,6 +35,8 @@ export type TagState = {
   gptStatus: 'idle' | 'loading' | 'succeeded' | 'failed';
   gptError: string | null;
   gptContextKey: string | null;
+  /** The in-flight GPT request; responses from older ones are dropped. */
+  gptRequestId: string | null;
   error: string | null;
   recentTags: string[];
   filteredRecentTags: string[];
@@ -295,6 +297,7 @@ const initialState: TagState = {
   gptStatus: 'idle',
   gptError: null,
   gptContextKey: null,
+  gptRequestId: null,
   error: null,
   recentTags: [],
   filteredRecentTags: [],
@@ -361,6 +364,8 @@ const tagSlice = createSlice({
       state.gptStatus = 'idle';
       state.gptError = null;
       state.gptContextKey = null;
+      // Whatever is still in flight was asked about the previous page.
+      state.gptRequestId = null;
     },
     /**
      * Initialize tagCounts from cached storage
@@ -391,12 +396,6 @@ const tagSlice = createSlice({
      */
     setRecentTags(state, action: PayloadAction<string[]>) {
       state.recentTags = Array.isArray(action.payload) ? action.payload : [];
-    },
-    /**
-     * Set GPT-filtered recent tags (relevant to current page)
-     */
-    setFilteredRecentTags(state, action: PayloadAction<string[]>) {
-      state.filteredRecentTags = Array.isArray(action.payload) ? action.payload : [];
     },
     /**
      * Remove a recent tag when it's selected
@@ -455,17 +454,24 @@ const tagSlice = createSlice({
       .addCase(fetchGptSuggestions.pending, (state, action) => {
         state.gptStatus = 'loading';
         state.gptError = null;
+        state.gptRequestId = action.meta.requestId;
         if (action.meta.arg?.contextKey) {
           state.gptContextKey = action.meta.arg.contextKey;
         }
       })
       .addCase(fetchGptSuggestions.fulfilled, (state, action) => {
+        // An answer about a page the user has since left (or one a newer
+        // request has replaced) must not show up under the current page.
+        if (action.meta.requestId !== state.gptRequestId) return;
+        state.gptRequestId = null;
         state.gptStatus = 'succeeded';
         state.gptSuggestions = action.payload?.suggestions || [];
         state.gptContextKey = action.payload?.contextKey || null;
         state.filteredRecentTags = action.payload?.filteredRecentTags || [];
       })
       .addCase(fetchGptSuggestions.rejected, (state, action) => {
+        if (action.meta.requestId !== state.gptRequestId) return;
+        state.gptRequestId = null;
         state.gptStatus = 'failed';
         state.gptError = (action.payload as string) || action.error.message || null;
         if (action.meta.arg?.contextKey) {
@@ -484,7 +490,6 @@ export const {
   recordSavedTags,
   resetGptSuggestions,
   setRecentTags,
-  setFilteredRecentTags,
   removeRecentTag,
 } = tagSlice.actions;
 export default tagSlice.reducer;
