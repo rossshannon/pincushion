@@ -7,10 +7,9 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # Pushing the build to the gh-pages branch is all this needs.
     permissions:
       contents: write
-      pages: write
-      id-token: write
     steps:
       - name: Checkout master branch
         uses: actions/checkout@v4

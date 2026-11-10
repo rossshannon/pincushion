@@ -71,7 +71,6 @@ const OVERLY_COMMON_TAGS = [
   '*',
   '**',
   '***',
-  'instapaper:import',
   'googlereader',
   'no_tag',
   'evernote-web-clipper',

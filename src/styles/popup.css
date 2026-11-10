@@ -1194,10 +1194,6 @@ footer {
   gap: 0.4rem;
 }
 
-.twitter-card-panel__message--error {
-  color: var(--pincushion-error);
-}
-
 .twitter-card-panel__message + .twitter-card {
   margin-block-start: 0.75rem;
 }
